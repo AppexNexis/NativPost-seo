@@ -2,96 +2,104 @@
 
 <section class="hero">
   <div>
-    <p class="eyebrow">Game Availability</p>
+    <p class="eyebrow">Platform Configuration</p>
     <h1>Platform Strategy</h1>
-    <p>Define which social media platforms NativPost actively supports. This is injected into every AI article so the model knows the exact platform list and per-platform features. <strong>Keep this accurate.</strong></p>
+    <p>Defines which social media platforms NativPost actively supports. Injected into every AI article prompt.</p>
   </div>
 </section>
 
 <div class="grid two" style="align-items:start">
-
   <section class="card">
-    <div class="card-head" style="margin-bottom:var(--sp-4)">
-      <h2>Supported Platforms</h2>
-    </div>
-    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-4)">
-      NativPost natively publishes to these platforms. This list is injected into every article prompt so the AI never claims an unsupported platform.
-    </p>
-
+    <div class="card-head" style="margin-bottom:var(--sp-4)"><h2>Supported Platforms</h2></div>
     <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
-      <%
-        var platforms = [
-          { name:'Instagram', status:'live', note:'Feed posts, Reels captions, Stories. Per-platform voice config.' },
-          { name:'Facebook', status:'live', note:'Page posts. Meta API integration.' },
-          { name:'LinkedIn', status:'live', note:'Personal + Company pages. Best for B2B content.' },
-          { name:'Twitter / X', status:'live', note:'Posts up to 280 chars. Thread support.' },
-          { name:'TikTok', status:'live', note:'Caption generation. Short-form video hooks.' },
-          { name:'Pinterest', status:'live', note:'Pin descriptions and board content.' },
-          { name:'YouTube', status:'live', note:'Video descriptions and community posts.' },
-          { name:'Threads', status:'live', note:'Meta's text platform. Connected via Meta API.' },
-        ];
-      %>
-      <% platforms.forEach(function(p) { %>
       <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
-        <div style="flex:1">
-          <div style="font-size:.88rem;font-weight:600;color:var(--text-heading)"><%= p.name %></div>
-          <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px"><%= p.note %></div>
-        </div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">Instagram</div><div style="font-size:.75rem;color:var(--text-muted)">Feed posts, Reels captions, Stories. Per-platform voice config.</div></div>
         <span class="badge good">Live</span>
       </div>
-      <% }); %>
-    </div>
-
-    <div style="margin-top:var(--sp-4);padding:var(--sp-3);background:var(--np-purple-soft,rgba(134,79,254,.08));border-radius:8px;border:1px solid rgba(134,79,254,.15)">
-      <div style="font-size:.78rem;font-weight:700;color:var(--igh-green);margin-bottom:6px">What this controls</div>
-      <div style="font-size:.75rem;color:var(--text-muted);line-height:1.6">
-        Every AI-generated article includes a fact block listing NativPost's supported platforms. This prevents the AI from claiming platforms NativPost doesn't support, and ensures platform-specific articles (e.g. "LinkedIn Content Generator") accurately describe NativPost's per-platform voice configuration.
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">Facebook</div><div style="font-size:.75rem;color:var(--text-muted)">Page posts. Meta API integration.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">LinkedIn</div><div style="font-size:.75rem;color:var(--text-muted)">Personal and Company pages. Best for B2B content.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">Twitter / X</div><div style="font-size:.75rem;color:var(--text-muted)">Posts up to 280 chars. Thread support.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">TikTok</div><div style="font-size:.75rem;color:var(--text-muted)">Caption generation. Short-form video hooks.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">Pinterest</div><div style="font-size:.75rem;color:var(--text-muted)">Pin descriptions and board content.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">YouTube</div><div style="font-size:.75rem;color:var(--text-muted)">Video descriptions and community posts.</div></div>
+        <span class="badge good">Live</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:.88rem;font-weight:600;color:var(--text-heading)">Threads</div><div style="font-size:.75rem;color:var(--text-muted)">Meta text platform. Connected via Meta API.</div></div>
+        <span class="badge good">Live</span>
       </div>
     </div>
   </section>
 
-  <section class="card">
-    <div class="card-head" style="margin-bottom:var(--sp-4)">
-      <h2>Content Modes</h2>
-    </div>
-    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-4)">
-      NativPost generates content in three distinct modes. These are injected into article prompts as product facts.
-    </p>
-    <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
-      <% var modes = [
-        { name:'Normal', desc:'Balanced, brand-matched tone. Default for most content.' },
-        { name:'Concise', desc:'Hemingway mode — max 3 sentences, no filler. Perfect for Twitter/X and Threads.' },
-        { name:'Controversial', desc:'Strategic provocation. Clear position, no rage-bait. Works for LinkedIn engagement.' },
-      ]; %>
-      <% modes.forEach(function(m) { %>
-      <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
-        <div style="font-size:.88rem;font-weight:700;color:var(--igh-green)"><%= m.name %></div>
-        <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px"><%= m.desc %></div>
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head" style="margin-bottom:var(--sp-4)"><h2>Content Modes</h2></div>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+        <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+          <div style="font-size:.88rem;font-weight:700;color:var(--igh-green)">Normal</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Balanced, brand-matched tone. Default for most content.</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+          <div style="font-size:.88rem;font-weight:700;color:var(--igh-green)">Concise</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Hemingway mode. Max 3 sentences, no filler. Best for Twitter/X and Threads.</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+          <div style="font-size:.88rem;font-weight:700;color:var(--igh-green)">Controversial</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Strategic provocation. Clear position, no rage-bait. Works for LinkedIn engagement.</div>
+        </div>
       </div>
-      <% }); %>
-    </div>
+    </section>
 
-    <div class="card-head" style="margin-top:var(--sp-5);margin-bottom:var(--sp-4)">
-      <h2>Video Formats</h2>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
-      <% var videos = [
-        { name:'Slideshow', desc:'Image slideshow — original format. Multiple aspect ratios.' },
-        { name:'Text Motion Card', desc:'Branded animated typography. 9:16, 1:1, and 16:9.' },
-        { name:'Voiceover Slideshow', desc:'Images + OpenAI TTS voiceover. 6 voice options.' },
-        { name:'UGC Ad', desc:'Hook → Problem → Solution → CTA structure. 9:16 only.' },
-        { name:'Data Story', desc:'Animated stats video. Perfect for performance content.' },
-      ]; %>
-      <% videos.forEach(function(v) { %>
-      <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
-        <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:140px"><%= v.name %></div>
-        <div style="font-size:.75rem;color:var(--text-muted)"><%= v.desc %></div>
+    <section class="card">
+      <div class="card-head" style="margin-bottom:var(--sp-4)"><h2>Video Formats</h2></div>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+        <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:150px">Slideshow</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Image slideshow. Multiple aspect ratios.</div>
+        </div>
+        <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:150px">Text Motion Card</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Branded animated typography. 9:16, 1:1, and 16:9.</div>
+        </div>
+        <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:150px">Voiceover Slideshow</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Images with OpenAI TTS voiceover. 6 voice options.</div>
+        </div>
+        <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:150px">UGC Ad</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Hook, Problem, Solution, CTA structure. 9:16 only.</div>
+        </div>
+        <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:150px">Data Story</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Animated stats video. Perfect for performance content.</div>
+        </div>
       </div>
-      <% }); %>
-    </div>
-  </section>
-
+    </section>
+  </div>
 </div>
 
 <%- include('layout-end') %>
