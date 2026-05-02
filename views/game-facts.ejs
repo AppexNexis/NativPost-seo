@@ -1,4 +1,5 @@
 <%- include('layout-start') %>
+
 <section class="hero">
   <div>
     <p class="eyebrow">Game Knowledge Base</p>
@@ -7,42 +8,81 @@
   </div>
 </section>
 
-<% if(typeof msg !== 'undefined' && msg){ %>
-  <div class="notice-good"><%= msg %></div>
-<% } %>
+<div class="grid two" style="align-items:start">
 
-<div class="notice-warn" style="font-size:var(--fs-sm)">
-  <strong>How this fixes "wrong player counts":</strong> Before this system, the AI relied on its training data which may be months old or simply wrong for new games like Windrose. Now these facts appear <em>before everything else</em> in the prompt with explicit instruction: "Do NOT adjust based on your training data." After updating facts here, regenerate any affected articles.
+  <section class="card">
+    <div class="card-head" style="margin-bottom:var(--sp-4)">
+      <h2>NativPost Core Facts</h2>
+    </div>
+    <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:12px 14px;margin-bottom:var(--sp-4)">
+      <div style="font-size:.75rem;font-weight:700;color:var(--warn);margin-bottom:4px">How this prevents wrong pricing in articles</div>
+      <div style="font-size:.75rem;color:var(--text-muted);line-height:1.6">These facts appear <em>before everything else</em> in the prompt with explicit instruction: "Do NOT adjust based on your training data." After updating facts here, regenerate any affected articles.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+      <% var facts = [
+        { label:'Plans', value:'Starter $19/mo (15 posts, 3 platforms) · Growth $39/mo (40 posts, 6 platforms, video) · Pro $79/mo (80 posts, unlimited platforms) · Agency $149/mo (unlimited posts, 5 brand profiles)', status:'ok' },
+        { label:'Setup fee', value:'$5 one-time setup fee on all plans', status:'ok' },
+        { label:'Free trial', value:'7-day free trial — 3 posts maximum, text only. No credit card required.', status:'ok' },
+        { label:'Refund policy', value:'No money-back guarantee. 7-day trial lets customers test before paying.', status:'ok' },
+        { label:'AI engine', value:'Anthropic Claude (primary) with OpenAI as fallback. Anti-slop filter scores every post 0–1, auto-rejects below 0.7.', status:'ok' },
+        { label:'Content modes', value:'Normal · Concise (max 3 sentences) · Controversial (strategic provocation)', status:'ok' },
+        { label:'Platforms', value:'Instagram, Facebook, LinkedIn, LinkedIn Pages, Twitter/X, TikTok, YouTube, Threads, Pinterest', status:'ok' },
+        { label:'Video formats', value:'Slideshow · Text Motion Card · Voiceover Slideshow · UGC Ad · Data Story', status:'ok' },
+        { label:'Africa billing', value:'Paystack accepted — the only AI social media tool with native African market billing.', status:'ok' },
+        { label:'Brand voice', value:'Tone sliders 1–10 (formality/humor/energy), forbidden words, per-platform voice, content examples, anti-patterns, topic memory', status:'ok' },
+        { label:'Generation', value:'3 variants generated in parallel (asyncio.gather). Cross-variant deduplication. Feedback loop improves per brand.', status:'ok' },
+      ]; %>
+      <% facts.forEach(function(f) { %>
+      <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="font-size:.75rem;font-weight:700;color:var(--igh-green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px"><%= f.label %></div>
+        <div style="font-size:.82rem;color:var(--text);line-height:1.6"><%= f.value %></div>
+      </div>
+      <% }); %>
+    </div>
+  </section>
+
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head" style="margin-bottom:var(--sp-4)">
+        <h2>Competitor Intelligence</h2>
+      </div>
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">Direct competitors the AI references in comparison articles. These are pre-loaded and kept current by the competitor auditor.</p>
+      <% var competitors = [
+        { name:'Ocoya', tier:'Direct', note:'Content creation + scheduling. DM chatbots, RSS triggers, design tool. $15–$159/mo.' },
+        { name:'Predis.ai', tier:'Direct', note:'AI social content. Known issue: autopost ignores brief. No anti-slop filtering.' },
+        { name:'Buffer', tier:'Scheduler', note:'Scheduling-first. Basic AI caption bolt-on. No real generation engine.' },
+        { name:'Hootsuite', tier:'Enterprise', note:'Enterprise scheduling. $99+/mo. Superficial AI.' },
+        { name:'Jasper', tier:'Writing', note:'Best brand voice AI writing. No scheduling, no video. $59+/user/mo.' },
+        { name:'Later', tier:'Scheduler', note:'Instagram-first scheduler. Limited AI. Good visual calendar.' },
+        { name:'FeedHive', tier:'Direct', note:'AI + scheduling. Strong for LinkedIn. Limited video.' },
+        { name:'SocialBee', tier:'Direct', note:'AI social media. Category-based scheduling. Complex setup.' },
+      ]; %>
+      <% competitors.forEach(function(c) { %>
+      <div style="padding:10px 12px;border-top:1px solid var(--line-soft);display:flex;gap:10px;align-items:flex-start">
+        <div style="min-width:90px">
+          <div style="font-size:.82rem;font-weight:700;color:var(--text-heading)"><%= c.name %></div>
+          <span class="badge <%= c.tier==='Direct'?'bad':c.tier==='Scheduler'?'warn':'' %>" style="margin-top:3px"><%= c.tier %></span>
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted);line-height:1.5"><%= c.note %></div>
+      </div>
+      <% }); %>
+    </section>
+
+    <section class="card">
+      <div class="card-head" style="margin-bottom:var(--sp-4)">
+        <h2>Anti-Slop Banned Words</h2>
+      </div>
+      <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">These words are banned from all generated articles. The quality scorer penalizes their use.</p>
+      <% var banned = ['leverage','synergy','disruptive','game-changing','cutting-edge','robust','seamlessly','holistic','revolutionize','in today's fast-paced world','transformative','innovative','streamline','empower','unlock']; %>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <% banned.forEach(function(w) { %>
+        <span style="padding:3px 10px;background:rgba(255,79,106,.1);border:1px solid rgba(255,79,106,.2);border-radius:999px;font-size:.72rem;color:var(--bad);font-family:var(--mono)"><%= w %></span>
+        <% }); %>
+      </div>
+    </section>
+  </div>
+
 </div>
 
-<% (facts||[]).forEach(function(f){ %>
-<section class="card" style="margin-bottom:1rem">
-  <div class="card-head">
-    <h2><%= f.game_key.charAt(0).toUpperCase()+f.game_key.slice(1) %></h2>
-    <span style="font-size:var(--fs-sm);padding:2px 10px;border-radius:var(--r-sm);background:<%= f.dedicated_server_available?'rgba(34,197,94,.15)':'rgba(239,68,68,.12)' %>;color:<%= f.dedicated_server_available?'var(--np-purple)':'var(--bad)' %>">
-      <%= f.dedicated_server_available ? '✓ Dedicated servers available' : '✗ No dedicated servers yet' %>
-    </span>
-  </div>
-  <form method="post" action="/admin/game-facts/<%= f.game_key %>/update" class="stack">
-    <div class="grid two" style="gap:10px">
-      <label>Max players (hard limit)<input name="max_players" type="number" value="<%= f.max_players||'' %>" placeholder="e.g. 8"></label>
-      <label>Min RAM (GB)<input name="ram_min_gb" type="number" value="<%= f.ram_min_gb||'' %>" placeholder="e.g. 8"></label>
-      <label>RAM breakdown notes<input name="ram_notes" value="<%= f.ram_notes||'' %>" placeholder="e.g. 8GB for 2 players, 16GB for 8 players"></label>
-      <label>Game engine<input name="engine" value="<%= f.engine||'' %>" placeholder="e.g. Unreal Engine 5"></label>
-      <label>Server OS<input name="server_os" value="<%= f.server_os||'' %>" placeholder="e.g. Windows, Linux"></label>
-      <label>SteamCMD App ID<input name="steamcmd_app_id" value="<%= f.steamcmd_app_id||'' %>" placeholder="e.g. 3041230"></label>
-      <label>Official website<input name="official_site" value="<%= f.official_site||'' %>"></label>
-      <label>Steam page URL<input name="steam_url" value="<%= f.steam_url||'' %>"></label>
-      <label>Release status<select name="release_status"><option value="released" <%=f.release_status==='released'?'selected':''%>>Released</option><option value="early_access" <%=f.release_status==='early_access'?'selected':''%>>Early Access</option><option value="unreleased" <%=f.release_status==='unreleased'?'selected':''%>>Not released yet</option></select></label>
-      <label>Release date<input name="release_date" value="<%= f.release_date||'' %>" placeholder="e.g. April 2026"></label>
-      <label>Dedicated servers exist?<select name="dedicated_server_available"><option value="1" <%=f.dedicated_server_available?'selected':''%>>Yes — hosting is possible</option><option value="0" <%=!f.dedicated_server_available?'selected':''%>>No — write anticipation content only</option></select></label>
-    </div>
-    <label style="margin-top:8px">Extra notes for AI (shown verbatim in prompt)
-      <textarea name="custom_facts" rows="2" style="width:100%"><%= f.custom_facts||'' %></textarea>
-    </label>
-    <button class="btn primary" style="width:auto">Save <%= f.game_key %> facts</button>
-  </form>
-  <div style="margin-top:.5rem;font-size:var(--fs-xs);color:var(--text-muted)">Updated: <%= f.updated_at ? new Date(f.updated_at).toLocaleString() : 'Never' %></div>
-</section>
-<% }); %>
 <%- include('layout-end') %>

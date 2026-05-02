@@ -1048,7 +1048,7 @@ async function fetchTopicImageForKeyword(keyword='', siteId=null) {
     // Use Unsplash Source API - free redirect, no key needed
     const sourceUrl = `https://source.unsplash.com/featured/1200x630/?${encodeURIComponent(query)}`;
     const label = `${keyword} featured image`;
-    const altText = `${keyword} - game server hosting`;
+    const altText = `${keyword} - ai social media content`;
     // Check if we already have one stored for this keyword
     const existing = await one(
       "SELECT * FROM article_assets WHERE label=? AND asset_url LIKE '/uploads/%' ORDER BY id DESC LIMIT 1",
@@ -1110,7 +1110,7 @@ function isBadKeyword(keyword='') {
   const isKnownGame = GAME_ALIASES.some(g => g.patterns.some(p => k === p || k.startsWith(p + ' ')));
   if (words.length < 2 && !isKnownGame) return true;
   if (/\b(nitrado|gportal|shockbyte|bisect|hosthavoc)\b/.test(k)) return true;
-  if (/\b(und|oder|der|die|das|ein|eine|mieten|sofort|spieleserver|gameserver)\b/.test(k) && !/(palworld|minecraft|ark|rust|valheim|server hosting|hosting)/.test(k)) return true;
+  if (/\b(und|oder|der|die|das|ein|eine|mieten|sofort|spieleserver|gameserver)\b/.test(k)) return true; // Remove non-English garbage keywords
   return false;
 }
 function cleanKeyword(keyword='') {
@@ -1123,17 +1123,17 @@ function cleanKeyword(keyword='') {
 function strategicFallbackTopics() {
   // Only games IGH definitively offers — used as last-resort content fallback
   return [
-    'palworld server hosting','minecraft server hosting','minecraft bedrock server hosting',
+    'ai social media content generator','brand voice ai tool','social media scheduling tool',
     'valheim server hosting','enshrouded server hosting','v rising server hosting',
     'icarus server hosting','windrose server hosting','hytale server hosting',
     'dayz server hosting','seven days to die server hosting',
-    'best game server hosting','game server hosting with ddos protection',
-    'affordable game server hosting','nvme game server hosting'
+    'best ai social media content','ai social media content with ddos protection',
+    'affordable ai social media content','nvme ai social media content'
   ];
 }
 function safeJsonParse(value, fallback=null){ try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
 function articleTitleFor(keyword='') {
-  const k = cleanKeyword(keyword) || 'game server hosting';
+  const k = cleanKeyword(keyword) || 'ai social media content';
   const nice = k.replace(/\b\w/g,c=>c.toUpperCase());
   if (/best /.test(k)) return `${nice}: What Players Should Look For Before Buying`;
   if (/setup|guide|how/.test(k)) return `${nice}: Complete Setup Guide`;
@@ -1143,7 +1143,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   if (!hasAnthropic && !hasOpenAI) return null;
-  const target = cleanKeyword(keyword) || keyword || 'game server hosting';
+  const target = cleanKeyword(keyword) || keyword || 'ai social media content';
   const serpAvgWords  = Number(serp?.avg_words || 0);
   const wordTarget    = Math.max(1600, serpAvgWords >= 800 ? serpAvgWords + 200 : 1600);
   const serpQuestions = (serp?.questions || []).slice(0, 10).join('\n- ');
@@ -1151,7 +1151,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
   const serpIntent    = serp?.serp_intent || 'mixed';
   // Detect whether this is a game-specific article or a brand/company article
   const detectedGameInKw = detectGame(target);
-  const isGameArticle = !!detectedGameInKw;
+  const isGameArticle = false; // NativPost: never a game article
   const prompt = [
     // BLOCK 1: Game facts - absolute highest priority, injected first
     offerFacts && offerFacts.includes('VERIFIED FACTS FOR') ? [
@@ -1245,13 +1245,13 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `- Include 3-5 internal markdown links to NativPost blog posts or pages (nativpost.com/blog/, app.nativpost.com). Place naturally in context.`,
     isGameArticle
       ? `- REQUIRED: 1 external link to the game's official Steam page or developer website. Place in the What is [Game] section. Without this the article fails quality gate.`
-      : `- REQUIRED: 1 external link to a relevant authoritative source about game server hosting, esports, or gaming infrastructure. Do NOT link to a specific game's Steam page.`,
+      : `- REQUIRED: 1 external link to a relevant authoritative source about ai social media content, esports, or gaming infrastructure. Do NOT link to a specific game's Steam page.`,
     `- Do not use fake stats. Do not promise guaranteed #1 rankings.`,
     `- Do not mention refunds, money-back guarantees, or 30-day guarantees. NativPost offers a ${NP_TRIAL_DAYS}-day free trial (3 posts max, text only).`,
     `- Do not claim NativPost offers unlimited posts on Starter or a free forever plan. Starter is 15 posts/mo at $19/mo with a $5 setup fee.`,
     `- For server RAM sections: use ONLY the RAM figures from the VERIFIED GAME FACTS above. Do not invent tiers.`,
         `- NATIVPOST PLAN DATA: Use the live package facts scraped from the IGH game page (provided in the offer context above) for ALL pricing and RAM tier claims. If live package data shows specific prices, use those EXACT figures. If no live data found, say "see nativpost.com for current pricing" rather than guessing. ${NP_PACKAGE_RULES}`,
-    `- LINK FORMAT: All pricing, CTA, and 'View Pricing' links MUST use full absolute URLs (e.g. https://nativpost.com/game/palworld-server-hosting). Never use relative URLs like /game/... Format as markdown: [View Pricing](https://nativpost.com/game/palworld-server-hosting).`,
+    `- LINK FORMAT: All pricing, CTA, and 'View Pricing' links MUST use full absolute URLs. Examples: [Start Free Trial](https://app.nativpost.com), [View Plans](https://nativpost.com/pricing), [NativPost Blog](https://nativpost.com/blog). Never use relative URLs.`,
     `- NEVER invent IGH features not confirmed in the offer facts. Do NOT mention: static IP addresses, tick rate controls, "IGH dashboard" by name, server migration tools, DDoS "levels", or any control panel software brand. Only mention: NVMe SSDs, DDoS protection, fast deployment, 2-day free trial, 24/7 support.`,
     isGameArticle
       ? `- Write specifically about ${detectedGameInKw} server hosting. Every section must relate to this specific game. Do NOT pivot to other games.`
@@ -1329,7 +1329,7 @@ function clusterName(keyword='') {
   const game = detectGame(k);
   if (game) return gameDisplay(game) + ' Hosting';
   // General hosting clusters
-  if (/game server hosting|game hosting/.test(k)) return 'Game Server Hosting';
+  if (/ai social media content/.test(k)) return 'AI Social Media';
   if (/dedicated server/.test(k)) return 'Dedicated Servers';
   if (/server hosting/.test(k)) return 'Server Hosting';
   if (/ddos/.test(k)) return 'DDoS Protection';
@@ -1380,7 +1380,7 @@ async function repairContentCalendarSchema() {
 async function insertCalendarItem({ site_id=null, title='', target_keyword='', reason='', status='planned', scheduled_for=null }={}) {
   await repairContentCalendarSchema();
   const scheduled = scheduled_for || scheduledDateForPlan(1);
-  await q('INSERT INTO content_calendar (site_id,article_id,title,target_keyword,reason,status,scheduled_for,scheduled_date) VALUES (?,?,?,?,?,?,?,?)', [site_id || null, null, title || articleTitleFor(target_keyword || 'game server hosting'), target_keyword || title || 'game server hosting', reason || null, status || 'planned', scheduled, scheduled]);
+  await q('INSERT INTO content_calendar (site_id,article_id,title,target_keyword,reason,status,scheduled_for,scheduled_date) VALUES (?,?,?,?,?,?,?,?)', [site_id || null, null, title || articleTitleFor(target_keyword || 'ai social media content'), target_keyword || title || 'ai social media content', reason || null, status || 'planned', scheduled, scheduled]);
 }
 
 // ── Theme preference helpers ─────────────────────────────────────────────
@@ -1657,7 +1657,7 @@ async function cleanupDuplicates() {
   // Purge garbage single-word keywords and known-bad terms from keyword table
   await execSafe(`DELETE FROM keywords WHERE LOWER(keyword) IN ('nitrado','gportal','shockbyte','und','oder','mieten','sofort','gameserver','spieleserver','nstig','inventory','being','sorted','everything','ready','soon','available','features','includes','plans','pricing','choose','compare')`);
   // Delete any keyword that is a single word and doesn't contain a game name or hosting term
-  await execSafe(`DELETE FROM keywords WHERE keyword NOT LIKE '% %' AND keyword NOT REGEXP 'palworld|minecraft|ark|rust|valheim|enshrouded|windrose|icarus|terraria|dayz|v.rising|conan|zomboid|hytale|hosting|server|game'`);
+  // NativPost: keep all multi-word keywords — no game-specific filtering
   await execSafe(`UPDATE articles a JOIN article_assets aa ON aa.id=a.featured_image_id SET a.featured_image_id=NULL, a.featured_image_url=NULL WHERE LOWER(COALESCE(aa.label,'')) LIKE '%press kit%' AND aa.asset_url NOT LIKE '/uploads/%'`);
   await execSafe(`DELETE FROM article_assets WHERE LOWER(COALESCE(label,'')) LIKE '%press kit%' AND asset_url NOT LIKE '/uploads/%'`);
 }
@@ -1881,7 +1881,7 @@ async function saveOwnSiteScan(siteId, scan) {
   await q('DELETE FROM site_pages WHERE site_id=?', [siteId]);
   for (const p of newPages) await execSafe('INSERT INTO site_pages (site_id,page_url,page_title,meta_description,h1_text,page_type,word_count,status_code,last_scanned_at) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), meta_description=VALUES(meta_description), h1_text=VALUES(h1_text), page_type=VALUES(page_type), word_count=VALUES(word_count), status_code=VALUES(status_code), last_scanned_at=NOW()', [siteId,p.page_url,truncate(p.page_title,500),p.meta_description,p.h1_text,p.page_type,p.word_count||0,p.status_code||0]);
   for (const img of scan.imageCandidates || []) {
-    const game=detectGame(`${img.url} ${img.alt}`); if (!game && !/palworld|minecraft|ark|rust|server|hosting/i.test(img.url+img.alt)) continue;
+    // NativPost: save all candidate images from site crawl
     await execSafe('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)', [siteId, truncate(img.alt || `${game || 'site'} image`,255), game, game || 'site-images', img.url, img.alt || `${game || 'Game server'} hosting image`]);
   }
   const payload={...scan, pages:(scan.pages||[]).slice(0,50)};
@@ -1945,7 +1945,7 @@ async function dashboardData() {
   }));
   const leaderboard = [];
   const drafts = await q("SELECT id,title,primary_keyword,status,quality_score,updated_at FROM articles WHERE status IN ('draft','review') ORDER BY updated_at DESC, id DESC LIMIT 8");
-  const opportunities = await q("SELECT keyword,cluster_name,priority_score,volume,difficulty,intent FROM keywords WHERE keyword LIKE '% %' AND (keyword LIKE '%hosting%' OR keyword LIKE '%server%' OR keyword LIKE '%game%') ORDER BY priority_score DESC, volume DESC LIMIT 12");
+  const opportunities = await q("SELECT keyword,cluster_name,priority_score,volume,difficulty,intent FROM keywords WHERE keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC, volume DESC LIMIT 12");
   const radarOpportunities = await getTopRadarOpportunities(3);
   // Daily brief — top 3 recommendations shown on dashboard
   let dailyBrief = [];
@@ -2854,7 +2854,7 @@ async function purgeSerpCache(siteId=null, keyword=null) {
   }
 }
 async function analyzeSerpForKeyword({siteId=null, keyword='', siteUrl=''}) {
-  const qword = cleanKeyword(keyword) || String(keyword||'').trim() || 'game server hosting';
+  const qword = cleanKeyword(keyword) || String(keyword||'').trim() || 'ai social media content';
   const provider = DFS_ENABLED ? 'dataforseo' : 'duckduckgo';
   const cached = await getSerpCache(siteId, qword, provider);
   if (cached) { console.log(`[SERP] Cache hit: "${qword}"`); return cached; }
@@ -2971,7 +2971,7 @@ function buildArticleSchema(article={}) {
     },
     mainEntityOfPage: { '@id': `${url}#webpage` },
     keywords: [article.primary_keyword || '', gameLabel].filter(Boolean).join(', '),
-    articleSection: detectedGame ? 'Game Server Hosting' : 'SEO',
+    articleSection: 'SEO',
     isPartOf: { '@id': `${url}#webpage` }
   });
   // Organization/Website is referenced but may already exist on the site — safe to restate
@@ -2994,7 +2994,7 @@ function buildArticleSchema(article={}) {
       description: `Dedicated ${gameLabel} server hosting from NativPost with NVMe SSD storage, DDoS protection, and instant deployment. ${String(process.env.NATIVPOST_TRIAL_DAYS || 7)}-day free trial.`,
       image: image ? [image] : undefined,
       brand: { '@type':'Brand', name:'NativPost' },
-      category: 'Game Server Hosting',
+      category: 'Social Media SEO',
       offers: {
         '@type':'Offer',
         url: `${siteUrl}/game/${detectedGame.replace(/\s+/g,'-')}-server-hosting`,
@@ -3048,7 +3048,56 @@ function inlineJsonLdScript(schemaJson='') {
 }
 function draftBody({title, keyword, siteName, competitorTerms=[], ownPages=[], serp=null}) {
   const game=detectGame(`${title} ${keyword}`); const terms = competitorTerms.slice(0,10).join(', '); const internal = ownPages.slice(0,6).map(p=>`- ${p.page_title || p.page_url}: ${p.page_url}`).join('\n'); const serpQs = (serp?.questions || []).slice(0,5).map(q=>`- ${q}`).join('\n');
-  return `# ${title}\n\n## Quick Answer\n${siteName || 'NativPost'} should rank for **${keyword || 'game server hosting'}** by answering the buying question first: stable performance, fast setup, clear pricing, mod support, and support from people who understand ${gameDisplay(game || 'game servers')}.\n\n## What To Look For\nChoose hosting with NVMe storage, DDoS protection, fast support, easy mod handling, and hardware that matches your player count and world size.\n\n## Comparison Checklist\n| Need | Why it matters | What to verify |\n|---|---|---|\n| CPU performance | Keeps tick rate stable | Modern CPUs and sensible limits |\n| RAM headroom | Prevents lag/crashes | Enough memory for players and mods |\n| Storage | Faster startup/save times | NVMe SSD storage |\n| Protection | Reduces outage risk | DDoS mitigation |\n| Support | Faster fixes | Real support for setup issues |\n\n## Setup Tips\nUse a clean install, test with a few players, add mods one layer at a time, and watch memory usage during peaks.\n\n## Internal Resources\n${internal || '- Add natural links to IGH game, support, and blog pages.'}\n\n## Questions People Also Ask\n${serpQs || '- What hardware matters most?\n- How much RAM do I need?\n- Is mod support important?'}\n\n## Competitor Gap To Beat\n${terms ? `Competitor and SERP coverage show these useful topic terms: ${terms}. Cover them naturally and more clearly than competing pages.` : 'Run competitor audits so the tool can widen topical coverage even further.'}\n\n## FAQ\n### How much RAM do players need?\nIt depends on the game, mod load, world size, and player count. Start with the current IGH package that fits your server goals.\n\n### Why does storage type matter?\nFaster storage improves boot times, world save speed, and general responsiveness.\n\n### Why choose IGH?\nBecause IGH focuses on reliable performance, fast setup, and support that actually understands game servers.\n\n## Get Started\nIf you want fast, reliable ${keyword || 'game server hosting'}, compare your needs to IGH's available plans and start with the package that fits your player count and mod load.`;
+  return `# ${title}
+
+## Quick Answer
+NativPost is an AI-powered social media content platform. Brands define their voice once — then NativPost generates studio-quality posts, graphics, and videos across Instagram, LinkedIn, TikTok, Twitter/X, Facebook, Pinterest, YouTube, and Threads. Starting at $19/month with a 7-day free trial.
+
+## Why NativPost Stands Out
+Unlike tools that bolt a ChatGPT wrapper onto a scheduler, NativPost uses a real brand voice engine — tone sliders (1–10), forbidden words, per-platform personality, and an anti-slop filter that scores every post 0–1 and auto-rejects anything below 0.7.
+
+## NativPost vs Competitors
+| Feature | NativPost | Ocoya | Buffer | Jasper |
+|---|---|---|---|---|
+| Deep brand voice config | ✓ | Shallow | ✗ | ✓ |
+| Anti-slop filter | ✓ | ✗ | ✗ | ✗ |
+| Content modes | ✓ | ✗ | ✗ | ✗ |
+| Video generation | ✓ | ✗ | ✗ | ✗ |
+| Paystack (Africa) | ✓ | ✗ | ✗ | ✗ |
+| Starting price | $19/mo | $15/mo | $6/mo | $59/mo |
+
+## Getting Started
+1. Sign up at app.nativpost.com — 7-day free trial, no credit card required
+2. Complete the Brand Profile (tone sliders, forbidden words, per-platform voice)
+3. Connect your social accounts (Instagram, LinkedIn, TikTok, etc.)
+4. Generate your first 3 content variants — review and approve the best one
+5. Schedule and publish directly from the dashboard
+
+## NativPost Plans
+| Plan | Posts/mo | Platforms | Price |
+|---|---|---|---|
+| Starter | 15 | 3 | $19/mo |
+| Growth | 40 | 6 | $39/mo |
+| Pro | 80 | Unlimited | $79/mo |
+| Agency | Unlimited | Unlimited | $149/mo |
+
+All plans include a $5 one-time setup fee. 7-day free trial with 3 posts maximum.
+
+## Competitor Gap To Beat
+${terms ? `Competitor and SERP coverage show these relevant topic terms: ${terms}. Cover them naturally and more clearly than competing pages.` : 'Run competitor audits so the tool can widen topical coverage even further.'}
+
+## FAQ
+### Does NativPost work for African businesses?
+Yes — NativPost accepts Paystack, making it the only AI social media tool with native African market billing support.
+
+### Can NativPost learn my brand voice?
+Yes. The Brand Profile lets you configure tone (formality/humor/energy 1–10), forbidden words, platform-specific voice, content examples, and anti-patterns. The feedback loop improves with every approval.
+
+### What's the anti-slop filter?
+Every generated post is scored 0–1 for AI-sounding language (em-dash overuse, generic openings, corporate buzzwords). Posts scoring below 0.7 are automatically rejected and regenerated.
+
+## Get Started
+Start your 7-day free trial at [app.nativpost.com](https://app.nativpost.com) — no credit card required.`
 }
 
 // ── LIVE GAMES MANAGEMENT ─────────────────────────────────────────────────
@@ -3593,12 +3642,12 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
   if (!ownPages || ownPages.length === 0 || ownPages.every(p => p.page_title === 'Crawl failed')) {
     const siteBase = originOf(site?.url || 'https://nativpost.com');
     ownPages = [
-      { page_url: siteBase + '/games', page_title: 'Game Server Hosting - All Games', page_type: 'money', word_count: 500 },
-      { page_url: siteBase + '/game/windrose-server-hosting', page_title: 'Windrose Server Hosting', page_type: 'game', word_count: 400 },
-      { page_url: siteBase + '/game/palworld-server-hosting', page_title: 'Palworld Server Hosting', page_type: 'game', word_count: 400 },
-      { page_url: siteBase + '/game/valheim-server-hosting', page_title: 'Valheim Server Hosting', page_type: 'game', word_count: 400 },
-      { page_url: siteBase + '/game/minecraft-server-hosting', page_title: 'Minecraft Server Hosting', page_type: 'game', word_count: 400 },
-      { page_url: siteBase + '/game/rust-server-hosting', page_title: 'Rust Server Hosting', page_type: 'game', word_count: 400 },
+      { page_url: siteBase + '/pricing', page_title: 'NativPost Pricing — Starter, Growth, Pro, Agency', page_type: 'money', word_count: 500 },
+      { page_url: siteBase + '/game/windrose-server-hosting', page_title: 'Windrose Server Hosting', page_type: 'money', word_count: 400 },
+      { page_url: siteBase + '/features', page_title: 'NativPost Features — Brand Voice, AI Content, Video', page_type: 'money', word_count: 400 },
+      { page_url: siteBase + '/game/valheim-server-hosting', page_title: 'Valheim Server Hosting', page_type: 'money', word_count: 400 },
+      { page_url: siteBase + '/game/minecraft-server-hosting', page_title: 'Minecraft Server Hosting', page_type: 'money', word_count: 400 },
+      { page_url: siteBase + '/game/rust-server-hosting', page_title: 'Rust Server Hosting', page_type: 'money', word_count: 400 },
       { page_url: siteBase + '/support', page_title: 'Support & Setup Help', page_type: 'support', word_count: 200 },
       { page_url: siteBase + '/blog', page_title: 'Game Server Blog & Guides', page_type: 'blog', word_count: 200 },
     ];
@@ -3608,7 +3657,7 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
       for (const g of liveG) {
         const pageUrl = g.igh_page_url || (siteBase + '/game/' + g.game_key.replace(/\s+/g,'-') + '-server-hosting');
         if (!ownPages.find(p => p.page_url === pageUrl)) {
-          ownPages.push({ page_url: pageUrl, page_title: g.game_label + ' Server Hosting', page_type: 'game', word_count: 400 });
+          ownPages.push({ page_url: pageUrl, page_title: g.game_label + ' Server Hosting', page_type: 'money', word_count: 400 });
         }
       }
     } catch(e) {}
@@ -4514,7 +4563,7 @@ async function publishToContentful(article) {
   const allowed = new Set(fieldDefs.map(f=>f.id));
   const fields={};
   const setField = (id, value) => { id = contentfulEnabledField(id); if (id && allowed.has(id) && value !== undefined && value !== null && value !== '') fields[id] = {[locale]: value}; };
-  const publishTitle=safeArticleTitle(article.title, articleTitleFor(article.primary_keyword||'game server hosting'));
+  const publishTitle=safeArticleTitle(article.title, articleTitleFor(article.primary_keyword||'ai social media content'));
   setField(process.env.CONTENTFUL_FIELD_TITLE || 'title', publishTitle);
   setField(process.env.CONTENTFUL_FIELD_SLUG || 'slug', article.slug || slugify(publishTitle));
   // Rebuild schema now that we know the final URL and publish time — this version
@@ -4972,7 +5021,7 @@ app.get('/articles/new', async (req,res,next)=>{ try { render(res,'article-edit'
 app.post('/articles/new', upload.any(), async (req,res,next)=>{ try {
   const asset=req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?',[req.body.featured_image_id]) : null;
   const body=repairOfferClaims(req.body.body||'');
-  const title=safeArticleTitle(req.body.title, articleTitleFor(req.body.primary_keyword || 'game server hosting'));
+  const title=safeArticleTitle(req.body.title, articleTitleFor(req.body.primary_keyword || 'ai social media content'));
   const slug=req.body.slug || slugify(title);
   const status=['draft','review','approved','queued','published'].includes(String(req.body.status||'')) ? req.body.status : 'draft';
   const result=await q('INSERT INTO articles (site_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,quality_score,scheduled_for) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[req.body.site_id||null,title,slug,status,req.body.primary_keyword||null,safeArticleTitle(req.body.meta_title,title),repairOfferClaims(req.body.meta_description||'')||null,repairOfferClaims(req.body.excerpt||'')||null,body,body,asset?.id||null,normalizeImageUrl(asset?.asset_url||req.body.featured_image_url)||null,req.body.featured_image_alt||asset?.alt_text||null,req.body.review_notes||null,0,req.body.scheduled_for||null]);
@@ -4985,7 +5034,7 @@ app.post('/articles/:id', upload.any(), async (req,res,next)=>{ try {
   if(!existing) return res.status(404).render('error',{message:'Article not found', currentPath:'/articles'});
   const asset=req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?',[req.body.featured_image_id]) : null;
   const body=repairOfferClaims(req.body.body ?? existing.body ?? existing.content ?? '');
-  const title=safeArticleTitle(req.body.title, existing.title || articleTitleFor(req.body.primary_keyword || existing.primary_keyword || 'game server hosting'));
+  const title=safeArticleTitle(req.body.title, existing.title || articleTitleFor(req.body.primary_keyword || existing.primary_keyword || 'ai social media content'));
   const slug=req.body.slug || existing.slug || slugify(title);
   const status=['draft','review','approved','queued','published','rejected'].includes(String(req.body.status||'')) ? req.body.status : (existing.status || 'draft');
   const scheduledFor=req.body.scheduled_for || existing.scheduled_for || null;
@@ -5026,7 +5075,7 @@ app.post('/articles/:id/reject-regenerate', upload.any(), async (req,res,next)=>
   const a = await one('SELECT * FROM articles WHERE id=?',[req.params.id]);
   if (!a) return res.redirect('/review');
   const oldId = req.params.id;
-  const keyword = a.primary_keyword || a.title || 'game server hosting';
+  const keyword = a.primary_keyword || a.title || 'ai social media content';
   const siteId = a.site_id || null;
   // Generate replacement first
   const newId = await makeDraftFromKeyword({ id:null, site_id:siteId, keyword }, siteId);
@@ -5040,7 +5089,7 @@ app.post('/articles/regenerate-low-quality', async (req,res,next)=>{ try {
   const rows = await q("SELECT id,site_id,primary_keyword,title FROM articles WHERE status IN ('draft','review') AND COALESCE(quality_score,0) < ? ORDER BY id ASC LIMIT 30", [Number(req.body.threshold || MIN_QUALITY_SCORE)]);
   for (const a of rows) {
     await q("UPDATE articles SET status='rejected', review_notes=CONCAT(COALESCE(review_notes,''), '\nRejected by bulk low-quality regeneration.') WHERE id=?", [a.id]);
-    const newId = await makeDraftFromKeyword({ id:null, site_id:a.site_id||null, keyword:a.primary_keyword || a.title || 'game server hosting' }, a.site_id || null);
+    const newId = await makeDraftFromKeyword({ id:null, site_id:a.site_id||null, keyword:a.primary_keyword || a.title || 'ai social media content' }, a.site_id || null);
     await q("UPDATE content_calendar SET article_id=?, status='draft-created' WHERE article_id=?", [newId, a.id]);
   }
   res.redirect('/review');
@@ -5060,7 +5109,7 @@ app.post('/articles/:id/upload-image', upload.single('image'), async (req,res,ne
   const game = detectGame(`${req.body.game_slug || ''} ${a.primary_keyword || ''} ${a.title || ''}`) || req.body.game_slug || null;
   const assetUrl = `/uploads/${finalName}`;
   const label = req.body.label || `${a.title || 'Article'} image`;
-  const alt = req.body.alt_text || `${a.primary_keyword || a.title || 'Game server hosting'} image`;
+  const alt = req.body.alt_text || `${a.primary_keyword || a.title || 'NativPost social media content'} image`;
   const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)',[a.site_id||null,label,game,game || 'article-images',assetUrl,alt]);
   await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?',[result.insertId,assetUrl,alt,req.params.id]);
   res.redirect(`/articles/${req.params.id}/edit`);
@@ -5090,9 +5139,9 @@ function keywordsFromPageForPlan(page={}) {
       if (/crossplay|xbox|playstation|steam/.test(raw)) out.push(`${game} crossplay server hosting`);
     }
   }
-  if (/ddos/.test(raw)) out.push('game server hosting with ddos protection');
-  if (/cheap|pricing|price|cost|affordable/.test(raw)) out.push('affordable game server hosting');
-  if (/performance|lag|ryzen|nvme/.test(raw)) out.push('high performance game server hosting');
+  if (/ddos/.test(raw)) out.push('ai social media content with ddos protection');
+  if (/cheap|pricing|price|cost|affordable/.test(raw)) out.push('affordable ai social media content');
+  if (/performance|lag|ryzen|nvme/.test(raw)) out.push('high performance ai social media content');
   return out;
 }
 
@@ -5148,7 +5197,7 @@ function candidateAllowedForSupportedGames(keyword='', supported=new Set()) {
   return supported.has(g);
 }
 function supportedFallbackTopics(supported=new Set()) {
-  const base = ['best game server hosting','game server hosting with ddos protection','high performance game server hosting','affordable game server hosting'];
+  const base = ['best ai social media content','ai social media content with ddos protection','high performance ai social media content','affordable ai social media content'];
   for (const g of supported) {
     const label = gameKeywordName(g);
     base.push(`${label} server hosting`, `best ${label} server hosting`, `${label} server setup guide`);
@@ -5164,30 +5213,21 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
   const candidates = [];
   const seen = new Set();
 
-  // --- What already exists (block duplicates) ---
+  // Block duplicates
   const existingArticles = await q('SELECT LOWER(COALESCE(primary_keyword,title)) k FROM articles WHERE (? IS NULL OR site_id<=>?)',[sid,sid]);
   const existingCalendar = await q('SELECT LOWER(COALESCE(target_keyword,title)) k FROM content_calendar WHERE (? IS NULL OR site_id<=>?)',[sid,sid]);
   const blocked = new Set([...existingArticles, ...existingCalendar].map(x => String(x.k||'').toLowerCase().trim()).filter(Boolean));
 
-  const supportedGames = await supportedGamesForSite(sid);
-  if (supportedGames.size) {
-    const placeholders = [...supportedGames].map(()=>'?').join(',');
-    await q(`DELETE FROM game_recommendations WHERE (? IS NULL OR site_id<=>?) AND game IN (${placeholders})`, [sid, sid, ...supportedGames]);
-  }
-
-  // Helper: add candidate if not blocked/seen
   function addCandidate(keyword, title, reason, score) {
     const kw = cleanKeyword(keyword);
     if (!kw) return;
     const key = kw.toLowerCase();
     if (blocked.has(key) || seen.has(key)) return;
-    if (!candidateAllowedForSupportedGames(kw, supportedGames)) return;
     seen.add(key);
     candidates.push({ keyword: kw, title: title || articleTitleFor(kw), reason, score, site_id: sid });
   }
 
-  // --- TIER 1: SERP-cached keywords with real volume (highest priority) ---
-  // These are keywords you've actually researched — use real data
+  // TIER 1: SERP-researched keywords with real volume (highest priority)
   const serpCached = await q(
     'SELECT keyword, search_volume, keyword_difficulty FROM serp_cache ORDER BY search_volume DESC, fetched_at DESC LIMIT 100'
   ).catch(()=>[]);
@@ -5198,30 +5238,23 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
     addCandidate(row.keyword, null, `High-volume SERP keyword (${vol.toLocaleString()} searches/mo, difficulty ${diff})`, score);
   }
 
-  // TIER 2: Foundation money articles — pulled from live_games table so it's always current
-  // Any game IGH offers gets a foundation article. Order by estimated search volume.
-  const volumeOrder = ['minecraft','palworld','rust','valheim','enshrouded','windrose',
-    'v rising','vrising','icarus','terraria','dayz','project zomboid','conan',
-    'satisfactory','factorio','hytale','everwind','7 days to die','voyagers of nera',
-    'seven days to die','seven-days-to-die','voyagers-of-nera'];
-  const gamesByPriority = [...supportedGames].sort((a, b) => {
-    const ai = volumeOrder.findIndex(v => a.includes(v) || v.includes(a));
-    const bi = volumeOrder.findIndex(v => b.includes(v) || v.includes(b));
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
-
-  for (const game of gamesByPriority) {
-    const label = gameKeywordName(game);
-    addCandidate(`${label} server hosting`, null, `Foundation article — primary money keyword for ${gameDisplay(game)}`, 180);
-  }
-
-  // --- TIER 3: Tracked keywords from keyword table (GSC + competitor crawl) ---
+  // TIER 2: Tracked keywords from keyword table (GSC + competitor crawl)
+  // Filter to NativPost-relevant topics only
   const keywords = await q(
     `SELECT keyword, priority_score, volume, difficulty, intent, source
      FROM keywords
      WHERE (? IS NULL OR site_id<=>?)
        AND keyword LIKE '% %'
-       AND (keyword LIKE '%hosting%' OR keyword LIKE '%server%' OR keyword LIKE '%game%')
+       AND (
+         keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%'
+         OR keyword LIKE '%caption%' OR keyword LIKE '%scheduling%' OR keyword LIKE '%instagram%'
+         OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%twitter%'
+         OR keyword LIKE '%facebook%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%'
+         OR keyword LIKE '%ocoya%' OR keyword LIKE '%buffer%' OR keyword LIKE '%hootsuite%'
+         OR keyword LIKE '%jasper%' OR keyword LIKE '%predis%' OR keyword LIKE '%publish%'
+         OR keyword LIKE '%africa%' OR keyword LIKE '%nigeria%' OR keyword LIKE '%kenya%'
+         OR keyword LIKE '%agency%' OR keyword LIKE '%smb%' OR keyword LIKE '%marketing%'
+       )
      ORDER BY priority_score DESC, volume DESC LIMIT 200`,
     [sid, sid]
   );
@@ -5230,7 +5263,7 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
     addCandidate(k.keyword, null, `Tracked keyword — ${k.intent||'mixed'} intent, source: ${k.source||'manual'}`, score);
   }
 
-  // --- TIER 4: Competitor gap keywords ---
+  // TIER 3: Competitor gap keywords (from actual competitor page crawls)
   const compPages = await q(
     `SELECT cp.page_url, cp.page_title, cp.meta_description, cp.word_count,
             COALESCE(c.name,c.competitor_name) competitor_name, c.audit_score
@@ -5239,52 +5272,67 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
      WHERE c.active=1 ORDER BY c.audit_score DESC, cp.word_count DESC LIMIT 200`
   );
   for (const p of compPages) {
-    const pageGame = detectGame(`${p.page_url||''} ${p.page_title||''} ${p.meta_description||''}`);
-    if (pageGame && !supportedGames.has(pageGame)) {
-      await saveGameRecommendation({ site_id:sid, game:pageGame, source_url:p.page_url, source_title:p.page_title,
-        reason:`Competitor ${p.competitor_name} covers ${gameDisplay(pageGame)} but IGH doesn't appear to offer it yet.`, score:100 });
-      continue;
-    }
+    // Only use competitor pages relevant to social media / AI content tools
+    const text = ((p.page_url||'') + ' ' + (p.page_title||'') + ' ' + (p.meta_description||'')).toLowerCase();
+    const isRelevant = /social media|brand voice|content|caption|ai|scheduling|instagram|linkedin|tiktok|marketing|publish|agency|small business/.test(text);
+    if (!isRelevant) continue;
     for (const kw of keywordsFromPageForPlan(p)) {
       addCandidate(kw, null, `Competitor gap from ${p.competitor_name}: "${p.page_title||p.page_url}"`, 90 + Math.min(40, Number(p.word_count||0)/30));
     }
   }
 
-  // --- TIER 5: Secondary articles per game (1 comparison + 1 guide per game) ---
-  for (const game of gamesByPriority) {
-    const label = gameKeywordName(game);
-    addCandidate(`best ${label} server hosting`, null, `Comparison/review article for ${gameDisplay(game)} — catches "best" buyer searches`, 130);
-    addCandidate(`${label} server setup guide`, null, `Setup guide for ${gameDisplay(game)} — captures informational/how-to searches`, 110);
-  }
-
-  // --- TIER 6: Brand + category articles (1-2 per month, not game-specific) ---
-  const brandTopics = [
-    { kw: 'game server hosting', reason: 'Category-level commercial keyword — broad reach', score: 120 },
-    { kw: 'best game server hosting', reason: 'Commercial comparison keyword — high buying intent', score: 118 },
-    { kw: 'dedicated game server hosting', reason: 'High-intent category keyword', score: 112 },
-    { kw: 'affordable game server hosting', reason: 'Pricing-intent category keyword', score: 108 },
-    { kw: 'game server hosting with ddos protection', reason: 'Feature-specific IGH differentiator keyword', score: 105 },
-    { kw: 'low lag game server hosting', reason: 'Performance-intent keyword', score: 102 },
-    { kw: 'managed game server hosting', reason: 'Service-type differentiator keyword', score: 98 },
-    { kw: 'nvme game server hosting', reason: 'Infrastructure differentiator keyword', score: 95 },
-    { kw: 'nativpost', reason: 'Brand keyword — for searchers looking for NativPost specifically', score: 85 },
-    { kw: 'how to choose a game server host', reason: 'Buyer education — top of funnel', score: 80 },
-    { kw: 'game server hosting pricing guide', reason: 'Pricing research keyword', score: 78 },
+  // TIER 4: NativPost core commercial keywords (always include these)
+  const coreTopics = [
+    // AI Social Media — primary category
+    { kw: 'ai social media content generator', reason: 'Primary category keyword — highest commercial intent', score: 185 },
+    { kw: 'ai social media tool', reason: 'Core category — broad reach + high intent', score: 180 },
+    { kw: 'ai social media management', reason: 'Category-level commercial keyword', score: 175 },
+    { kw: 'social media content generator', reason: 'High-volume category keyword', score: 170 },
+    // Brand Voice — NativPost's #1 differentiator
+    { kw: 'brand voice ai', reason: 'NativPost primary differentiator — brand voice config', score: 168 },
+    { kw: 'ai brand voice generator', reason: 'Brand voice keyword cluster', score: 162 },
+    { kw: 'consistent brand voice social media', reason: 'Pain-point keyword — brand consistency', score: 155 },
+    { kw: 'brand voice tool', reason: 'Tool-intent brand voice keyword', score: 150 },
+    // Comparisons (high buying intent)
+    { kw: 'nativpost vs ocoya', reason: 'Direct comparison — high buying intent', score: 148 },
+    { kw: 'ocoya alternative', reason: 'Competitor alternative keyword — captures switching intent', score: 145 },
+    { kw: 'buffer alternative ai', reason: 'Competitor alternative — captures Buffer churn', score: 140 },
+    { kw: 'hootsuite alternative small business', reason: 'Competitor alternative — SMB segment', score: 135 },
+    { kw: 'jasper alternative social media', reason: 'Jasper users looking for scheduling', score: 130 },
+    // Content generation
+    { kw: 'ai caption generator instagram', reason: 'Platform-specific — high volume', score: 145 },
+    { kw: 'ai instagram post generator', reason: 'Instagram content generation keyword', score: 140 },
+    { kw: 'linkedin post generator ai', reason: 'LinkedIn content — high commercial intent', score: 138 },
+    { kw: 'ai tiktok caption generator', reason: 'TikTok content keyword', score: 130 },
+    { kw: 'social media caption generator', reason: 'Broad caption generation keyword', score: 128 },
+    // Scheduling
+    { kw: 'social media scheduling tool', reason: 'Scheduling — core use case', score: 125 },
+    { kw: 'auto publish social media', reason: 'Auto-publish feature keyword', score: 120 },
+    { kw: 'social media calendar tool', reason: 'Calendar/planning keyword', score: 115 },
+    // Video
+    { kw: 'ai social media video generator', reason: 'Video generation — NativPost differentiator', score: 135 },
+    { kw: 'ugc ad generator ai', reason: 'UGC Ad format — specific NativPost feature', score: 128 },
+    // Africa market
+    { kw: 'social media tool nigeria', reason: 'Africa market — Paystack differentiator, no competitors here', score: 140 },
+    { kw: 'social media management kenya', reason: 'Africa market — underserved, low competition', score: 135 },
+    { kw: 'best social media tool south africa', reason: 'Africa market — Paystack angle', score: 130 },
+    { kw: 'ai social media tool africa', reason: 'Africa market — broad', score: 125 },
+    // SMB / Agency
+    { kw: 'social media tool for small business', reason: 'SMB segment — primary ICP', score: 132 },
+    { kw: 'social media tool for agencies', reason: 'Agency segment — Agency plan upsell', score: 128 },
+    { kw: 'affordable social media management tool', reason: 'Price-sensitive SMB buyers', score: 120 },
+    // Pricing / reviews
+    { kw: 'nativpost review', reason: 'Brand review keyword — trust signals', score: 118 },
+    { kw: 'nativpost pricing', reason: 'Pricing intent — bottom of funnel', score: 115 },
+    { kw: 'best ai social media tool 2026', reason: 'Year-specific best-of keyword', score: 110 },
+    // How-to
+    { kw: 'how to create consistent social media content', reason: 'How-to — top of funnel educational', score: 108 },
+    { kw: 'how to build a brand voice on social media', reason: 'How-to — brand voice education', score: 105 },
+    { kw: 'how to use ai for social media marketing', reason: 'How-to — broad educational', score: 100 },
+    { kw: 'social media content strategy small business', reason: 'Strategy keyword — SMB ICP', score: 98 },
   ];
-  for (const t of brandTopics) {
-    addCandidate(t.kw, null, t.reason, t.score);
-  }
+  for (const t of coreTopics) addCandidate(t.kw, null, t.reason, t.score);
 
-  // --- TIER 7: Long-tail per game (crossplay, modded, cheap) — fill remaining slots ---
-  for (const game of gamesByPriority) {
-    const label = gameKeywordName(game);
-    addCandidate(`${label} dedicated server hosting`, null, `Long-tail: dedicated server variant for ${gameDisplay(game)}`, 75);
-    addCandidate(`${label} modded server hosting`, null, `Long-tail: modded server variant for ${gameDisplay(game)}`, 72);
-    addCandidate(`cheap ${label} server hosting`, null, `Long-tail: price-sensitive buyers for ${gameDisplay(game)}`, 70);
-    addCandidate(`${label} crossplay server hosting`, null, `Long-tail: crossplay variant for ${gameDisplay(game)}`, 68);
-  }
-
-  // Sort by score descending and return
   candidates.sort((a,b) => b.score - a.score);
   return candidates.slice(0, limit);
 }
@@ -5418,7 +5466,7 @@ app.get('/content-studio', async (req,res,next)=>{ try {
   const supportedGames = await supportedGamesForSite(null);
   const rawGameRecommendations = await q("SELECT gr.*,s.name site_name FROM game_recommendations gr LEFT JOIN sites s ON s.id=gr.site_id WHERE gr.status='recommended' ORDER BY gr.opportunity_score DESC, gr.id DESC LIMIT 200");
   const gameRecommendations = rawGameRecommendations.filter(r => !supportedGames.has(detectGame(r.game || r.title || r.reason || ''))).slice(0,60);
-  render(res,'content-studio',{ currentPath:'/content-studio', aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:await siteOptions(), assets:await assetOptions(), calendar, month, supportedGames:[...supportedGames].map(gameDisplay).sort(), keywords:await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors:await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps:await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC LIMIT 50`) });
+  render(res,'content-studio',{ currentPath:'/content-studio', aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:await siteOptions(), assets:await assetOptions(), calendar, month, supportedGames:[...supportedGames].map(gameDisplay).sort(), keywords:await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors:await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps:await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC LIMIT 50`) });
 } catch(e){ next(e); } });
 app.post('/content-studio/refresh-supported-games', async (req,res,next)=>{ try {
   const sites = await q("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id");
@@ -5432,7 +5480,7 @@ app.post('/content-studio/refresh-supported-games', async (req,res,next)=>{ try 
   await cleanupDuplicates();
   res.redirect('/content-studio?supportedRefreshed=1');
 } catch(e){ next(e); } });
-app.post('/content-studio/generate', async (req,res,next)=>{ try { const keyword={ id:null, site_id:req.body.site_id||null, keyword:req.body.keyword||'game server hosting' }; const id=await makeDraftFromKeyword(keyword, req.body.site_id); res.redirect(`/articles/${id}/edit`); } catch(e){ next(e); } });
+app.post('/content-studio/generate', async (req,res,next)=>{ try { const keyword={ id:null, site_id:req.body.site_id||null, keyword:req.body.keyword||'ai social media content' }; const id=await makeDraftFromKeyword(keyword, req.body.site_id); res.redirect(`/articles/${id}/edit`); } catch(e){ next(e); } });
 app.post('/content-studio/generate-gap/:keywordId', async (req,res,next)=>{ try { const k=await one('SELECT * FROM keywords WHERE id=?',[req.params.keywordId]); if(!k || !cleanKeyword(k.keyword)) return res.redirect('/content-studio'); const id=await makeDraftFromKeyword(k,k.site_id); res.redirect(`/articles/${id}/edit`); } catch(e){ next(e); } });
 app.post('/content-studio/generate-top', async (req,res,next)=>{ try {
   let planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
@@ -5440,7 +5488,7 @@ app.post('/content-studio/generate-top', async (req,res,next)=>{ try {
     const candidates = await buildStrategicPlanCandidates(null, 30);
     let day = 1;
     for (const c of candidates) {
-      await insertCalendarItem({ site_id:c.site_id||null, title:c.title||articleTitleFor(c.keyword||'game server hosting'), target_keyword:c.keyword||c.title||'game server hosting', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
+      await insertCalendarItem({ site_id:c.site_id||null, title:c.title||articleTitleFor(c.keyword||'ai social media content'), target_keyword:c.keyword||c.title||'ai social media content', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
       day += 1;
     }
     planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
@@ -5460,7 +5508,7 @@ app.post('/content-studio/build-plan', async (req,res,next)=>{ try {
   const candidates = await buildStrategicPlanCandidates(siteId, 30);
   let day = 1;
   for (const c of candidates) {
-    await insertCalendarItem({ site_id:c.site_id||siteId||null, title:c.title||articleTitleFor(c.keyword||'game server hosting'), target_keyword:c.keyword||c.title||'game server hosting', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
+    await insertCalendarItem({ site_id:c.site_id||siteId||null, title:c.title||articleTitleFor(c.keyword||'ai social media content'), target_keyword:c.keyword||c.title||'ai social media content', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
     day += 1;
   }
   res.redirect('/content-studio?planned=' + candidates.length);
@@ -5480,7 +5528,7 @@ app.post('/content-studio/generate-month', async (req,res,next)=>{ try {
   }
   res.redirect('/review');
 } catch(e){ next(e); } });
-app.post('/content-studio/calendar/:id/generate', async (req,res,next)=>{ try { const row=await one('SELECT * FROM content_calendar WHERE id=?',[req.params.id]); if(!row) return res.redirect('/content-studio'); const keyword={id:null, site_id:row.site_id||null, keyword:row.target_keyword||row.title||'game server hosting'}; const articleId=await makeDraftFromKeyword(keyword,row.site_id||null); await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]); await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?',[articleId,'draft-created',req.params.id]); res.redirect(`/articles/${articleId}/edit`); } catch(e){ next(e); } });
+app.post('/content-studio/calendar/:id/generate', async (req,res,next)=>{ try { const row=await one('SELECT * FROM content_calendar WHERE id=?',[req.params.id]); if(!row) return res.redirect('/content-studio'); const keyword={id:null, site_id:row.site_id||null, keyword:row.target_keyword||row.title||'ai social media content'}; const articleId=await makeDraftFromKeyword(keyword,row.site_id||null); await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]); await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?',[articleId,'draft-created',req.params.id]); res.redirect(`/articles/${articleId}/edit`); } catch(e){ next(e); } });
 app.post('/content-studio/calendar/delete-all', async (req,res,next)=>{ try {
   await repairContentCalendarSchema();
   await q('DELETE FROM content_calendar');
@@ -5705,7 +5753,7 @@ app.get('/reports', async (req,res,next)=>{ try {
     pages:     await q("SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY FIELD(sp.page_type,'money','game','blog','support','page'), sp.word_count DESC LIMIT 100"),
     articles:  await q('SELECT id,title,primary_keyword,status,quality_score,review_notes,scheduled_for,updated_at FROM articles ORDER BY updated_at DESC LIMIT 200'),
     keywords:  await q('SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords ORDER BY priority_score DESC LIMIT 200'),
-    gaps:      await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%hosting%' OR keyword LIKE '%server%' OR keyword LIKE '%game%') ORDER BY priority_score DESC LIMIT 50"),
+    gaps:      await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC LIMIT 50"),
     backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.domain_rating DESC, b.id DESC LIMIT 100').catch(()=>[]),
     competitors: await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,audit_score,last_audited_at FROM competitors WHERE active=1 ORDER BY audit_score DESC'),
     serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(()=>[]),
@@ -5941,7 +5989,7 @@ app.get('/reports/competitor-gaps', async (req,res,next) => {
       pages: await q("SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY FIELD(sp.page_type,'money','game','blog','support','page'), sp.word_count DESC LIMIT 100"),
       articles: await q('SELECT id,title,primary_keyword,status,quality_score,review_notes,scheduled_for,updated_at FROM articles ORDER BY updated_at DESC LIMIT 200'),
       keywords: await q('SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords ORDER BY priority_score DESC LIMIT 200'),
-      gaps: await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%hosting%' OR keyword LIKE '%server%' OR keyword LIKE '%game%') ORDER BY priority_score DESC LIMIT 50"),
+      gaps: await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC LIMIT 50"),
       backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.id DESC LIMIT 100').catch(()=>[]),
       competitors: await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,audit_score,last_audited_at FROM competitors WHERE active=1 ORDER BY audit_score DESC'),
       serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(()=>[]),

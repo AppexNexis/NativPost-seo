@@ -1,97 +1,97 @@
 <%- include('layout-start') %>
+
 <section class="hero">
   <div>
-    <p class="eyebrow">Game availability</p>
-    <h1>Platform Strategy Management</h1>
-    <p>Control exactly which games NativPost offers hosting for. This list is injected into every AI article so the model knows what's live vs coming soon. <strong>This directly fixes "upcoming" language in articles.</strong></p>
+    <p class="eyebrow">Game Availability</p>
+    <h1>Platform Strategy</h1>
+    <p>Define which social media platforms NativPost actively supports. This is injected into every AI article so the model knows the exact platform list and per-platform features. <strong>Keep this accurate.</strong></p>
   </div>
-  <form method="post" action="/admin/live-games/refresh" onsubmit="return confirm('Fetch the /games page to auto-detect live games? This crawls your site.')">
-    <button class="btn">Auto-detect from /games page</button>
-  </form>
 </section>
 
-<% if(typeof msg !== 'undefined' && msg){ %>
-  <div class="notice-good"><%= msg %></div>
-<% } %>
+<div class="grid two" style="align-items:start">
 
-<div class="grid two">
   <section class="card">
-    <h2>Add / update game</h2>
-    <form class="stack" method="post" action="/admin/live-games/set">
-      <label>Game
-        <select name="game_key" required>
-          <option value="">Select game...</option>
-          <% (allKeys||[]).sort().forEach(function(k){ %>
-            <option value="<%= k %>"><%= k.split(' ').map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(' ') %></option>
-          <% }); %>
-        </select>
-      </label>
-      <label>Display name (auto-filled)<input name="game_label" placeholder="Windrose"></label>
-      <label>NativPost hosting page URL<input name="igh_page_url" placeholder="https://nativpost.com/game/windrose-server-hosting"></label>
-      <label>Status
-        <select name="status">
-          <option value="live">✓ Live — NativPost offers this now</option>
-          <option value="coming_soon">⏳ Coming soon — use forward-looking language</option>
-          <option value="not_offered">✗ Not offered — do not write articles claiming NativPost hosts this</option>
-        </select>
-      </label>
-      <label>Max players (optional)<input name="max_players" type="number" placeholder="8"></label>
-      <label>Notes for AI (optional)<input name="notes" placeholder="Windows-only server, max 8 players, 2-day trial available"></label>
-      <button class="btn primary" style="width:auto">Save game status</button>
-    </form>
+    <div class="card-head" style="margin-bottom:var(--sp-4)">
+      <h2>Supported Platforms</h2>
+    </div>
+    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-4)">
+      NativPost natively publishes to these platforms. This list is injected into every article prompt so the AI never claims an unsupported platform.
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+      <%
+        var platforms = [
+          { name:'Instagram', status:'live', note:'Feed posts, Reels captions, Stories. Per-platform voice config.' },
+          { name:'Facebook', status:'live', note:'Page posts. Meta API integration.' },
+          { name:'LinkedIn', status:'live', note:'Personal + Company pages. Best for B2B content.' },
+          { name:'Twitter / X', status:'live', note:'Posts up to 280 chars. Thread support.' },
+          { name:'TikTok', status:'live', note:'Caption generation. Short-form video hooks.' },
+          { name:'Pinterest', status:'live', note:'Pin descriptions and board content.' },
+          { name:'YouTube', status:'live', note:'Video descriptions and community posts.' },
+          { name:'Threads', status:'live', note:'Meta's text platform. Connected via Meta API.' },
+        ];
+      %>
+      <% platforms.forEach(function(p) { %>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--good);flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:600;color:var(--text-heading)"><%= p.name %></div>
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px"><%= p.note %></div>
+        </div>
+        <span class="badge good">Live</span>
+      </div>
+      <% }); %>
+    </div>
+
+    <div style="margin-top:var(--sp-4);padding:var(--sp-3);background:var(--np-purple-soft,rgba(134,79,254,.08));border-radius:8px;border:1px solid rgba(134,79,254,.15)">
+      <div style="font-size:.78rem;font-weight:700;color:var(--igh-green);margin-bottom:6px">What this controls</div>
+      <div style="font-size:.75rem;color:var(--text-muted);line-height:1.6">
+        Every AI-generated article includes a fact block listing NativPost's supported platforms. This prevents the AI from claiming platforms NativPost doesn't support, and ensures platform-specific articles (e.g. "LinkedIn Content Generator") accurately describe NativPost's per-platform voice configuration.
+      </div>
+    </div>
   </section>
 
   <section class="card">
-    <h2>What this does</h2>
-    <p class="hint">Every time an article is generated, the app reads this table and injects a fact block like:</p>
-    <pre style="font-size:var(--fs-sm);white-space:pre-wrap;background:var(--bg-2);padding:12px;border-radius:var(--r-md);margin-top:.5rem">CONFIRMED LIVE ON NativPost: Windrose (max 8 players), Palworld, Valheim...
-COMING SOON: Everwind
-NOT OFFERED: ARK</pre>
-    <p class="hint" style="margin-top:.75rem">The AI is instructed: <em>"Do NOT claim NativPost offers hosting for any game not in the live list."</em></p>
-    <p class="hint" style="margin-top:.5rem">If the auto-detect from /games fails (Cloudflare blocks it), set games manually here using the form on the left.</p>
+    <div class="card-head" style="margin-bottom:var(--sp-4)">
+      <h2>Content Modes</h2>
+    </div>
+    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-4)">
+      NativPost generates content in three distinct modes. These are injected into article prompts as product facts.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+      <% var modes = [
+        { name:'Normal', desc:'Balanced, brand-matched tone. Default for most content.' },
+        { name:'Concise', desc:'Hemingway mode — max 3 sentences, no filler. Perfect for Twitter/X and Threads.' },
+        { name:'Controversial', desc:'Strategic provocation. Clear position, no rage-bait. Works for LinkedIn engagement.' },
+      ]; %>
+      <% modes.forEach(function(m) { %>
+      <div style="padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line)">
+        <div style="font-size:.88rem;font-weight:700;color:var(--igh-green)"><%= m.name %></div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px"><%= m.desc %></div>
+      </div>
+      <% }); %>
+    </div>
+
+    <div class="card-head" style="margin-top:var(--sp-5);margin-bottom:var(--sp-4)">
+      <h2>Video Formats</h2>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+      <% var videos = [
+        { name:'Slideshow', desc:'Image slideshow — original format. Multiple aspect ratios.' },
+        { name:'Text Motion Card', desc:'Branded animated typography. 9:16, 1:1, and 16:9.' },
+        { name:'Voiceover Slideshow', desc:'Images + OpenAI TTS voiceover. 6 voice options.' },
+        { name:'UGC Ad', desc:'Hook → Problem → Solution → CTA structure. 9:16 only.' },
+        { name:'Data Story', desc:'Animated stats video. Perfect for performance content.' },
+      ]; %>
+      <% videos.forEach(function(v) { %>
+      <div style="padding:10px 12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--line);display:flex;gap:10px;align-items:flex-start">
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-heading);min-width:140px"><%= v.name %></div>
+        <div style="font-size:.75rem;color:var(--text-muted)"><%= v.desc %></div>
+      </div>
+      <% }); %>
+    </div>
   </section>
+
 </div>
 
-<section class="card">
-  <div class="card-head"><h2>Current game list (<%= (games||[]).length %>)</h2></div>
-  <% if(!(games||[]).length){ %>
-    <p class="empty">No games set yet. Use auto-detect or add manually above. Until games are set here, the AI uses only the .env.local business facts.</p>
-  <% } %>
-  <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
-    <% if((games||[]).length){ %>
-    <thead><tr style="border-bottom:1px solid var(--line);text-align:left">
-      <th style="padding:.4rem .5rem">Game</th>
-      <th style="padding:.4rem .5rem">Status</th>
-      <th style="padding:.4rem .5rem">Max players</th>
-      <th style="padding:.4rem .5rem">NativPost page</th>
-      <th style="padding:.4rem .5rem">Notes</th>
-      <th style="padding:.4rem .5rem">Updated</th>
-      <th style="padding:.4rem .5rem"></th>
-    </tr></thead>
-    <% } %>
-    <tbody>
-    <% (games||[]).forEach(function(g){ %>
-      <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
-        <td style="padding:.4rem .5rem"><strong><%= g.game_label %></strong><br><span style="color:var(--text-muted);font-size:var(--fs-xs)"><%= g.game_key %></span></td>
-        <td style="padding:.4rem .5rem">
-          <span style="padding:2px 10px;border-radius:var(--r-sm);font-size:var(--fs-sm);font-weight:600;background:<%= g.status==='live'?'rgba(34,197,94,.15)':g.status==='coming_soon'?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)' %>;color:<%= g.status==='live'?'var(--np-purple)':g.status==='coming_soon'?'var(--warn)':'var(--bad)' %>">
-            <%= g.status==='live'?'✓ Live':g.status==='coming_soon'?'⏳ Coming soon':'✗ Not offered' %>
-          </span>
-        </td>
-        <td style="padding:.4rem .5rem;color:var(--text-muted)"><%= g.max_players||'—' %></td>
-        <td style="padding:.4rem .5rem;font-size:var(--fs-sm);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          <% if(g.igh_page_url){ %><a href="<%= g.igh_page_url %>" target="_blank"><%= g.igh_page_url %></a><% } else { %>—<% } %>
-        </td>
-        <td style="padding:.4rem .5rem;color:var(--text-muted);font-size:var(--fs-sm)"><%= g.notes||'—' %></td>
-        <td style="padding:.4rem .5rem;color:var(--text-muted);font-size:var(--fs-xs)"><%= g.updated_at ? new Date(g.updated_at).toLocaleDateString() : '—' %></td>
-        <td style="padding:.4rem .5rem">
-          <form method="post" action="/admin/live-games/<%= g.game_key %>/delete" onsubmit="return confirm('Remove <%= g.game_label %> from list?')">
-            <button class="mini danger">Remove</button>
-          </form>
-        </td>
-      </tr>
-    <% }); %>
-    </tbody>
-  </table>
-</section>
 <%- include('layout-end') %>
