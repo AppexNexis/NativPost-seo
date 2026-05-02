@@ -1,26 +1,126 @@
 <%- include('layout-start') %>
-<section class="hero"><p class="eyebrow">Search</p><h1>Own Site</h1><p>Crawl nativpost.com to index pages for context-aware article generation and health scoring.</p></section>
-<% if (typeof query !== 'undefined') { %>
-  <% if (query.crawled) { %><div class="alert good">✓ Crawl complete — <%= query.crawled %> pages indexed.</div><% } %>
+<section class="hero">
+  <div>
+    <p class="eyebrow">Your properties</p>
+    <h1>Own Sites</h1>
+    <p>Add the sites you manage. The crawl scans your pages for technical SEO data. Set the GSC property and GA4 ID here so syncs map to the right site.</p>
+  </div>
+  <form method="post" action="/sites/scan-all" onsubmit="return confirm('Crawl all sites now? This is free — no API credits used.')">
+    <button class="btn primary">Crawl all sites</button>
+  </form>
+</section>
+
+<div class="notice-warn" style="font-size:var(--fs-sm)">
+  <strong>Crawl failures?</strong> Your site is likely protected by Cloudflare, which blocks automated crawlers from external server IPs.
+  <strong>Fix:</strong> In your Cloudflare dashboard → Security → WAF → add a rule to allow requests from your AMP server IP (<code>69.48.201.43</code>),
+  OR go to Cloudflare → Overview → "Under Attack Mode" → temporarily disable it while crawling.
+  Articles still work correctly — internal links are generated from your known game pages even without a successful crawl.
+</div>
+
+<section class="card">
+  <h2>Add / update site</h2>
+  <form class="stack" method="post" action="/sites">
+    <div class="grid two" style="gap:10px">
+      <label>Site name<input name="name" placeholder="NativPost" required></label>
+      <label>URL<input name="url" placeholder="https://nativpost.com" required></label>
+      <label>GSC property URL
+        <input name="gsc_property" placeholder="https://nativpost.com/">
+        <span class="hint">Must match exact property in Google Search Console (including trailing slash).</span>
+      </label>
+      <label>GA4 property ID
+        <input name="ga4_property_id" placeholder="503795951">
+        <span class="hint">Numeric ID only — found in GA4 Admin → Property settings.</span>
+      </label>
+      <label>CMS type
+        <select name="cms_type">
+          <option value="contentful">Contentful</option>
+          <option value="wordpress">WordPress</option>
+          <option value="manual">Manual / other</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn primary" style="width:auto">Add / update site</button>
+  </form>
+</section>
+
+<% if(!sites || !sites.length){ %>
+  <section class="card"><p class="empty">No sites yet. Add your first site above.</p></section>
 <% } %>
-<div style="display:flex;flex-direction:column;gap:var(--sp-4)">
-  <% sites.forEach(function(s) { %>
-  <section class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap">
-      <div>
-        <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-heading)"><%= s.name %></h2>
-        <a href="<%= s.url %>" target="_blank" rel="noopener" style="color:var(--np-purple);font-size:var(--fs-sm)"><%= s.url %></a>
-        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-          <span class="badge good"><%= s.page_count %> pages crawled</span>
-          <span class="badge <%= s.active?'good':'' %>"><%= s.active?'Active':'Inactive' %></span>
-        </div>
-      </div>
-      <form method="post" action="/sites/crawl/<%= s.id %>">
-        <button class="primary">🕷 Crawl Now</button>
+
+<% sites && sites.forEach(function(site){ %>
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 style="margin:0"><%= site.name %></h2>
+      <span style="color:var(--text-muted);font-size:var(--fs-md)"><a href="<%= site.url %>" target="_blank"><%= site.url %></a></span>
+    </div>
+    <div class="actions">
+      <form method="post" action="/sites/<%= site.id %>/scan" onsubmit="return confirm('Crawl this site? Free — no credits used.')">
+        <button class="mini primary">Crawl now</button>
+      </form>
+      <form method="post" action="/sites/<%= site.id %>/delete" onsubmit="return confirm('Remove this site? Its scanned pages will remain in the database.')">
+        <button class="mini danger">Remove</button>
       </form>
     </div>
-    <div class="hint" style="margin-top:var(--sp-3)">Crawling indexes up to 80 pages: homepage, /blog, /features, /pricing, /about, and linked pages. Results are used to build context for AI article generation so the tool references real NativPost pages.</div>
-  </section>
-  <% }); %>
-</div>
+  </div>
+
+  <div class="grid two" style="margin-bottom:.75rem">
+    <div class="metric-row"><strong>GSC property</strong><span><%= site.gsc_property || '— not set' %></span></div>
+    <div class="metric-row"><strong>GA4 property ID</strong><span><%= site.ga4_property_id || '— not set' %></span></div>
+    <div class="metric-row"><strong>CMS type</strong><span><%= site.cms_type || 'contentful' %></span></div>
+  </div>
+
+  <form class="stack" method="post" action="/sites/<%= site.id %>">
+    <div class="grid two" style="gap:8px">
+      <label>Site name<input name="name" value="<%= site.name %>"></label>
+      <label>URL<input name="url" value="<%= site.url %>"></label>
+      <label>GSC property<input name="gsc_property" value="<%= site.gsc_property||'' %>" placeholder="https://example.com/"></label>
+      <label>GA4 property ID<input name="ga4_property_id" value="<%= site.ga4_property_id||'' %>" placeholder="503795951"></label>
+      <label>CMS
+        <select name="cms_type">
+          <option value="contentful" <%= site.cms_type==='contentful'?'selected':'' %>>Contentful</option>
+          <option value="wordpress" <%= site.cms_type==='wordpress'?'selected':'' %>>WordPress</option>
+          <option value="manual" <%= site.cms_type==='manual'?'selected':'' %>>Manual</option>
+        </select>
+      </label>
+    </div>
+    <button class="mini" style="width:auto">Save changes</button>
+  </form>
+</section>
+<% }); %>
+
+<% if(pages && pages.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Scanned pages (<%= pages.length %>)</h2></div>
+  <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
+    <thead><tr style="border-bottom:1px solid var(--line);text-align:left">
+      <th style="padding:.3rem .5rem">Page</th>
+      <th style="padding:.3rem .5rem">Type</th>
+      <th style="padding:.3rem .5rem">Words</th>
+      <th style="padding:.3rem .5rem">Title</th>
+      <th style="padding:.3rem .5rem">Meta</th>
+      <th style="padding:.3rem .5rem">Site</th>
+    </tr></thead>
+    <tbody>
+    <% pages.slice(0,60).forEach(function(p){ %>
+      <tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:.35rem .5rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          <% if(p.page_type==='error'){ %>
+            <span style="color:var(--bad)" title="<%= p.meta_description||'' %>"><%= p.page_url %></span>
+            <% if(p.meta_description){ %><br><span style="font-size:.7rem;color:var(--text-muted)"><%= p.meta_description.slice(0,120) %></span><% } %>
+          <% } else { %>
+            <a href="<%= p.page_url %>" target="_blank"><%= p.page_title || p.page_url %></a>
+          <% } %>
+        </td>
+        <td style="padding:.35rem .5rem;color:var(--text-muted)"><%= p.page_type||'page' %></td>
+        <td style="padding:.35rem .5rem"><%= p.word_count||0 %></td>
+        <td style="padding:.35rem .5rem;font-size:var(--fs-sm)"><%= p.page_title ? '✓' : '<span style="color:var(--bad)">✗</span>' %></td>
+        <td style="padding:.35rem .5rem;font-size:var(--fs-sm)"><%= p.meta_description ? '✓' : '<span style="color:var(--bad)">✗</span>' %></td>
+        <td style="padding:.35rem .5rem;color:var(--text-muted)"><%= p.site_name %></td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</section>
+<% } %>
 <%- include('layout-end') %>

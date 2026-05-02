@@ -1,125 +1,96 @@
 <%- include('layout-start') %>
-
 <section class="hero">
-  <p class="eyebrow">Search</p>
-  <h1>Competitors</h1>
-  <p>Track what Ocoya, Buffer, Jasper and others are doing — find the gaps NativPost can fill.</p>
+  <div>
+    <p class="eyebrow">Competitor intelligence</p>
+    <h1>Competitors</h1>
+    <p>Track competitor sites. The crawler extracts their pages, content topics, keyword gaps, and linking domains — feeding directly into your content strategy.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/competitors/audit-all" onsubmit="return confirm('Re-crawl all competitors? This uses HTTP crawling only — no credits.')">
+      <button class="btn primary">Re-audit all</button>
+    </form>
+  </div>
 </section>
 
-<% if (typeof query !== 'undefined') { %>
-  <% if (query.added) { %><div class="alert good">✓ Competitor added.</div><% } %>
-  <% if (query.audited) { %><div class="alert good">✓ Audit complete for <%= query.audited %>.</div><% } %>
+<section class="card">
+  <h2>Add competitor</h2>
+  <form class="stack" method="post" action="/competitors">
+    <div class="grid two" style="gap:10px">
+      <label>Competitor URL
+        <input name="url" placeholder="https://nitrado.net" required>
+      </label>
+      <label>Display name
+        <input name="name" placeholder="Nitrado (optional)">
+      </label>
+      <label>Compare to site
+        <select name="site_id">
+          <option value="">All sites</option>
+          <% sites.forEach(function(s){ %><option value="<%= s.id %>"><%= s.name %></option><% }); %>
+        </select>
+      </label>
+    </div>
+    <button class="btn primary" style="width:auto">Add &amp; crawl</button>
+  </form>
+</section>
+
+<% if(!competitors.length){ %>
+  <section class="card"><p class="empty">No competitors yet. Add a competitor URL above to start tracking.</p></section>
 <% } %>
 
-<div class="grid two" style="align-items:start">
-  <div>
-    <section class="card">
-      <div class="card-head"><h2>Tracked Competitors (<%= comps.length %>)</h2></div>
-      <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
-        <% comps.forEach(function(c) {
-          var tierColor = c.tier==='direct'?'bad':c.tier==='scheduler'?'warn':c.tier==='writing'?'':'';
-          var tierLabel = c.tier==='direct'?'⚔️ Direct':c.tier==='scheduler'?'📅 Scheduler':c.tier==='writing'?'✍️ Writing':'🏢 Enterprise';
-        %>
-        <div style="padding:var(--sp-3);background:var(--bg-2);border-radius:var(--radius-sm);border:1px solid var(--line)">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-2)">
-            <div style="display:flex;align-items:center;gap:8px">
-              <strong style="color:var(--text-heading)"><a href="<%= c.url %>" target="_blank" rel="noopener" style="color:var(--text-heading);text-decoration:none"><%= c.name %></a></strong>
-              <span class="badge <%= tierColor %>"><%= tierLabel %></span>
-              <% if (c.score > 0) { %><span class="badge">Score: <%= c.score %></span><% } %>
+<% if(competitors.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Tracked competitors (<%= competitors.length %>)</h2></div>
+  <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
+    <thead>
+      <tr style="border-bottom:1px solid var(--line);text-align:left">
+        <th style="padding:.4rem .5rem">Competitor</th>
+        <th style="padding:.4rem .5rem">Score</th>
+        <th style="padding:.4rem .5rem">Pages</th>
+        <th style="padding:.4rem .5rem">Content</th>
+        <th style="padding:.4rem .5rem">Keywords</th>
+        <th style="padding:.4rem .5rem">Ext. domains</th>
+        <th style="padding:.4rem .5rem">Last scan</th>
+        <th style="padding:.4rem .5rem"></th>
+      </tr>
+    </thead>
+    <tbody>
+    <% var _maxScore = Math.max.apply(null, competitors.map(function(c){ return Number(c.audit_score||0); }).concat([1])); %>
+    <% competitors.forEach(function(c){ %>
+      <% var snap = null; try { snap = c.snapshot_json ? JSON.parse(c.snapshot_json) : null; } catch(e){} %>
+      <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+        <td style="padding:.5rem .5rem">
+          <strong><a href="/competitors/<%= c.id %>"><%= c.name||c.url %></a></strong>
+          <span style="display:block;color:var(--text-muted);font-size:var(--fs-sm)"><%= c.url %></span>
+          <% if(snap && snap.error){ %><span style="color:var(--bad);font-size:var(--fs-xs)"><%= snap.error.slice(0,60) %></span><% } %>
+        </td>
+        <td style="padding:.5rem .5rem">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;background:var(--line);border-radius:var(--r-sm);height:6px;min-width:60px">
+              <div style="height:100%;border-radius:var(--r-sm);background:linear-gradient(90deg,var(--igh-green),var(--info));width:<%= Math.max(2,Math.round(Number(c.audit_score||0)/_maxScore*100)) %>%"></div>
             </div>
-            <form method="post" action="/competitors/audit/<%= c.id %>">
-              <button class="mini">Audit now</button>
+            <strong><%= Math.round(Number(c.audit_score||0)) %></strong>
+          </div>
+        </td>
+        <td style="padding:.5rem .5rem;color:var(--text-muted)"><%= snap ? (snap.indexablePages||0) : '—' %></td>
+        <td style="padding:.5rem .5rem;color:var(--text-muted)"><%= snap ? (snap.contentPages||0) : '—' %></td>
+        <td style="padding:.5rem .5rem;color:var(--text-muted)"><%= snap ? (snap.keywordCount||0) : '—' %></td>
+        <td style="padding:.5rem .5rem;color:var(--text-muted)"><%= snap ? (snap.externalDomains||0) : '—' %></td>
+        <td style="padding:.5rem .5rem;color:var(--text-muted);font-size:var(--fs-sm)"><%= c.last_audited_at ? new Date(c.last_audited_at).toLocaleDateString() : 'Never' %></td>
+        <td style="padding:.5rem .5rem">
+          <div class="actions">
+            <a class="mini" href="/competitors/<%= c.id %>">View</a>
+            <form method="post" action="/competitors/<%= c.id %>/audit">
+              <button class="mini">Re-crawl</button>
+            </form>
+            <form method="post" action="/competitors/<%= c.id %>/delete" onsubmit="return confirm('Remove this competitor?')">
+              <button class="mini danger">Remove</button>
             </form>
           </div>
-          <div style="font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:var(--sp-2)"><%= c.note||'' %></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--sp-2)">
-            <% if (c.has_ai) { %><span class="badge warn">Has AI</span><% } else { %><span class="badge good">No AI</span><% } %>
-            <% if (c.has_video) { %><span class="badge warn">Has Video</span><% } else { %><span class="badge good">No Video</span><% } %>
-            <% if (c.has_brand_voice) { %><span class="badge warn">Has Brand Voice</span><% } else { %><span class="badge good">No Brand Voice</span><% } %>
-            <% if (c.has_scheduling) { %><span class="badge">Has Scheduling</span><% } %>
-            <% if (c.has_analytics) { %><span class="badge">Has Analytics</span><% } %>
-            <% if (c.starting_price) { %><span class="badge">From $<%= c.starting_price %>/mo</span><% } %>
-            <% if (c.page_count > 0) { %><span class="badge"><%= c.page_count %> pages</span><% } %>
-            <% if (c.gapCount > 0) { %><span class="badge bad"><%= c.gapCount %> keyword gaps</span><% } %>
-          </div>
-          <% if (c.meta_description) { %>
-          <div style="font-size:var(--fs-xs);color:var(--text-dim);font-style:italic">"<%= c.meta_description.slice(0,140) %>"</div>
-          <% } %>
-          <% if (c.last_audited_at) { %>
-          <div style="font-size:var(--fs-xs);color:var(--text-dim);margin-top:4px">Last audited: <%= new Date(c.last_audited_at).toLocaleDateString() %></div>
-          <% } %>
-        </div>
-        <% }); %>
-      </div>
-    </section>
-  </div>
-
-  <div>
-    <!-- FEATURE MATRIX -->
-    <section class="card" style="margin-bottom:var(--sp-4)">
-      <div class="card-head"><h2>🏆 NativPost Advantage Matrix</h2></div>
-      <p class="hint" style="margin-bottom:var(--sp-3)">Features NativPost has that competitors lack — use these in comparison articles.</p>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr><th>Feature</th><th>NativPost</th><th>Ocoya</th><th>Buffer</th><th>Jasper</th></tr>
-          </thead>
-          <tbody>
-            <% var matrix = [
-              ['Deep brand voice config','✓','Shallow','✗','✓'],
-              ['Anti-slop filter','✓','✗','✗','✗'],
-              ['Content modes (Normal/Concise/Controversial)','✓','✗','✗','✗'],
-              ['Topic memory (prevents repetition)','✓','✗','✗','Partial'],
-              ['3 variants per generation','✓','1','1','1'],
-              ['AI video generation','✓','✗','✗','✗'],
-              ['Social publishing native','✓','✓','✓','✗'],
-              ['Paystack (Africa billing)','✓','✗','✗','✗'],
-              ['Feedback loop learning','✓','✗','✗','Partial'],
-              ['Starts at price','$19/mo','$15/mo','$6/mo','$59/mo'],
-            ]; %>
-            <% matrix.forEach(function(row) { %>
-            <tr>
-              <td style="font-size:var(--fs-sm)"><%= row[0] %></td>
-              <td style="color:var(--good);font-weight:700;font-size:var(--fs-sm)"><%= row[1] %></td>
-              <td style="color:<%= row[2]==='✗'?'var(--bad)':'var(--text-muted)' %>;font-size:var(--fs-sm)"><%= row[2] %></td>
-              <td style="color:<%= row[3]==='✗'?'var(--bad)':'var(--text-muted)' %>;font-size:var(--fs-sm)"><%= row[3] %></td>
-              <td style="color:<%= row[4]==='✗'?'var(--bad)':'var(--text-muted)' %>;font-size:var(--fs-sm)"><%= row[4] %></td>
-            </tr>
-            <% }); %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ADD COMPETITOR -->
-    <section class="card">
-      <div class="card-head"><h2>Add Competitor</h2></div>
-      <form method="post" action="/competitors/add">
-        <div class="form-group">
-          <label>Competitor name</label>
-          <input type="text" name="name" placeholder="e.g. Predis.ai" required>
-        </div>
-        <div class="form-group">
-          <label>URL *</label>
-          <input type="url" name="url" placeholder="https://predis.ai" required>
-        </div>
-        <div class="form-group">
-          <label>Tier</label>
-          <select name="tier">
-            <option value="direct">Direct (AI content + scheduling)</option>
-            <option value="scheduler">Scheduler (scheduling-first)</option>
-            <option value="writing">Writing (AI writing tool)</option>
-            <option value="enterprise">Enterprise</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Notes</label>
-          <textarea name="note" rows="2" placeholder="Key differentiators, pricing, weaknesses..."></textarea>
-        </div>
-        <button type="submit" class="primary" style="width:100%">Add Competitor</button>
-      </form>
-    </section>
-  </div>
-</div>
-
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</section>
+<% } %>
 <%- include('layout-end') %>

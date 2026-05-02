@@ -1,76 +1,76 @@
 <%- include('layout-start') %>
-
-<section class="hero">
-  <p class="eyebrow">Content</p>
-  <h1>Articles</h1>
-  <p>All generated SEO articles for NativPost. Review, edit, approve, and publish.</p>
-</section>
-
-<% if (typeof query !== 'undefined') { %>
-  <% if (query.approved) { %><div class="alert good">✓ Article approved and queued for publishing.</div><% } %>
-  <% if (query.rejected) { %><div class="alert warn">Article rejected.</div><% } %>
-  <% if (query.deleted) { %><div class="alert warn">Article deleted.</div><% } %>
-<% } %>
-
-<div class="tabs">
-  <a href="/articles" class="tab <%= !filterStatus ? 'active' : '' %>">All</a>
-  <a href="/articles?status=draft" class="tab <%= filterStatus==='draft' ? 'active' : '' %>">Drafts</a>
-  <a href="/articles?status=pending_review" class="tab <%= filterStatus==='pending_review' ? 'active' : '' %>">Pending Review</a>
-  <a href="/articles?status=approved" class="tab <%= filterStatus==='approved' ? 'active' : '' %>">Approved</a>
-  <a href="/articles?status=published" class="tab <%= filterStatus==='published' ? 'active' : '' %>">Published</a>
-  <a href="/articles?status=rejected" class="tab <%= filterStatus==='rejected' ? 'active' : '' %>">Rejected</a>
+<% if(typeof query !== 'undefined' && query && query.generating){ %>
+<div style="background:rgba(34,255,68,.08);border:1px solid rgba(34,255,68,.25);border-radius:10px;padding:14px 20px;margin-bottom:1rem;display:flex;align-items:center;gap:12px">
+  <div style="width:18px;height:18px;border:2px solid var(--igh-green);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
+  <div>
+    <strong style="color:var(--igh-green)">Generating article...</strong>
+    <span style="color:var(--text-muted);font-size:.85rem"> &nbsp;Topic: "<%= query.generating %>" — this takes 60-90 seconds. The draft will appear below automatically.</span>
+  </div>
+  <script>setTimeout(function(){ location.reload(); }, 15000);</script>
 </div>
-
-<section class="card">
-  <% if (!rows.length) { %>
-    <p class="empty">No articles yet. <a href="/content-studio" style="color:var(--np-purple)">Generate your first article →</a></p>
-  <% } %>
-
-  <div class="table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Title / Keyword</th>
-          <th>Cluster</th>
-          <th>Status</th>
-          <th>Quality</th>
-          <th>Words</th>
-          <th>Updated</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% rows.forEach(function(a) {
-          var q = Number(a.quality_score||0);
-          var qClass = q >= minQualityScore ? 'good' : q >= 70 ? 'warn' : 'bad';
-          var statusClass = a.status === 'published' ? 'good' : a.status === 'approved' ? 'purple' : a.status === 'rejected' ? 'bad' : a.status === 'pending_review' ? 'warn' : '';
-        %>
-        <tr>
-          <td>
-            <a href="/articles/<%= a.id %>" style="color:var(--text-heading);text-decoration:none;font-weight:600;display:block;margin-bottom:2px"><%= a.title || '(Untitled)' %></a>
-            <span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.primary_keyword||'No keyword' %></span>
-          </td>
-          <td><span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.cluster_name||'—' %></span></td>
-          <td><span class="badge <%= statusClass %>"><%= a.status %></span></td>
-          <td><span class="badge <%= qClass %>"><%= q %>/<%= minQualityScore %></span></td>
-          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= Number(a.word_count||0).toLocaleString() %></td>
-          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.updated_at ? new Date(a.updated_at).toLocaleDateString() : '—' %></td>
-          <td>
-            <div class="actions">
-              <a class="mini btn" href="/articles/<%= a.id %>">View</a>
-              <a class="mini btn" href="/articles/<%= a.id %>/edit">Edit</a>
-              <% if (a.status === 'pending_review') { %>
-              <form method="post" action="/articles/<%= a.id %>/approve" style="display:inline">
-                <button class="mini primary">Approve</button>
-              </form>
-              <% } %>
-            </div>
-          </td>
-        </tr>
-        <% }); %>
-      </tbody>
-    </table>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<% } %>
+<section class="hero">
+  <div>
+    <p class="eyebrow">Content inventory</p>
+    <h1>Drafts &amp; Articles</h1>
+    <p>All articles in every status. Edit, preview, approve, queue, or delete from here.</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="/articles/new">New draft</a>
+    <form method="post" action="/articles/repair-images"><button class="btn">Repair missing images</button></form>
+    <form method="post" action="/articles/delete-drafts" onsubmit="return confirm('Delete ALL draft, review, and rejected articles? Published and queued articles are NOT deleted.')">
+      <button class="btn danger">Delete all drafts</button>
+    </form>
   </div>
 </section>
 
+<div class="tabs">
+  <a class="<%= !status?'active':'' %>" href="/articles">All</a>
+  <a class="<%= status==='draft'?'active':'' %>" href="/articles?status=draft">Drafts</a>
+  <a class="<%= status==='review'?'active':'' %>" href="/articles?status=review">Review</a>
+  <a class="<%= status==='approved'?'active':'' %>" href="/articles?status=approved">Approved</a>
+  <a class="<%= status==='queued'?'active':'' %>" href="/articles?status=queued">Queued</a>
+  <a class="<%= status==='published'?'active':'' %>" href="/articles?status=published">Published</a>
+</div>
+
+<% if (message) { %><section class="card notice"><%= message %></section><% } %>
+
+<section class="card">
+  <% if(!articles.length){ %>
+    <p class="empty">No articles found<%= status ? ' with status "'+status+'"' : '' %>.</p>
+  <% } %>
+  <% articles.forEach(a=>{ %>
+    <div class="article-row">
+      <% if(a.featured_image_url){ %>
+        <img src="<%= a.featured_image_url %>" alt="" onerror="this.style.display='none'">
+      <% } else { %>
+        <div class="thumb">No image</div>
+      <% } %>
+      <div>
+        <strong><a href="/articles/<%= a.id %>/edit"><%= a.title %></a></strong>
+        <span>
+          <%= a.site_name || 'No site' %> &middot;
+          <%= a.status %> &middot;
+          <%= a.primary_keyword || 'No keyword' %> &middot;
+          Quality <b><%= a.quality_score || 0 %></b>/<%= minQualityScore %>
+        </span>
+        <% if (a.status === 'queued' || a.status === 'approved') { %>
+          <p class="schedule-line"><strong><%= schedulePublishLabel(a) %></strong></p>
+        <% } %>
+        <% if (a.status === 'published') { %>
+          <p class="schedule-line"><strong><%= publishedLabel(a) %></strong></p>
+        <% } %>
+        <% if (a.meta_description) { %><p style="font-size:var(--fs-sm);color:#888;"><%= a.meta_description.slice(0,160) %></p><% } %>
+      </div>
+      <div class="actions">
+        <a class="mini" href="/articles/<%= a.id %>">Preview</a>
+        <a class="mini" href="/articles/<%= a.id %>/edit">Edit</a>
+        <form method="post" action="/articles/<%= a.id %>/delete" onsubmit="return confirm('Delete this article permanently?')">
+          <button class="mini danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  <% }) %>
+</section>
 <%- include('layout-end') %>

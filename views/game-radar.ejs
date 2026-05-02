@@ -1,0 +1,123 @@
+<%- include('layout-start') %>
+<%
+  var _radar = radar || [];
+  var _counts = counts || { pending:0, dismissed:0, planned:0 };
+  var _filter = filterStatus || 'pending';
+%>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Admin · Opportunity Discovery</span>
+    <h1>Game Expansion Radar</h1>
+    <p>Finds games NativPost doesn't host yet but probably should. Combines Steam's featured/trending list (signal) with SERP competition data (opportunity window). Early games with high multiplayer/survival tags and low SERP saturation score highest — that's when your articles can rank fast. Auto-refreshes daily.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/admin/game-radar/refresh" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Scanning…'">
+      <button class="btn primary">Scan Steam now</button>
+    </form>
+  </div>
+</section>
+
+<% if (msg) { %>
+<div class="notice-good"><%= msg %></div>
+<% } %>
+
+<div class="stats">
+  <div><b><%= _counts.pending %></b><span>Pending</span></div>
+  <div><b><%= _counts.planned %></b><span>Planned</span></div>
+  <div><b><%= _counts.dismissed %></b><span>Dismissed</span></div>
+</div>
+
+<div class="tabs" style="margin-bottom:var(--sp-4)">
+  <a href="/admin/game-radar?status=pending" class="<%= _filter==='pending'?'active':'' %>">Pending</a>
+  <a href="/admin/game-radar?status=planned" class="<%= _filter==='planned'?'active':'' %>">Planned</a>
+  <a href="/admin/game-radar?status=dismissed" class="<%= _filter==='dismissed'?'active':'' %>">Dismissed</a>
+</div>
+
+<% if (!_radar.length) { %>
+  <section class="card">
+    <p class="empty">
+      <% if (_filter === 'pending') { %>
+        No opportunities surfaced yet. Click <strong>Scan Steam now</strong> above to pull from Steam's public API and cross-reference with games NativPost already hosts. Runs automatically every 24 hours after the first scan.
+      <% } else { %>
+        No <%= _filter %> opportunities.
+      <% } %>
+    </p>
+  </section>
+<% } else { %>
+  <div class="radar-grid">
+  <% _radar.forEach(function(r){
+    var opp = Number(r.opportunity_score || 0);
+    var sig = Number(r.signal_score || 0);
+    var comp = Number(r.serp_competition || 0);
+    var isHigh = opp >= 60;
+  %>
+    <div class="radar-card <%= isHigh ? 'opportunity-high' : '' %>">
+      <div class="radar-head">
+        <div>
+          <h3 class="radar-title"><%= r.game_label %></h3>
+          <div class="radar-sub">
+            <% if (r.steam_app_id) { %>
+              <a href="https://store.steampowered.com/app/<%= r.steam_app_id %>/" target="_blank" rel="noopener">Steam ID <%= r.steam_app_id %></a>
+            <% } %>
+            <% if (r.release_date) { %> · <%= r.release_date %><% } %>
+          </div>
+        </div>
+        <div>
+          <div class="radar-score"><%= opp %></div>
+          <div class="radar-score-label">Opportunity</div>
+        </div>
+      </div>
+
+      <div class="radar-bars">
+        <div class="radar-bar-row">
+          <span class="radar-bar-label">Steam signal</span>
+          <div class="radar-bar-wrap"><div class="radar-bar-fill" style="width:<%= Math.min(100,sig) %>%"></div></div>
+          <span class="radar-bar-val"><%= sig %></span>
+        </div>
+        <div class="radar-bar-row">
+          <span class="radar-bar-label">SERP comp.</span>
+          <div class="radar-bar-wrap"><div class="radar-bar-fill comp" style="width:<%= Math.min(100,comp) %>%"></div></div>
+          <span class="radar-bar-val"><%= comp %></span>
+        </div>
+      </div>
+
+      <% if (r.reason) { %>
+        <div class="radar-reason"><%= r.reason %></div>
+      <% } %>
+
+      <% if (r.status === 'pending') { %>
+        <div class="radar-actions">
+          <form method="post" action="/admin/game-radar/<%= r.id %>/plan">
+            <button class="mini primary">Add to calendar</button>
+          </form>
+          <form method="post" action="/admin/game-radar/<%= r.id %>/dismiss">
+            <button class="mini">Dismiss</button>
+          </form>
+        </div>
+      <% } else if (r.status === 'planned') { %>
+        <div class="radar-reason"><span class="badge good">Added to content calendar</span></div>
+      <% } else { %>
+        <div class="radar-reason"><span class="badge">Dismissed</span></div>
+      <% } %>
+    </div>
+  <% }); %>
+  </div>
+<% } %>
+
+<section class="card" style="margin-top:var(--sp-6)">
+  <div class="card-head"><h2>How it works</h2></div>
+  <p class="hint">
+    The scanner pulls Steam's public "featured categories" API (free, no auth) — specials, top sellers, new releases, coming soon, and popular. For each candidate it doesn't filter out, it fetches Steam app details and scores:
+  </p>
+  <ul style="font-size:var(--fs-sm);color:var(--text-dim);line-height:1.7;padding-left:var(--sp-5);margin-top:var(--sp-2)">
+    <li><strong>Signal score (0-100)</strong> — higher for multiplayer + survival/sandbox + dedicated-server support + early access (first-mover advantage for SEO).</li>
+    <li><strong>SERP competition (0-100)</strong> — checks whether <code>{game} server hosting</code> is saturated by big players (nitrado, shockbyte, gportal, apexminecrafthosting, bisecthosting, scalacube). Higher = more competitors to beat.</li>
+    <li><strong>Opportunity = signal × 1.2 − competition × 0.8 + coming-soon bonus.</strong> Games you already host are skipped automatically.</li>
+  </ul>
+  <p class="hint">
+    Each run is bounded to 40 Steam API calls to stay fast and cheap. SERP competition is checked against your existing DataForSEO cache when available to avoid extra spend. Click <strong>Add to calendar</strong> to queue a Content Studio article for a high-opportunity game.
+  </p>
+</section>
+
+<%- include('layout-end') %>

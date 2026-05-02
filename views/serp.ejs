@@ -1,60 +1,197 @@
 <%- include('layout-start') %>
-<section class="hero"><p class="eyebrow">Search</p><h1>SERP Intelligence</h1><p>Look up any keyword to see who ranks — identify where NativPost is missing and where competitors dominate.</p></section>
-
-<div class="grid two" style="align-items:start">
+<section class="hero">
   <div>
-    <section class="card" style="margin-bottom:var(--sp-4)">
-      <div class="card-head"><h2>🔍 Keyword Lookup</h2></div>
-      <form method="get" action="/serp">
-        <div class="form-group">
-          <label>Keyword to look up</label>
-          <input type="text" name="keyword" value="<%= keyword %>" placeholder="e.g. ai social media content generator" required>
-        </div>
-        <button type="submit" class="primary" style="width:100%">Search SERP →</button>
-        <div class="hint" style="margin-top:6px;text-align:center">Uses DataForSEO if configured, falls back to DuckDuckGo · Results cached <%= 14 %> days</div>
-      </form>
-    </section>
-
-    <% if (results.length) { %>
-    <section class="card">
-      <div class="card-head"><h2>Results for "<%= keyword %>"</h2></div>
-      <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
-        <% results.forEach(function(r) { %>
-        <div style="padding:10px;background:var(--bg-2);border-radius:6px;border:1px solid <%= r.isNativPost?'rgba(134,79,254,.3)':r.competitor?'rgba(255,79,106,.2)':'var(--line)' %>">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-weight:800;font-size:.75rem;color:var(--text-dim);width:20px;flex-shrink:0">#<%= r.position %></span>
-            <% if (r.isNativPost) { %><span class="badge good">NativPost ✓</span><% } %>
-            <% if (r.competitor) { %><span class="badge bad"><%= r.competitor.label %></span><% } %>
-          </div>
-          <div style="font-size:.84rem;font-weight:600;color:var(--text-heading);margin-left:28px"><a href="<%= r.url %>" target="_blank" rel="noopener" style="color:var(--text-heading);text-decoration:none"><%= r.title %></a></div>
-          <div style="font-size:.72rem;color:var(--np-purple);margin-left:28px;margin-top:2px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= r.url %></div>
-          <% if (r.snippet) { %><div style="font-size:.75rem;color:var(--text-muted);margin-left:28px;margin-top:4px"><%= r.snippet.slice(0,160) %></div><% } %>
-        </div>
-        <% }); %>
-      </div>
-      <% var npFound = results.find(function(r){return r.isNativPost;}); %>
-      <% if (!npFound) { %>
-      <div class="alert warn" style="margin-top:var(--sp-3)">⚠️ NativPost not found in these results. <a href="/content-studio?keyword=<%= encodeURIComponent(keyword) %>" style="color:var(--warn)">Generate an article for this keyword →</a></div>
-      <% } %>
-    </section>
-    <% } %>
+    <p class="eyebrow">SERP Intelligence</p>
+    <h1>SERP Analysis</h1>
+    <p>Pull live Google search data for any keyword. Results feed directly into article generation — headings, questions, search intent, word-count targets, and competitor URLs are all injected into every article automatically.</p>
   </div>
+  <div class="actions">
+    <span class="badge <%= dfsEnabled ? 'badge-serp-ok' : 'badge-serp-warn' %>">
+      <%= dfsEnabled ? '⬤ DataForSEO active' : '⬤ DuckDuckGo fallback' %>
+    </span>
+  </div>
+</section>
+
+<style>
+.badge-serp-ok   { display:inline-block;padding:.3rem .9rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#166534;color:#dcfce7; }
+.badge-serp-warn { display:inline-block;padding:.3rem .9rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#854d0e;color:#fef9c3; }
+.serp-table { width:100%;border-collapse:collapse;font-size:.84rem;min-width:700px; }
+.serp-table thead tr { border-bottom:2px solid var(--color-border-secondary); }
+.serp-table th { padding:.5rem .75rem;text-align:left;font-weight:600;color:var(--color-text-secondary);font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.04em; }
+.serp-table td { padding:.5rem .75rem;border-bottom:1px solid var(--color-border-tertiary);color:var(--color-text-primary); }
+.serp-table td.muted { color:var(--color-text-secondary);font-size:var(--fs-sm); }
+.serp-table tr:last-child td { border-bottom:none; }
+.serp-kw-link { color:var(--color-text-info);text-decoration:none;font-weight:600; }
+.serp-kw-link:hover { text-decoration:underline; }
+.badge-dfs { display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#166534;color:#dcfce7; }
+.badge-ddg { display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#854d0e;color:#fef9c3; }
+.badge-exp { display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#991b1b;color:#fee2e2; }
+.badge-feat { display:inline-block;padding:.12rem .45rem;border-radius:4px;font-size:var(--fs-xs);background:var(--color-background-secondary);color:var(--color-text-secondary); }
+.serp-detail-row { background:var(--color-background-secondary); }
+.serp-result-card { background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:6px;padding:.7rem .9rem; }
+.serp-result-card h4 { font-size:var(--fs-md);font-weight:600;margin-bottom:.2rem;color:var(--color-text-primary); }
+.serp-result-card a { font-size:var(--fs-sm);color:var(--color-text-info);word-break:break-all; }
+.serp-result-card p { font-size:var(--fs-sm);color:var(--color-text-secondary);margin:.3rem 0 0; }
+.serp-result-card .sub-label { font-size:var(--fs-sm);color:var(--color-text-secondary);font-weight:600;margin:.4rem 0 .1rem; }
+.serp-result-card ul { margin:.1rem 0 0;padding-left:1.1rem;font-size:var(--fs-sm);color:var(--color-text-secondary); }
+.warn-box { margin:.75rem 0 0;font-size:var(--fs-md);color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:.6rem .9rem; }
+.vol-badge { display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#1e40af;color:var(--text); }
+.comp-badge { display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:var(--fs-sm);font-weight:600;background:#854d0e;color:#fef9c3; }
+</style>
+
+<section class="card">
+  <h2>Provider status</h2>
+  <p style="margin:.4rem 0 0;font-size:var(--fs-md);color:var(--color-text-secondary);"><%= providerStatus %></p>
+  <% if (!dfsEnabled) { %>
+  <p class="warn-box">
+    To activate DataForSEO: sign up at <strong>dataforseo.com</strong> (pay-as-you-go, $50 minimum, balance never expires).
+    Then open <code>.env.local</code> in the AMP file manager, set <code>DATAFORSEO_ENABLED=true</code> and add your
+    <code>DATAFORSEO_LOGIN</code> and <code>DATAFORSEO_PASSWORD</code>, then restart the instance.
+  </p>
+  <% } %>
+</section>
+
+<div class="grid two">
+  <section class="card">
+    <h2>Analyze a keyword</h2>
+    <form method="post" action="/serp/analyze" class="form-grid">
+      <select name="site_id">
+        <option value="">No site filter</option>
+        <% sites.forEach(s=>{ %><option value="<%= s.id %>" <%= String(siteId)===String(s.id)?'selected':'' %>><%= s.name %></option><% }) %>
+      </select>
+      <input name="keyword" placeholder="palworld server hosting" required>
+      <button class="btn primary">Fetch SERP now</button>
+    </form>
+    <p style="font-size:var(--fs-sm);color:var(--color-text-secondary);margin-top:.5rem;">Forces a fresh fetch. Use sparingly — results are cached for 14 days.</p>
+  </section>
 
   <section class="card">
-    <div class="card-head"><h2>Recent Lookups</h2></div>
-    <% if (!recent.length) { %>
-      <p class="empty">No SERP lookups yet. Search a keyword above.</p>
-    <% } %>
-    <% recent.forEach(function(r) { %>
-    <div class="metric-row">
-      <div>
-        <strong><a href="/serp?keyword=<%= encodeURIComponent(r.keyword) %>" style="color:var(--text-heading);text-decoration:none"><%= r.keyword %></a></strong>
-        <span><%= r.fetched_at ? new Date(r.fetched_at).toLocaleDateString() : '' %></span>
-      </div>
-      <a href="/serp?keyword=<%= encodeURIComponent(r.keyword) %>" class="mini btn">View</a>
-    </div>
-    <% }); %>
+    <h2>Batch analyze</h2>
+    <form method="post" action="/serp/analyze-batch" class="form-grid">
+      <select name="site_id">
+        <option value="">No site filter</option>
+        <% sites.forEach(s=>{ %><option value="<%= s.id %>" <%= String(siteId)===String(s.id)?'selected':'' %>><%= s.name %></option><% }) %>
+      </select>
+      <textarea name="keywords" rows="5" placeholder="palworld server hosting&#10;minecraft server hosting&#10;ark survival ascended server&#10;enshrouded dedicated server" style="width:100%;font-size:var(--fs-sm);padding:.5rem;border:1px solid var(--color-border-secondary);border-radius:4px;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:monospace;"></textarea>
+      <button class="btn primary">Batch fetch (max 20)</button>
+    </form>
+    <p style="font-size:var(--fs-sm);color:var(--color-text-secondary);margin-top:.5rem;">One keyword per line. Runs sequentially to keep API costs low.</p>
   </section>
 </div>
 
+<section class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+    <h2 style="margin:0;">Cached results (<%= cached.length %>)</h2>
+    <form method="post" action="/serp/purge" style="display:inline;">
+      <input type="hidden" name="site_id" value="<%= siteId||'' %>">
+      <button class="btn danger" onclick="return confirm('Purge all cached SERP data? This does not affect articles already generated.')">Purge all cache</button>
+    </form>
+  </div>
+
+  <% if (!cached.length) { %>
+    <p class="empty">No SERP data cached yet. Use the form above to analyze a keyword, or generate an article from Content Studio — SERP data is fetched automatically during generation and cached here.</p>
+  <% } else { %>
+  <div style="overflow-x:auto;">
+  <table class="serp-table">
+    <thead>
+      <tr>
+        <th>Keyword</th>
+        <th>Provider</th>
+        <th>Volume</th>
+        <th>Avg words</th>
+        <th>Results</th>
+        <th>SERP features</th>
+        <th>Fetched</th>
+        <th>Expires</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    <% cached.forEach(row => {
+         const features = (() => { try { return JSON.parse(row.serp_features_json||'[]'); } catch { return []; } })();
+         const now = Date.now();
+         const expiry = row.expires_at ? new Date(row.expires_at).getTime() : 0;
+         const expired     = expiry && expiry < now;
+         const expiresSoon = expiry && !expired && expiry < now + 2*86400*1000;
+    %>
+      <tr>
+        <td><a class="serp-kw-link" href="#" onclick="toggleResults('<%= encodeURIComponent(row.keyword) %>','<%= siteId||'' %>');return false;"><%= row.keyword %></a></td>
+        <td><span class="<%= row.provider==='dataforseo'?'badge-dfs':'badge-ddg' %>"><%= row.provider %></span></td>
+        <td><%= row.search_volume ? Number(row.search_volume).toLocaleString() : '—' %></td>
+        <td><%= row.avg_words || '—' %></td>
+        <td><%= row.result_count || 0 %></td>
+        <td class="muted"><%= features.slice(0,3).join(', ') || '—' %></td>
+        <td class="muted"><%= row.fetched_at ? new Date(row.fetched_at).toLocaleDateString() : '—' %></td>
+        <td><span class="<%= expired?'badge-exp':'' %>" style="<%= expiresSoon&&!expired?'color:#d97706;font-weight:600;':'' %>"><%= row.expires_at ? new Date(row.expires_at).toLocaleDateString() : '—' %><%= expired?' (expired)':expiresSoon?' (soon)':'' %></span></td>
+        <td style="white-space:nowrap;">
+          <form method="post" action="/serp/analyze" style="display:inline;">
+            <input type="hidden" name="keyword" value="<%= row.keyword %>">
+            <input type="hidden" name="site_id" value="<%= siteId||'' %>">
+            <button class="btn" style="font-size:var(--fs-sm);padding:.2rem .55rem;">Refresh</button>
+          </form>
+          <form method="post" action="/serp/purge" style="display:inline;margin-left:.25rem;">
+            <input type="hidden" name="keyword" value="<%= row.keyword %>">
+            <input type="hidden" name="site_id" value="<%= siteId||'' %>">
+            <button class="btn danger" style="font-size:var(--fs-sm);padding:.2rem .55rem;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      <tr class="serp-detail-row" id="detail-<%= encodeURIComponent(row.keyword) %>" style="display:none;">
+        <td colspan="9" style="padding:.75rem 1rem;" id="detail-content-<%= encodeURIComponent(row.keyword) %>">
+          <em style="color:var(--color-text-secondary);">Loading...</em>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+  </div>
+  <% } %>
+</section>
+
+<script>
+async function toggleResults(encodedKw, siteId) {
+  const detailRow = document.getElementById('detail-' + encodedKw);
+  const content   = document.getElementById('detail-content-' + encodedKw);
+  if (!detailRow) return;
+  if (detailRow.style.display !== 'none') { detailRow.style.display = 'none'; return; }
+  detailRow.style.display = 'table-row';
+  content.innerHTML = '<em>Loading results...</em>';
+  try {
+    const url = '/serp/' + encodedKw + '/results' + (siteId ? '?site_id=' + encodeURIComponent(siteId) : '');
+    const data = await fetch(url).then(r => r.json());
+    if (data.error) { content.innerHTML = '<em style="color:#dc2626;">Error: ' + data.error + '</em>'; return; }
+    let html = '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center;">';
+    if (data.search_volume) html += '<span class="vol-badge">Volume: ' + Number(data.search_volume).toLocaleString() + '</span>';
+    if (data.keyword_difficulty) html += '<span class="comp-badge">Competition: ' + data.keyword_difficulty + '</span>';
+    (data.serp_features||[]).forEach(f => { html += '<span class="badge-feat">' + f + '</span>'; });
+    html += '</div>';
+    if (!data.results || !data.results.length) {
+      content.innerHTML = html + '<em style="color:var(--color-text-secondary);">No result rows stored — the SERP fetch may have returned no organic results for this keyword. Try clicking Refresh to re-fetch.</em>';
+      return;
+    }
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.6rem;">';
+    data.results.forEach((r, i) => {
+      const safe = s => (s||'').toString().replace(/[<>]/g, c => c==='<'?'&lt;':'&gt;');
+      html += '<div class="serp-result-card">';
+      html += '<h4>#' + (r.position||i+1) + ' — ' + safe(r.title) + '</h4>';
+      html += '<a href="' + (r.url||'') + '" target="_blank" rel="noopener">' + safe((r.url||'').slice(0,70)) + '</a>';
+      if (r.word_count) html += ' <span style="color:var(--color-text-secondary);font-size:var(--fs-sm);">· ' + r.word_count + ' words</span>';
+      if (r.snippet) html += '<p>' + safe((r.snippet||'').slice(0,160)) + '</p>';
+      if (r.headings && r.headings.length) {
+        html += '<p class="sub-label">H2/H3 headings:</p>';
+        html += '<ul>' + r.headings.slice(0,5).map(h=>'<li>'+safe(h)+'</li>').join('') + '</ul>';
+      }
+      if (r.questions && r.questions.length) {
+        html += '<p class="sub-label">Questions:</p>';
+        html += '<ul>' + r.questions.slice(0,4).map(q=>'<li>'+safe(q)+'</li>').join('') + '</ul>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  } catch(e) {
+    content.innerHTML = '<em style="color:#dc2626;">Error: ' + e.message + '</em>';
+  }
+}
+</script>
 <%- include('layout-end') %>

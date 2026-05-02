@@ -4,17 +4,18 @@
   <div>
     <p class="eyebrow">SEO Command Center</p>
     <h1>Dashboard</h1>
-    <p>Your live SEO pipeline — scan, research, generate, and publish to grow NativPost's organic traffic.</p>
+    <p>Your live SEO pipeline — scan, create, review, and publish to grow organic traffic.</p>
   </div>
 </section>
 
 <div class="stats">
-  <div><b><%= summary.pages %></b><span>Pages crawled</span></div>
-  <div><b><%= summary.keywords %></b><span>Keywords</span></div>
+  <div><b><%= summary.sites %></b><span>Own sites</span></div>
+  <div><b><%= summary.pages %></b><span>Pages scanned</span></div>
   <div><b><%= summary.competitors %></b><span>Competitors</span></div>
+  <div><b><%= summary.keywords %></b><span>Keywords</span></div>
   <div><b><%= summary.drafts %></b><span>Drafts</span></div>
   <div><b><%= summary.review %></b><span>In review</span></div>
-  <div><b><%= summary.queued %></b><span>Approved</span></div>
+  <div><b><%= summary.queued %></b><span>Queued</span></div>
   <div><b><%= summary.published %></b><span>Published</span></div>
 </div>
 
@@ -23,181 +24,254 @@
   <!-- SITE HEALTH -->
   <section class="card">
     <div class="card-head"><h2>Site health</h2><a href="/sites">Manage →</a></div>
-    <% if (site) { %>
-    <%
-      var _pages    = summary.pages;
-      var _arts     = summary.published;
-      var _clicks   = Number(gsc.clicks||0);
-      var _impr     = Number(gsc.impressions||0);
-      var _avgPos   = Number(gsc.avg_position||0);
-      var _hasGSC   = _clicks > 0 || _impr > 0;
-    %>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-      <div>
-        <strong style="font-size:.95rem"><%= site.name %></strong>
-        <span style="display:block;color:var(--text-muted);font-size:var(--fs-sm)"><%= site.url %></span>
-      </div>
-      <div class="score-circle"><%= health.overall %>%</div>
-    </div>
-
-    <div class="health-grid">
-      <div class="health-item">
-        <div class="health-label">Crawl coverage</div>
-        <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,health.crawlPct) %>%"></div></div>
-        <div class="health-val"><%= health.crawlPct %>%</div>
-      </div>
-      <div class="health-item">
-        <div class="health-label">Content depth</div>
-        <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,health.contentPct) %>%"></div></div>
-        <div class="health-val"><%= health.contentPct %>%</div>
-      </div>
-      <div class="health-item">
-        <div class="health-label">SERP visibility</div>
-        <% if (health.serpPct !== null) { %>
-          <div class="health-bar-wrap"><div class="health-bar bar-serp" style="width:<%= Math.max(2,health.serpPct) %>%"></div></div>
-          <div class="health-val"><%= health.serpPct %>%</div>
-        <% } else { %>
-          <div class="health-no-data"><a href="/settings">Sync GSC in Settings →</a></div>
-          <div class="health-val"></div>
-        <% } %>
-      </div>
-      <div class="health-item">
-        <div class="health-label">Backlink authority</div>
-        <% if (earnedBL > 0) { %>
-          <div class="health-bar-wrap"><div class="health-bar bar-bl" style="width:<%= Math.max(2,health.blPct) %>%"></div></div>
-          <div class="health-val"><%= health.blPct %>%</div>
-        <% } else { %>
-          <div class="health-no-data"><a href="/backlinks"><%= blOpportunities %> found — mark earned →</a></div>
-          <div class="health-val"></div>
-        <% } %>
-      </div>
-    </div>
-
-    <div class="health-stats">
-      <span><b><%= _pages %></b> pages</span>
-      <span><b><%= _arts %></b> articles</span>
-      <% if (_hasGSC) { %>
-        <span><b><%= _avgPos > 0 ? _avgPos.toFixed(1) : '—' %></b> avg pos</span>
-        <span><b><%= (_clicks||0).toLocaleString() %></b> clicks/90d</span>
-        <span><b><%= (_impr||0).toLocaleString() %></b> impressions</span>
-      <% } %>
-    </div>
-    <% } else { %>
-    <p class="empty">No site configured. <a href="/sites" style="color:var(--np-purple)">Add your site →</a></p>
+    <% if(!ownRanked.length){ %>
+      <p class="empty">Add your site under Own Sites and run a crawl.</p>
     <% } %>
+    <% ownRanked.forEach(function(s){ %>
+      <%
+        var _pages    = Number(s.pages||0);
+        var _articles = Number(s.articles||0);
+        var _clicks   = Number(s.clicks||0);
+        var _impr     = Number(s.impressions||0);
+        var _avgPos   = Number(s.avg_position||0);
+        var _earnedBL = Number(s.earned_backlinks||0);
+        var _oppBL    = Number(s.backlinks||0);
+        var _rankingRows = Number(s.ranking_rows||0);
+        var _hasGSC   = _clicks > 0 || _impr > 0 || _rankingRows > 0;
+        var _crawl    = Math.min(100, Math.round(_pages / 200 * 100));
+        var _content  = Math.min(100, Math.round(_articles / 500 * 100));
+        var _serp     = _hasGSC ? Math.min(100, Math.round((100 - Math.min(_avgPos, 100)) * 1.3 + _clicks * 0.3 + _impr * 0.005)) : null;
+        var _bl       = Math.min(100, Math.round(_earnedBL / 20 * 100));
+        var _signals  = [_crawl, _content];
+        if (_serp !== null) _signals.push(_serp);
+        if (_earnedBL > 0) _signals.push(_bl);
+        var _overall  = Math.round(_signals.reduce(function(a,b){ return a+b; },0) / _signals.length);
+      %>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <div>
+          <strong style="font-size:.95rem"><%= s.name %></strong>
+          <span style="display:block;color:var(--text-muted);font-size:var(--fs-sm)"><%= s.url %></span>
+        </div>
+        <div class="score-circle"><%= _overall %>%</div>
+      </div>
+
+      <div class="health-grid">
+        <div class="health-item">
+          <div class="health-label">Crawl coverage</div>
+          <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,_crawl) %>%"></div></div>
+          <div class="health-val"><%= _crawl %>%</div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">Content depth</div>
+          <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,_content) %>%"></div></div>
+          <div class="health-val"><%= _content %>%</div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">SERP visibility</div>
+          <% if(_hasGSC){ %>
+            <div class="health-bar-wrap"><div class="health-bar health-bar-serp" style="width:<%= Math.max(2,_serp) %>%"></div></div>
+            <div class="health-val"><%= _serp %>%</div>
+          <% } else { %>
+            <div class="health-no-data"><a href="/settings">Sync GSC in Settings →</a></div>
+            <div class="health-val"></div>
+          <% } %>
+        </div>
+        <div class="health-item">
+          <div class="health-label">Backlink authority</div>
+          <% if(_earnedBL > 0){ %>
+            <div class="health-bar-wrap"><div class="health-bar health-bar-bl" style="width:<%= Math.max(2,_bl) %>%"></div></div>
+            <div class="health-val"><%= _bl %>%</div>
+          <% } else { %>
+            <div class="health-no-data"><a href="/backlinks"><%= _oppBL %> found — mark earned →</a></div>
+            <div class="health-val"></div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="health-stats">
+        <span><b><%= _pages %></b> pages</span>
+        <span><b><%= _articles %></b> articles</span>
+        <% if(_hasGSC){ %>
+          <span><b><%= _avgPos > 0 ? _avgPos.toFixed(1) : '—' %></b> avg pos</span>
+          <span><b><%= (_clicks||0).toLocaleString() %></b> clicks/90d</span>
+          <span><b><%= (_impr||0).toLocaleString() %></b> impressions</span>
+        <% } %>
+        <% if(typeof ownSerpCount !== 'undefined' && ownSerpCount > 0){ %>
+          <span><b><%= ownSerpCount %></b> SERP appearances</span>
+        <% } %>
+      </div>
+    <% }); %>
   </section>
 
-  <!-- COMPETITOR SERP LEADERBOARD -->
+  <!-- COMPETITOR LEADERBOARD — SERP-BASED -->
   <section class="card">
     <div class="card-head"><h2>Competitor SERP leaderboard</h2><a href="/competitors">Manage →</a></div>
-    <p class="hint">Ranked by SERP appearances in your tracked keywords. Run keyword lookups in <a href="/serp">SERP Intel</a> to populate this.</p>
-    <% if (!compRanked.length) { %>
-      <p class="empty">No competitors found. They're pre-loaded — click Competitors.</p>
+    <p class="hint">
+      Ranked by how often competitors appear in your tracked keyword searches. "Not yet found" means they didn't rank for the specific keywords you've looked up so far — not that they don't rank at all. Try batch-searching your core commercial keywords in <a href="/serp">SERP Intelligence</a>.
+    </p>
+    <% if(!compRanked.length){ %>
+      <p class="empty">Add competitors and crawl them.</p>
     <% } %>
     <%
-      var _sorted = compRanked.slice().sort(function(a,b) {
-        var aS=Number(a.serpRankCount||0), bS=Number(b.serpRankCount||0);
-        if (bS !== aS) return bS - aS;
+      var _sorted = compRanked.slice().sort(function(a,b){
+        var aSerp = Number(a.serpRankCount||0), bSerp = Number(b.serpRankCount||0);
+        if(bSerp !== aSerp) return bSerp - aSerp;
         return Number(b.score||0) - Number(a.score||0);
       });
-      var _maxSerp = Math.max.apply(null, _sorted.map(function(c){return Number(c.serpRankCount||0)}).concat([1]));
+      var _maxSerp = Math.max.apply(null, _sorted.map(function(c){ return Number(c.serpRankCount||0); }).concat([1]));
+      var _maxScore = Math.max.apply(null, _sorted.map(function(c){ return Number(c.score||0); }).concat([1]));
     %>
-    <% _sorted.slice(0,7).forEach(function(c,i){ %>
-    <div class="leaderboard-row">
-      <div class="leaderboard-head">
-        <span class="rank-num">#<%= i+1 %></span>
-        <strong><a href="/competitors"><%= c.name||c.url %></a></strong>
-        <span class="score-tag"><%= c.score %></span>
+    <% _sorted.slice(0,8).forEach(function(c,i){ %>
+      <div class="leaderboard-row">
+        <div class="leaderboard-main">
+          <div class="leaderboard-head">
+            <span class="rank-num">#<%= i+1 %></span>
+            <strong><a href="/competitors/<%= c.id %>"><%= c.name||c.url %></a></strong>
+            <span class="score-tag"><%= Math.round(Number(c.score||0)) %></span>
+          </div>
+          <div class="leaderboard-meta">
+            <% if(Number(c.serpRankCount||0) > 0){ %>
+              <span class="badge warn"><%= c.serpRankCount %> keyword<%= c.serpRankCount===1?'':'s' %> tracked</span>
+              <% if(c.serpBestPos){ %><span class="badge good">Best #<%= Math.round(c.serpBestPos) %></span><% } %>
+              <% if(c.serpAvgPos){ %><span class="badge">Avg #<%= Math.round(c.serpAvgPos) %></span><% } %>
+            <% } else { %>
+              <span class="badge">Not yet found in tracked keywords</span>
+            <% } %>
+            <% if(c.contentPages||c.pageCount){ %><span class="badge"><%= c.contentPages||c.pageCount %> pages</span><% } %>
+            <% if(c.gapCount > 0){ %><span class="badge bad"><%= c.gapCount %> gaps</span><% } %>
+          </div>
+          <% if(Number(c.serpRankCount||0) > 0){ %>
+            <div class="bar"><i class="health-bar-bl" style="width:<%= Math.max(2,Math.round(Number(c.serpRankCount||0)/_maxSerp*100)) %>%"></i></div>
+          <% } else { %>
+            <div class="bar"><i style="width:<%= Math.max(2,Math.round(Number(c.score||0)/_maxScore*100)) %>%"></i></div>
+          <% } %>
+        </div>
       </div>
-      <div class="leaderboard-meta">
-        <% if (Number(c.serpRankCount||0) > 0) { %>
-          <span class="badge warn"><%= c.serpRankCount %> kw tracked</span>
-          <% if (c.serpBestPos) { %><span class="badge good">Best #<%= Math.round(c.serpBestPos) %></span><% } %>
-        <% } else { %>
-          <span class="badge">Not yet in tracked keywords</span>
-        <% } %>
-        <% if (c.page_count > 0) { %><span class="badge"><%= c.page_count %> pages</span><% } %>
-        <% if (c.gapCount > 0) { %><span class="badge bad"><%= c.gapCount %> gaps</span><% } %>
-        <% if (c.has_video) { %><span class="badge purple">Video</span><% } %>
-        <% if (!c.has_brand_voice) { %><span class="badge good">No brand voice</span><% } %>
-      </div>
-      <div class="bar"><i style="width:<%= Math.max(2,Math.round(Number(c.serpRankCount||0)/_maxSerp*100)) %>%"></i></div>
-    </div>
     <% }); %>
-    <p class="hint" style="margin-top:var(--sp-3)">🟢 "No brand voice" = NativPost advantage. 🔴 Gaps = content opportunities for NativPost.</p>
+    <p class="hint">Run keyword lookups in <a href="/serp">SERP Intelligence</a> to see who's outranking you for each keyword.</p>
   </section>
 </div>
 
+<style>
+.leaderboard-row { padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
+.leaderboard-row:first-child { border-top: 0; padding-top: 0; }
+.leaderboard-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.leaderboard-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-md); }
+.leaderboard-head strong a { color: var(--text-heading); }
+.leaderboard-head strong a:hover { color: var(--igh-green); }
+.score-tag { font-size: var(--fs-sm); font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.leaderboard-meta { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-bottom: var(--sp-2); }
+.leaderboard-main .bar { margin-top: 0; }
+</style>
+
 <div class="grid two">
-  <!-- NEEDS ACTION -->
   <section class="card">
-    <div class="card-head"><h2>Needs action</h2><a href="/articles">All articles →</a></div>
-    <% if (!drafts.length) { %>
-      <p class="empty">No articles pending. Generate from Content Studio.</p>
-    <% } %>
-    <% drafts.forEach(function(a) {
+    <div class="card-head"><h2>Needs action</h2><a href="/review">Review queue →</a></div>
+    <% if(!drafts.length){ %><p class="empty">No drafts pending. Generate from Content Studio.</p><% } %>
+    <% drafts.forEach(function(a){
       var q = Number(a.quality_score||0);
       var qClass = q >= minQualityScore ? 'good' : 'bad';
     %>
-    <div class="list-row">
-      <div>
-        <strong><a href="/articles/<%= a.id %>"><%= a.title || a.primary_keyword %></a></strong>
-        <span><%= a.primary_keyword||'No keyword' %> · <span class="badge <%= qClass %>">Q <%= q %>/<%= minQualityScore %></span> · <%= a.status %></span>
+      <div class="list-row">
+        <div>
+          <strong><a href="/articles/<%= a.id %>/edit"><%= a.title %></a></strong>
+          <span><%= a.primary_keyword||'No keyword' %> · <span class="badge <%= qClass %>">Q <%= q %>/<%= minQualityScore %></span> · <%= a.status %></span>
+        </div>
+        <div class="actions">
+          <a class="mini" href="/articles/<%= a.id %>">Preview</a>
+          <a class="mini" href="/articles/<%= a.id %>/edit">Edit</a>
+        </div>
       </div>
-      <div class="actions">
-        <a class="mini btn" href="/articles/<%= a.id %>">Preview</a>
-        <a class="mini btn" href="/articles/<%= a.id %>/edit">Edit</a>
-      </div>
-    </div>
     <% }); %>
   </section>
 
-  <!-- TOP KEYWORD OPPORTUNITIES -->
   <section class="card">
-    <div class="card-head"><h2>Top keyword gaps</h2><a href="/content-studio">Generate →</a></div>
-    <p class="hint">Keywords NativPost has no content for yet, ranked by priority.</p>
-    <% if (!opportunities.length) { %>
-      <p class="empty">No keyword gaps found. <a href="/keywords" style="color:var(--np-purple)">Add keywords →</a></p>
-    <% } %>
-    <% opportunities.forEach(function(k) { %>
-    <div class="metric-row">
-      <div>
-        <strong><%= k.keyword %></strong>
-        <span><%= k.cluster_name||'Unclustered' %> · <%= k.intent||'mixed' %><% if (k.volume) { %> · Vol <b><%= k.volume %></b><% } %> · Priority <b><%= k.priority_score||50 %></b></span>
+    <div class="card-head"><h2>Top keyword opportunities</h2><a href="/content-studio">Create →</a></div>
+    <% if(!opportunities.length){ %><p class="empty">No keyword gaps yet. Crawl competitors or sync GSC.</p><% } %>
+    <% opportunities.forEach(function(k){ %>
+      <div class="metric-row">
+        <div>
+          <strong><%= k.keyword %></strong>
+          <span><%= k.cluster_name||'Unclustered' %> · <%= k.intent||'mixed' %> · Vol <b><%= k.volume||'—' %></b> · Priority <b><%= k.priority_score||0 %></b></span>
+        </div>
       </div>
-      <form method="get" action="/content-studio">
-        <input type="hidden" name="keyword" value="<%= k.keyword %>">
-        <button class="mini primary">Generate →</button>
-      </form>
-    </div>
     <% }); %>
   </section>
 </div>
 
-<!-- DAILY BRIEF -->
-<% if (dailyBrief && dailyBrief.length) { %>
+<% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') {
+     var _radar = (typeof radarOpportunities !== 'undefined') ? radarOpportunities : []; %>
+<section class="card" style="margin-top:var(--sp-4)">
+  <div class="card-head">
+    <h2>🎯 Game Expansion Radar <span style="font-size:var(--fs-sm);color:var(--text-muted);font-weight:400">· top 3 opportunities</span></h2>
+    <a href="/admin/game-radar">Manage all →</a>
+  </div>
+  <% if (!_radar.length) { %>
+    <p class="empty">
+      Radar hasn't scanned yet. Visit <a href="/admin/game-radar">Keyword Radar</a> and click <strong>Scan Steam now</strong> — this finds new games with high server-hosting interest and low SERP competition, so NativPost can publish articles before competitors do. Scans auto-run daily after the first one.
+    </p>
+  <% } else { %>
+    <div class="radar-grid">
+      <% _radar.forEach(function(r){
+        var opp = Number(r.opportunity_score||0);
+        var isHigh = opp >= 60;
+      %>
+        <div class="radar-card <%= isHigh ? 'opportunity-high' : '' %>">
+          <div class="radar-head">
+            <div>
+              <h3 class="radar-title"><%= r.game_label %></h3>
+              <div class="radar-sub">
+                <% if (r.steam_app_id) { %>Steam <%= r.steam_app_id %><% } %>
+                <% if (r.release_date) { %> · <%= r.release_date %><% } %>
+              </div>
+            </div>
+            <div>
+              <div class="radar-score"><%= opp %></div>
+              <div class="radar-score-label">Score</div>
+            </div>
+          </div>
+          <% if (r.reason) { %>
+            <div class="radar-reason"><%= r.reason %></div>
+          <% } %>
+          <div class="radar-actions">
+            <form method="post" action="/admin/game-radar/<%= r.id %>/plan">
+              <button class="mini primary">Queue article</button>
+            </form>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</section>
+<% } %>
+
+<% if (typeof dailyBrief !== 'undefined' && dailyBrief && dailyBrief.length) { %>
 <section class="card" style="margin-top:var(--sp-4)">
   <div class="card-head">
     <h2>📋 Today's SEO Brief <span style="font-size:var(--fs-sm);color:var(--text-muted);font-weight:400">· top priorities</span></h2>
     <a href="/daily-brief">View all →</a>
   </div>
-  <% dailyBrief.forEach(function(item, i) {
-    var catClass = item.category === 'coverage-gap' ? 'coverage-gap' : item.category === 'competitor-gap' ? 'competitor-gap' : item.category === 'quality-flag' ? 'quality-flag' : 'general';
-    var catLabel = item.category === 'coverage-gap' ? '📝 Coverage Gap' : item.category === 'competitor-gap' ? '⚔️ Competitor Gap' : item.category === 'quality-flag' ? '⚠️ Quality Flag' : '💡 Opportunity';
-  %>
-  <div class="brief-item">
-    <div class="brief-num"><%= i+1 %></div>
-    <div class="brief-body">
-      <div class="brief-cat <%= catClass %>"><%= catLabel %></div>
-      <div class="brief-kw"><%= item.keyword %></div>
-      <% if (item.reason) { %><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px"><%= item.reason %></div><% } %>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <% dailyBrief.forEach(function(rec, i) {
+      var catColor = rec.category === 'ranking-gap' ? 'var(--igh-green)' :
+                     rec.category === 'game-coverage' ? 'var(--igh-green)' :
+                     rec.category === 'competitor-gap' ? '#ffb020' : '#3db4ff';
+      var catLabel = rec.category === 'ranking-gap' ? '📈 Ranking Gap' :
+                     rec.category === 'game-coverage' ? '🎮 Game Coverage' :
+                     rec.category === 'competitor-gap' ? '⚔️ Competitor Gap' : '📚 Depth';
+    %>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-2,#0d1117);border-radius:8px;border:1px solid var(--line,#1e242c)">
+      <div style="flex-shrink:0;width:24px;height:24px;border-radius:6px;background:rgba(34,255,68,.1);border:1px solid rgba(34,255,68,.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--igh-green)"><%= i+1 %></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;color:<%= catColor %>;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px"><%= catLabel %></div>
+        <div style="font-size:.88rem;font-weight:600;color:var(--text,#e6ecee);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= rec.keyword %></div>
+      </div>
+      <form method="post" action="/daily-brief/generate/<%= i %>">
+        <button class="mini primary" onclick="return confirm('Generate article? Uses 1 OpenAI credit.')">Generate →</button>
+      </form>
     </div>
-    <form method="get" action="/content-studio">
-      <input type="hidden" name="keyword" value="<%= item.keyword %>">
-      <button class="mini primary">Generate →</button>
-    </form>
+    <% }); %>
   </div>
-  <% }); %>
 </section>
 <% } %>
 

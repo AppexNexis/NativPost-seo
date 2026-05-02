@@ -1,132 +1,143 @@
-# NativPost SEO Command Center
+# NativPost SEO Command Center v2
 
-An AI-powered SEO content engine built specifically for **nativpost.com** — mirroring the architecture of the IGH SEO Tool but tuned entirely for NativPost's market: AI social media tools, brand voice, SMBs, and the African market.
+A **true full-feature clone** of the IGH SEO Tool, rebuilt specifically for **nativpost.com**.  
+Same 6,400-line architecture — every feature ported and adapted for NativPost's market.
 
 ---
 
-## What It Does
+## What's in v2 (vs the earlier v1 stub)
 
-| Feature | Details |
-|---|---|
-| **Site crawler** | Crawls nativpost.com, indexes up to 80 pages for AI context |
-| **Competitor intelligence** | Pre-loaded: Ocoya, Predis, Buffer, Hootsuite, Jasper, Later, FeedHive + auto weekly re-audit |
-| **Keyword clusters** | 12 pre-seeded clusters: AI Social Media, Brand Voice, Scheduling, Video, LinkedIn, Instagram, Africa Market, Pricing, Comparisons, and more |
-| **SERP lookup** | DataForSEO (paid) or DuckDuckGo (free) — cached 14 days |
-| **Gap analysis** | Auto-detects keywords competitors rank for that NativPost doesn't |
-| **AI article generation** | Claude (Anthropic) or GPT-4o fallback — auto-detects article type |
-| **6 article types** | Comparison, Pricing Review, How-To, Africa Market, Platform Guide, General |
-| **Anti-slop rules** | Bans: leverage, synergy, disruptive, game-changing, cutting-edge, robust, seamlessly |
-| **Quality gate** | Score 0-100 — below threshold = Draft, above = Pending Review |
-| **Article workflow** | Draft → Pending Review → Approved → Published |
-| **Auto-publisher** | Publishes approved articles automatically (configurable rate) |
-| **Daily brief** | Auto-generated daily list of top 5 SEO priorities |
-| **Backlink tracker** | Track opportunities, mark earned, DA scoring |
-| **Reports** | Pipeline stats, cluster coverage, competitor gaps, published articles |
+| Feature | v1 (stub) | v2 (full clone) |
+|---|---|---|
+| Contentful publish pipeline | ✗ | ✅ Full publish to NativPost blog |
+| Google Search Console sync | ✗ | ✅ Real GSC data for nativpost.com |
+| GA4 analytics sync | ✗ | ✅ Page views, sessions, engagement |
+| Password reset via email | ✗ | ✅ 6-digit code flow (Resend/SMTP2GO) |
+| Article quality scoring | Basic | ✅ Full anti-slop, internal link, CTA checks |
+| DataForSEO SERP | Basic | ✅ Full live SERP + PAA + related searches |
+| SERP enrichment (headings/questions) | ✗ | ✅ Crawls top 8 results for structure |
+| Link gap analysis | ✗ | ✅ DFS Backlinks API / sandbox mode |
+| Backlink prospects | ✗ | ✅ Full prospect discovery + scoring |
+| Internal link suggestions | ✗ | ✅ Auto-detects opportunities between articles |
+| Press kit / image assets | ✗ | ✅ Image library with upload management |
+| Article JSON-LD schema | ✗ | ✅ Auto-generates for rich results |
+| Auto-publish scheduler | Stub | ✅ Full Contentful publish pipeline |
+| Weekly competitor re-audit | ✗ | ✅ Background job, 30min after boot |
+| Daily brief auto-generation | Basic | ✅ Full priority scoring + categories |
+| API balance monitoring | ✗ | ✅ DataForSEO + OpenAI/Anthropic balance |
+| Contentful article sync | ✗ | ✅ Syncs existing blog posts to local DB |
+| User themes | ✗ | ✅ NativPost purple theme |
 
 ---
 
 ## Quick Start
 
-### 1. Prerequisites
-- Node.js 18+
-- MariaDB or MySQL (same VPS as your other services — already running at `69.48.201.43`)
-- An Anthropic API key (same one NativPost's engine uses — `claude-opus-4-5`)
+### 1. Database setup (MariaDB on port 3307)
 
-### 2. Create the database
+```bash
+mysql -u root -p -P 3307 -h 127.0.0.1
+```
+
 ```sql
 CREATE DATABASE nativpost_seo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'nativpostseo'@'%' IDENTIFIED BY 'NativPostSEO123!';
+GRANT ALL PRIVILEGES ON nativpost_seo.* TO 'nativpostseo'@'%';
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
-### 3. Install dependencies
+### 2. Clone repo and install
+
 ```bash
-cd /opt/nativpost/NativPost-SEO-Tool   # or wherever you deploy
+cd /opt/nativpost
+git clone https://YOUR_TOKEN@github.com/AppexNexis/NativPost-seo.git NativPost-seo
+cd NativPost-seo
 npm install
-```
-
-### 4. Configure environment
-```bash
 cp .env.example .env.local
-nano .env.local   # fill in DB credentials and ANTHROPIC_API_KEY
+nano .env.local  # fill in all values
 ```
 
-**Minimum required in `.env.local`:**
-```
-DB_HOST=127.0.0.1
-DB_USER=root
-DB_PASSWORD=your-password
-DB_NAME=nativpost_seo
-ANTHROPIC_API_KEY=sk-ant-...
-SESSION_SECRET=$(openssl rand -hex 32)
-```
-
-### 5. Start the tool
-```bash
-node index.js
-# OR with PM2 (recommended):
-pm2 start index.js --name nativpost-seo
-pm2 save
-```
-
-### 6. Access the dashboard
-```
-http://your-server-ip:7784
-```
-
-**Default login:**
-- Username: `admin`
-- Password: `NativPost2026!`
-- ⚠️ **Change this immediately via Settings**
-
----
-
-## PM2 on the Existing VPS
-
-Since the NativPost VPS (`69.48.201.43`) already runs PM2, add this to `/opt/nativpost/ecosystem.config.js`:
+### 3. Add to ecosystem.config.js
 
 ```javascript
 {
   name: 'nativpost-seo',
   script: 'index.js',
-  cwd: '/opt/nativpost/NativPost-SEO-Tool',
+  cwd: '/opt/nativpost/NativPost-seo',
   env: {
-    PORT: 7784,
+    PORT: 9001,
     NODE_ENV: 'production',
-    DB_HOST: '127.0.0.1',
-    DB_PORT: 3306,
-    DB_USER: 'root',
-    DB_PASSWORD: 'your-db-password',
-    DB_NAME: 'nativpost_seo',
-    ANTHROPIC_API_KEY: 'sk-ant-...',
-    SESSION_SECRET: 'your-64-char-hex',
-    NATIVPOST_SITE_URL: 'https://nativpost.com',
-    NATIVPOST_APP_URL: 'https://app.nativpost.com',
-    MIN_QUALITY_SCORE: 90,
-    AUTO_PUBLISH_ENABLED: 'false',
-    AUTO_PUBLISH_DAILY_LIMIT: 1,
-    DATAFORSEO_DAILY_CALL_CAP: 20,
+    // ... all vars from .env.local
   }
 }
 ```
 
-Then:
+### 4. Start
+
 ```bash
-pm2 restart /opt/nativpost/ecosystem.config.js --only nativpost-seo --update-env
+pm2 start /opt/nativpost/ecosystem.config.js --only nativpost-seo --update-env
+pm2 logs nativpost-seo --lines 30 --nostream
 pm2 save
 ```
 
-### Nginx Config (add to existing nginx setup)
+### 5. Default login
+
+```
+URL:      https://seo.nativpost.com
+Username: admin
+Password: NativPost2026!
+⚠️  Change this immediately via Settings
+```
+
+---
+
+## What to configure first
+
+After first login, in this order:
+
+1. **Settings → Google** — Connect Google account for GSC data
+2. **Settings → Contentful** — Test connection to NativPost Contentful space
+3. **Own Site → Scan** — Crawl nativpost.com for page context
+4. **Competitors** — Pre-loaded: Ocoya, Predis, Buffer, Hootsuite, Jasper, Later, FeedHive + more
+5. **Keywords** — Review seeded clusters (Brand Voice, AI Social Media, Africa, etc.)
+6. **Daily Brief** — Auto-generates 60 seconds after startup
+
+---
+
+## NativPost-specific customizations
+
+**Article AI prompt includes:**
+- Starter $19 / Growth $39 / Pro $79 / Agency $149 — hardcoded, AI cannot invent prices
+- 7-day trial, 3 posts max, text only — AI cannot claim "free forever" or "30-day trial"
+- Paystack for Africa — automatically mentioned for Africa-market keywords
+- Anti-slop banned words: leverage, synergy, disruptive, game-changing, seamlessly
+- All CTAs point to `app.nativpost.com` with "7-day free trial"
+
+**Competitor filters:**
+- Removed: game hosting brands (Nitrado, Bisect, etc.)
+- Added: Ocoya, Predis, Buffer, Hootsuite, Jasper, Later, FeedHive, SocialBee, ContentStudio
+
+**GSC keyword filters:**
+- Keeps: social media, AI content, brand voice, scheduling, LinkedIn, Instagram, TikTok, Africa
+- Filters out: competitor brand names (Ocoya, Buffer, etc.)
+
+---
+
+## Nginx config
+
 ```nginx
 server {
-  server_name seo.nativpost.com;   # or use an internal IP
-  location / {
-    proxy_pass http://localhost:7784;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_read_timeout 180s;   # article generation can take 60-90s
-    proxy_send_timeout 180s;
-    client_max_body_size 10m;
-  }
+    server_name seo.nativpost.com;
+    location / {
+        proxy_pass http://localhost:9001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 180s;
+        proxy_send_timeout 180s;
+        client_max_body_size 10m;
+    }
+    listen 80;
 }
 ```
 
@@ -134,77 +145,19 @@ Then: `certbot --nginx -d seo.nativpost.com`
 
 ---
 
-## Workflow: How to Use It
-
-### Week 1 — Setup
-1. Login → **Own Site** → Crawl nativpost.com
-2. **Competitors** → Audit all pre-loaded competitors (Ocoya, Buffer, etc.)
-3. **Keywords** → Review the 12 pre-seeded clusters — add any missing keywords
-4. **SERP Intel** → Look up your 10 most important keywords
-
-### Daily workflow
-1. Check **Daily Brief** — it shows your top 5 priorities each morning
-2. Pick a keyword → **Content Studio** → Generate
-3. Read the generated article → **Edit** if needed → **Approve**
-4. Article auto-publishes when `AUTO_PUBLISH_ENABLED=true`
-
-### Content types by keyword (auto-detected)
-| Keyword contains | Article type |
-|---|---|
-| `vs` / `alternative` / `compare` | Head-to-head comparison with feature matrix |
-| `pricing` / `cost` / `review` | Full pricing breakdown |
-| `how to` / `guide` / `tutorial` | Step-by-step instructional |
-| `africa` / `nigeria` / `kenya` | Africa-market localized article |
-| `linkedin` / `instagram` / `tiktok` | Platform-specific strategy guide |
-| anything else | Standard commercial/informational |
-
----
-
-## What Makes This NativPost-Specific
-
-**Pre-loaded knowledge:**
-- NativPost pricing: Starter $19, Growth $39, Pro $79, Agency $149
-- Trial: 7-day, 3 posts, text-only — never claims "free forever"
-- Paystack: mentioned whenever Africa-market keywords detected
-- Anti-slop banned words calibrated to NativPost's tone
-- All CTAs point to `app.nativpost.com` with "7-day free trial"
-- Competitor matrix pre-loaded: Ocoya, Predis, Buffer, Jasper, Later, FeedHive, Hootsuite
-
-**12 pre-seeded keyword clusters:**
-1. AI Social Media
-2. Brand Voice AI ← NativPost's biggest differentiator
-3. Scheduling & Publishing
-4. Content Generation
-5. Video Generation
-6. LinkedIn Content
-7. Instagram Content
-8. SMB / Small Business
-9. Agency
-10. Africa Market ← Paystack angle
-11. Competitor Comparisons (vs Ocoya, vs Buffer, etc.)
-12. Pricing & Reviews
-
----
-
-## Security Notes
-- Default password must be changed immediately
-- `SESSION_SECRET` must be rotated from the default value
-- Never commit `.env.local` to git
-- The tool is for internal use only — protect with nginx auth or VPN if needed
-
----
-
 ## Architecture
+
 ```
-NativPost SEO Tool (Node.js/Express)     Port: 7784
-├── index.js          Main server (routes + AI generation + crawlers)
-├── views/            EJS templates (dashboard, articles, competitors, etc.)
+NativPost SEO Tool v2 (Node.js/Express)     Port: 9001
+├── index.js         6,400+ line main server (IGH clone, NativPost-adapted)
+├── views/           22 EJS templates
+├── public/          CSS with NativPost purple theme
 ├── package.json
-└── .env.local        All secrets (not committed to git)
+└── .env.local       All secrets (never commit)
 
-Database: MariaDB — nativpost_seo
-AI: Anthropic Claude API (same model as NativPost content engine)
-SERP: DataForSEO (optional) or DuckDuckGo fallback
+Database:  MariaDB port 3307 — nativpost_seo
+AI:        Anthropic Claude API (primary) or OpenAI (fallback)
+Publish:   Contentful CMA → nativpost.com/blog/
+SERP:      DataForSEO (shared with IGH) or DuckDuckGo fallback
+Analytics: Google Search Console + GA4
 ```
-
-Built with the same architecture as the IGH SEO Tool — same patterns, same reliability, tuned for NativPost's market and brand.

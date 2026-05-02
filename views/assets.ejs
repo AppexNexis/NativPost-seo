@@ -1,0 +1,117 @@
+<%- include('layout-start') %>
+<%
+  const _diagnostics = (typeof pressKitDiagnostics !== 'undefined' && Array.isArray(pressKitDiagnostics)) ? pressKitDiagnostics : [];
+%>
+
+<section class="hero">
+  <div>
+    <p class="eyebrow">Image library</p>
+    <h1>Press Kit &amp; Image Library</h1>
+    <p>Official game press-kit images and site screenshots. Images are saved here and reused in AI drafts and Contentful publishing. Image rotation prevents reusing the same 1–2 images per game.</p>
+  </div>
+</section>
+
+<% if (typeof imported !== 'undefined' && imported > 0) { %>
+  <div class="notice-good"><strong>Press-kit import complete.</strong> Saved/confirmed <%= imported %> image<%= imported===1?'':'s' %>.</div>
+<% } %>
+
+<!-- ── IMPORT PRESS KIT ───────────────────────────────────────── -->
+<section class="card">
+  <div class="card-head"><h2>Import official press kit images</h2></div>
+  <form class="form-grid" method="post" action="/assets/import-press-kits">
+    <select name="site_id">
+      <option value="">Global image library</option>
+      <% sites.forEach(s=>{ %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+    </select>
+    <input name="games" placeholder="palworld, everwind, valheim — leave blank for all known games">
+    <input name="limit" value="3" placeholder="Images per game">
+    <button class="btn primary">Find &amp; save press kit images</button>
+  </form>
+  <p class="hint">Searches known official press/media pages first. Only images matching the target game are saved — wrong-game images are blocked. Saves into article_assets and downloads a local copy when allowed. Image rotation ensures variety across drafts.</p>
+</section>
+
+<!-- ── PRESS KIT DIAGNOSTICS ────────────────────────────────────── -->
+<section class="card">
+  <div class="card-head"><h2>Press kit diagnostics by game</h2></div>
+  <% if(!_diagnostics.length){ %>
+    <p class="empty">No press-kit images imported yet. Use the import tool above.</p>
+  <% } else { %>
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);text-align:left">
+          <th style="padding:.35rem .5rem">Game</th>
+          <th style="padding:.35rem .5rem">Images found</th>
+          <th style="padding:.35rem .5rem">Images saved</th>
+          <th style="padding:.35rem .5rem">Source URL(s)</th>
+          <th style="padding:.35rem .5rem">Last import</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% _diagnostics.forEach(d=>{ %>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.35rem .5rem"><strong><%= d.game %></strong></td>
+            <td style="padding:.35rem .5rem"><%= d.count %></td>
+            <td style="padding:.35rem .5rem"><%= d.saved %></td>
+            <td style="padding:.35rem .5rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <% d.sourceUrls.forEach(u=>{ %><a href="<%= u %>" target="_blank" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= u %></a><% }) %>
+              <% if(!d.sourceUrls.length){ %><span style="color:var(--text-muted)">Unknown</span><% } %>
+            </td>
+            <td style="padding:.35rem .5rem;color:var(--text-muted)"><%= d.lastImport ? d.lastImport.toLocaleDateString() : 'Never' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<!-- ── UPLOAD / ADD IMAGE ────────────────────────────────────────── -->
+<section class="card">
+  <div class="card-head"><h2>Add / upload image manually</h2></div>
+  <form id="assetForm" class="form-grid" method="post" action="/assets" enctype="multipart/form-data">
+    <select name="site_id">
+      <option value="">Global image</option>
+      <% sites.forEach(s=>{ %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+    </select>
+    <input name="label" placeholder="Palworld raid base screenshot" required>
+    <input name="game_slug" placeholder="palworld">
+    <input name="folder_name" placeholder="palworld">
+    <input id="assetUrl" name="asset_url" placeholder="Paste image URL or choose file below">
+    <input type="file" id="localImage" name="image" accept="image/*">
+    <input name="alt_text" placeholder="SEO alt text">
+    <input name="contentful_asset_id" placeholder="Contentful asset ID">
+    <button class="btn primary">Save Image</button>
+  </form>
+  <p class="hint">File uploads are stored as app image data for reuse in drafts. For live publishing, Contentful mode works best when a Contentful Asset ID is attached.</p>
+</section>
+
+<!-- ── SAVED IMAGES ──────────────────────────────────────────────── -->
+<section class="card">
+  <div class="card-head"><h2>Saved images (<%= assets.length %>)</h2></div>
+  <div class="asset-grid">
+    <% if(!assets.length){ %>
+      <p class="empty">No images yet. Run a press-kit import or add images above.</p>
+    <% } %>
+    <% assets.forEach(a=>{ %>
+      <div class="asset">
+        <img src="<%= a.asset_url %>" alt="<%= a.alt_text||a.label||'' %>" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb',textContent:'Image missing'}))">
+        <strong><%= a.label %></strong>
+        <span><%= a.site_name || 'Global' %> · <%= a.folder_name || 'General' %> · <%= a.game_slug || 'No game' %></span>
+        <small><%= a.alt_text || '' %></small>
+        <form method="post" action="/assets/<%= a.id %>/delete" onsubmit="return confirm('Delete this image?')">
+          <button class="mini danger">Delete</button>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+</section>
+
+<script>
+const fileInput=document.getElementById('localImage');
+const urlInput=document.getElementById('assetUrl');
+document.getElementById('assetForm')?.addEventListener('submit',(e)=>{
+  if(!urlInput.value.trim() && !(fileInput.files&&fileInput.files[0])){
+    e.preventDefault(); alert('Paste an image URL or choose a local image file.');
+  }
+});
+</script>
+<%- include('layout-end') %>

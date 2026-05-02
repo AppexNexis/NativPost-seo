@@ -1,0 +1,164 @@
+<%- include('layout-start') %>
+<%
+  var _bal = balances || {};
+  function fmtBalance(n, cur) {
+    if (n === null || n === undefined || isNaN(Number(n))) return null;
+    return (cur || 'USD') + ' ' + Number(n).toFixed(2);
+  }
+  function relTime(d) {
+    if (!d) return 'never';
+    var diff = (Date.now() - new Date(d).getTime()) / 1000;
+    if (diff < 60) return Math.floor(diff) + 's ago';
+    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+    return Math.floor(diff/86400) + 'd ago';
+  }
+  function cardClass(b) {
+    if (!b) return 'error';
+    if (b.status === 'critical') return 'critical';
+    if (b.status === 'warning') return 'warning';
+    if (b.status === 'error') return 'error';
+    return '';
+  }
+%>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Admin · System Health</span>
+    <h1>API balances &amp; status</h1>
+    <p>Live balance and connection status for every integrated service. Auto-refreshes every 15 minutes in the background. Set thresholds via <code>DFS_BALANCE_WARNING</code> and <code>DFS_BALANCE_CRITICAL</code> in <code>.env.local</code>.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/admin/api-balances/refresh">
+      <button class="btn primary">Refresh all now</button>
+    </form>
+  </div>
+</section>
+
+<% if (msg) { %>
+<div class="notice-good"><%= msg %></div>
+<% } %>
+
+<div class="balance-grid">
+  <!-- DataForSEO -->
+  <%
+    var dfs = _bal.dataforseo;
+    var dfsClass = cardClass(dfs);
+  %>
+  <div class="balance-card <%= dfsClass %>">
+    <div class="balance-label">DataForSEO</div>
+    <% if (dfs && dfs.balance !== null && !isNaN(Number(dfs.balance))) { %>
+      <div class="balance-amount">$<%= Number(dfs.balance).toFixed(2) %></div>
+      <div class="balance-detail">
+        <% if (dfs.details && dfs.details.totalSpent) { %>
+          Lifetime spend: $<%= Number(dfs.details.totalSpent).toFixed(2) %><br>
+        <% } %>
+        <% if (dfs.details && dfs.details.backlinksSubscription) { %>
+          <span class="badge good">Backlinks API active</span>
+        <% } else { %>
+          <span class="badge">SERP / Labs only</span>
+        <% } %>
+      </div>
+    <% } else if (dfs && dfs.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= dfs.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet fetched. Click Refresh.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(dfs && dfs.fetched_at) %></div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="dataforseo">
+      <button class="mini">Refresh DFS</button>
+    </form>
+  </div>
+
+  <!-- Contentful -->
+  <%
+    var cnt = _bal.contentful;
+    var cntClass = cardClass(cnt);
+  %>
+  <div class="balance-card <%= cntClass %>">
+    <div class="balance-label">Contentful</div>
+    <% if (cnt && cnt.status === 'ok') { %>
+      <div class="balance-amount na">Connected</div>
+      <div class="balance-detail">
+        <% if (cnt.details && cnt.details.space) { %>
+          Space: <strong><%= cnt.details.space %></strong><br>
+          ID: <code style="font-size:var(--fs-xs)"><%= cnt.details.id %></code>
+        <% } %>
+      </div>
+    <% } else if (cnt && cnt.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= cnt.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet checked.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(cnt && cnt.fetched_at) %> · No public balance API</div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="contentful">
+      <button class="mini">Refresh Contentful</button>
+    </form>
+  </div>
+
+  <!-- OpenAI -->
+  <%
+    var ai = _bal.openai;
+    var aiClass = cardClass(ai);
+  %>
+  <div class="balance-card <%= aiClass %>">
+    <div class="balance-label">OpenAI</div>
+    <% if (ai && ai.status === 'ok') { %>
+      <div class="balance-amount na">Key valid</div>
+      <div class="balance-detail">OpenAI does not expose a prepaid credit balance via API. Check <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">OpenAI dashboard</a> for the actual dollar amount.</div>
+    <% } else if (ai && ai.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= ai.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet checked.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(ai && ai.fetched_at) %></div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="openai">
+      <button class="mini">Refresh OpenAI</button>
+    </form>
+  </div>
+
+  <!-- Google (GSC/GA4) -->
+  <%
+    var g = _bal.google;
+    var gClass = cardClass(g);
+  %>
+  <div class="balance-card <%= gClass %>">
+    <div class="balance-label">Google GSC/GA4</div>
+    <% if (g && g.status === 'ok' && g.details && g.details.connected) { %>
+      <div class="balance-amount na">Connected</div>
+      <div class="balance-detail">Search Console &amp; Analytics are authorized. No API cost.</div>
+    <% } else if (g && g.status === 'warning') { %>
+      <div class="balance-amount na">Disconnected</div>
+      <div class="balance-detail">Reconnect in <a href="/settings">Settings</a>.</div>
+    <% } else if (g && g.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= g.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet checked.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(g && g.fetched_at) %></div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="google">
+      <button class="mini">Refresh Google</button>
+    </form>
+  </div>
+</div>
+
+<section class="card" style="margin-top:var(--sp-6)">
+  <div class="card-head"><h2>Why no OpenAI balance?</h2></div>
+  <p class="hint">
+    OpenAI does not publish a public API endpoint for prepaid credit balances — their <code>/v1/dashboard/billing/*</code> endpoints require a session token from the web dashboard, not an API key. This is a known limitation (confirmed on their developer forums going back to 2023). The best we can do programmatically is verify the key works. For the actual dollar balance, you still have to log into the OpenAI platform.
+  </p>
+</section>
+
+<%- include('layout-end') %>

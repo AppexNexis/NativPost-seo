@@ -1,8 +1,1 @@
-<%- include('layout-start') %>
-<section class="hero">
-  <p class="eyebrow">Error</p>
-  <h1>Something went wrong</h1>
-  <p style="color:var(--bad)"><%= message || 'An unexpected error occurred.' %></p>
-</section>
-<a href="/" class="btn primary">← Back to Dashboard</a>
-<%- include('layout-end') %>
+<%- include('layout-start') %><section class="hero"><h1>Something needs attention</h1><p><%= message || 'The app hit an error.' %></p></section><a class="btn" href="/">Back to dashboard</a><%- include('layout-end') %>

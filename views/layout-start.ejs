@@ -1,440 +1,285 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="<%= typeof userTheme !== 'undefined' ? userTheme : 'np-purple' %>">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NativPost SEO Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  /* ── Enterprise Sidebar ─────────────────────────────────────────────────── */
+  .sidebar {
+    width: 256px; flex-shrink: 0; position: fixed; inset: 0 auto 0 0;
+    background: linear-gradient(180deg, #080a0d 0%, #070810 100%);
+    border-right: 1px solid rgba(34,255,68,.1);
+    display: flex; flex-direction: column; z-index: 10;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .sidebar::before {
+    content: ''; position: fixed; left: 0; top: 0; width: 256px; height: 3px;
+    background: linear-gradient(90deg, transparent 0%, var(--igh-green) 40%, var(--igh-green-hot) 60%, transparent 100%);
+    z-index: 11; pointer-events: none;
+  }
+  .main { margin-left: 256px; width: calc(100% - 256px); padding: var(--sp-6) var(--sp-7); max-width: 1600px; }
 
-    :root {
-      --np-purple: #864FFE;
-      --np-purple-dim: rgba(134,79,254,.15);
-      --np-purple-soft: rgba(134,79,254,.08);
-      --np-cyan: #22CFCF;
-      --np-pink: #FF4F8B;
-      --bg-0: #080B12;
-      --bg-1: #0D1120;
-      --bg-2: #131827;
-      --bg-card: #141922;
-      --bg-hover: #1a2130;
-      --line: rgba(255,255,255,.07);
-      --line-soft: rgba(255,255,255,.04);
-      --text: #E8EEF5;
-      --text-muted: #6B7B94;
-      --text-dim: #3D4A5C;
-      --text-heading: #F0F5FF;
-      --good: #22DD88;
-      --warn: #F5A623;
-      --bad: #FF4F6A;
-      --fs-xs: .72rem;
-      --fs-sm: .8rem;
-      --fs-md: .9rem;
-      --fs-lg: 1rem;
-      --sp-1: 4px;
-      --sp-2: 8px;
-      --sp-3: 12px;
-      --sp-4: 20px;
-      --sp-5: 32px;
-      --radius: 10px;
-      --radius-sm: 6px;
-      --font: 'DM Sans', system-ui, sans-serif;
-      --mono: 'DM Mono', monospace;
-      --nav-w: 220px;
-      --sidebar-shadow: 1px 0 0 var(--line);
-    }
+  /* Brand */
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid rgba(34,255,68,.08);
+    position: relative; flex-shrink: 0;
+  }
+  .brand::after {
+    content: ''; position: absolute; bottom: -1px; left: 20px; right: 20px; height: 1px;
+    background: linear-gradient(90deg, var(--igh-green) 0%, transparent 100%);
+    opacity: 0.4;
+  }
+  .logo {
+    width: 38px; height: 42px; flex-shrink: 0;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background: linear-gradient(135deg, var(--igh-green) 0%, var(--igh-green-dim) 100%);
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 11px; color: #000;
+    letter-spacing: -0.04em; position: relative;
+    box-shadow: 0 0 18px rgba(34,255,68,.35), 0 0 40px rgba(34,255,68,.12);
+    animation: logo-pulse 4s ease-in-out infinite;
+  }
+  @keyframes logo-pulse {
+    0%, 100% { box-shadow: 0 0 18px rgba(34,255,68,.35), 0 0 40px rgba(34,255,68,.12); }
+    50% { box-shadow: 0 0 28px rgba(34,255,68,.55), 0 0 60px rgba(34,255,68,.2); }
+  }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+  .brand-text strong { color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .brand-text span { color: var(--igh-green); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; margin-top: 2px; opacity: .85; }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Nav */
+  nav { display: flex; flex-direction: column; padding: 8px 12px; flex: 1; gap: 1px; }
 
-    html, body { height: 100%; }
-    body {
-      font-family: var(--font);
-      background: var(--bg-0);
-      color: var(--text);
-      font-size: var(--fs-md);
-      line-height: 1.6;
-      display: flex;
-      overflow-x: hidden;
-    }
+  .nav-section {
+    margin-top: 16px; margin-bottom: 4px; padding: 0 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-section-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(34,255,68,.25) 0%, rgba(34,255,68,.06) 100%);
+  }
+  .nav-section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--igh-green); opacity: .7;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .nav-section:first-child { margin-top: 6px; }
 
-    /* ── SIDEBAR ── */
-    nav.sidebar {
-      width: var(--nav-w);
-      min-height: 100vh;
-      background: var(--bg-1);
-      box-shadow: var(--sidebar-shadow);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      left: 0; top: 0; bottom: 0;
-      z-index: 100;
-      overflow-y: auto;
-    }
-    .sidebar-brand {
-      padding: 20px 16px 16px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .sidebar-brand .logo-mark {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, var(--np-purple), var(--np-cyan));
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 800; color: #fff;
-      flex-shrink: 0;
-    }
-    .sidebar-brand .brand-text { line-height: 1.2; }
-    .sidebar-brand .brand-name { font-size: .88rem; font-weight: 700; color: var(--text-heading); }
-    .sidebar-brand .brand-sub { font-size: .68rem; color: var(--np-purple); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  nav a {
+    color: rgba(165,176,184,.75);
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 9px;
+    border: 1px solid transparent;
+    transition: all .15s ease;
+    position: relative; letter-spacing: 0.01em;
+  }
+  nav a .nav-icon {
+    width: 16px; height: 16px; flex-shrink: 0; opacity: .6;
+    transition: opacity .15s ease;
+  }
+  nav a:hover {
+    color: #e6ecee; background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.06);
+  }
+  nav a:hover .nav-icon { opacity: .9; }
+  nav a.active {
+    color: var(--igh-green);
+    background: linear-gradient(135deg, rgba(34,255,68,.12) 0%, rgba(34,255,68,.06) 100%);
+    border-color: rgba(34,255,68,.2);
+    font-weight: 600;
+    box-shadow: inset 0 0 12px rgba(34,255,68,.04), 0 1px 4px rgba(0,0,0,.3);
+  }
+  nav a.active .nav-icon { opacity: 1; }
+  nav a.active::before {
+    content: ''; position: absolute; left: -1px; top: 20%; bottom: 20%;
+    width: 2px; border-radius: 0 2px 2px 0;
+    background: var(--igh-green);
+    box-shadow: 0 0 8px var(--igh-green);
+  }
 
-    nav.sidebar .nav-section {
-      padding: 16px 10px 4px;
-      font-size: .62rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--text-dim);
-    }
-    nav.sidebar a {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      margin: 1px 6px;
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: .84rem;
-      font-weight: 500;
-      transition: all .15s;
-    }
-    nav.sidebar a:hover { background: var(--bg-hover); color: var(--text); }
-    nav.sidebar a.active { background: var(--np-purple-dim); color: var(--np-purple); }
-    nav.sidebar a .nav-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: .9rem; }
+  /* Sidebar footer */
+  .sidebar-footer {
+    margin-top: auto; padding: 14px 12px;
+    border-top: 1px solid rgba(34,255,68,.08); flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .sidebtn {
+    width: 100%; padding: 10px 12px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.03); color: rgba(165,176,184,.85);
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s ease; text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .sidebtn:hover {
+    border-color: rgba(34,255,68,.4); color: var(--igh-green);
+    background: rgba(34,255,68,.05);
+    box-shadow: 0 0 12px rgba(34,255,68,.1);
+  }
+  .sidebtn small { display: block; font-size: 10px; opacity: .5; font-weight: 400; margin-top: 2px; }
 
-    .sidebar-footer {
-      margin-top: auto;
-      padding: 12px;
-      border-top: 1px solid var(--line);
-    }
-    .sidebar-footer a {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px;
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: .82rem;
-      text-decoration: none;
-    }
-    .sidebar-footer a:hover { background: var(--bg-hover); color: var(--bad); }
-
-    /* ── MAIN ── */
-    main {
-      margin-left: var(--nav-w);
-      flex: 1;
-      min-height: 100vh;
-      padding: var(--sp-5);
-      max-width: calc(100vw - var(--nav-w));
-    }
-
-    /* ── HERO ── */
-    section.hero {
-      margin-bottom: var(--sp-5);
-    }
-    section.hero .eyebrow {
-      font-size: .72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--np-purple);
-      margin-bottom: var(--sp-2);
-    }
-    section.hero h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text-heading);
-      letter-spacing: -.02em;
-    }
-    section.hero p {
-      color: var(--text-muted);
-      margin-top: var(--sp-2);
-      font-size: var(--fs-md);
-    }
-
-    /* ── STATS STRIP ── */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: var(--sp-3);
-      margin-bottom: var(--sp-5);
-    }
-    .stats > div {
-      background: var(--bg-card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .stats b { font-size: 1.6rem; font-weight: 700; color: var(--text-heading); font-variant-numeric: tabular-nums; line-height: 1; }
-    .stats span { font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-
-    /* ── GRID ── */
-    .grid { display: grid; gap: var(--sp-4); margin-bottom: var(--sp-4); }
-    .grid.two { grid-template-columns: 1fr 1fr; }
-    .grid.three { grid-template-columns: 1fr 1fr 1fr; }
-    @media (max-width: 1200px) { .grid.three { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 900px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
-
-    /* ── CARD ── */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: var(--sp-4);
-    }
-    .card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--sp-4);
-    }
-    .card-head h2 { font-size: var(--fs-lg); font-weight: 600; color: var(--text-heading); }
-    .card-head a { font-size: var(--fs-sm); color: var(--np-purple); text-decoration: none; }
-    .card-head a:hover { text-decoration: underline; }
-
-    /* ── HEALTH BARS ── */
-    .health-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: var(--sp-3); }
-    .health-item { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: var(--sp-2); }
-    .health-label { font-size: var(--fs-sm); color: var(--text-muted); }
-    .health-bar-wrap { background: var(--bg-2); border-radius: 999px; height: 6px; overflow: hidden; }
-    .health-bar { height: 100%; background: var(--np-purple); border-radius: 999px; transition: width .6s cubic-bezier(.4,0,.2,1); }
-    .health-bar.bar-serp { background: var(--np-cyan); }
-    .health-bar.bar-bl { background: var(--np-pink); }
-    .health-val { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
-    .health-no-data { font-size: var(--fs-xs); color: var(--text-dim); }
-    .health-no-data a { color: var(--np-purple); text-decoration: none; }
-    .health-stats { display: flex; flex-wrap: wrap; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--text-muted); border-top: 1px solid var(--line-soft); padding-top: var(--sp-3); }
-    .health-stats b { color: var(--text); }
-
-    /* ── SCORE CIRCLE ── */
-    .score-circle {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      border: 2px solid var(--np-purple);
-      display: flex; align-items: center; justify-content: center;
-      font-size: .82rem; font-weight: 800;
-      color: var(--np-purple);
-      flex-shrink: 0;
-    }
-
-    /* ── LEADERBOARD ── */
-    .leaderboard-row { padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
-    .leaderboard-row:first-child { border-top: 0; padding-top: 0; }
-    .leaderboard-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
-    .leaderboard-head strong { flex: 1; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .leaderboard-head strong a { color: var(--text-heading); text-decoration: none; }
-    .leaderboard-head strong a:hover { color: var(--np-purple); }
-    .score-tag { font-size: var(--fs-xs); font-weight: 700; color: var(--text-dim); }
-    .rank-num { font-size: var(--fs-xs); font-weight: 800; color: var(--text-dim); width: 20px; flex-shrink: 0; }
-    .leaderboard-meta { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-bottom: var(--sp-2); }
-    .bar { height: 4px; background: var(--bg-2); border-radius: 999px; overflow: hidden; }
-    .bar i { display: block; height: 100%; background: var(--np-purple); border-radius: 999px; }
-
-    /* ── BADGES ── */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 7px;
-      border-radius: 999px;
-      font-size: var(--fs-xs);
-      font-weight: 600;
-      background: var(--bg-2);
-      color: var(--text-muted);
-      border: 1px solid var(--line);
-    }
-    .badge.good { background: rgba(34,221,136,.1); color: var(--good); border-color: rgba(34,221,136,.2); }
-    .badge.warn { background: rgba(245,166,35,.1); color: var(--warn); border-color: rgba(245,166,35,.2); }
-    .badge.bad  { background: rgba(255,79,106,.1); color: var(--bad);  border-color: rgba(255,79,106,.2); }
-    .badge.purple { background: var(--np-purple-dim); color: var(--np-purple); border-color: rgba(134,79,254,.2); }
-
-    /* ── LIST / METRIC ROWS ── */
-    .list-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--sp-3);
-      padding: var(--sp-3) 0;
-      border-top: 1px solid var(--line-soft);
-    }
-    .list-row:first-child { border-top: 0; padding-top: 0; }
-    .list-row strong { display: block; font-size: var(--fs-md); color: var(--text-heading); }
-    .list-row strong a { color: var(--text-heading); text-decoration: none; }
-    .list-row strong a:hover { color: var(--np-purple); }
-    .list-row span { font-size: var(--fs-xs); color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
-    .actions { display: flex; gap: var(--sp-1); flex-shrink: 0; }
-    .metric-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) 0; border-top: 1px solid var(--line-soft); }
-    .metric-row:first-child { border-top: 0; }
-    .metric-row strong { font-size: var(--fs-md); color: var(--text-heading); }
-    .metric-row span { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; display: block; }
-
-    /* ── BUTTONS ── */
-    button, .btn {
-      font-family: var(--font);
-      font-size: var(--fs-sm);
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      background: var(--bg-2);
-      color: var(--text);
-      cursor: pointer;
-      text-decoration: none;
-      transition: all .15s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    button:hover, .btn:hover { background: var(--bg-hover); border-color: rgba(255,255,255,.12); }
-    button.primary, .btn.primary {
-      background: var(--np-purple);
-      border-color: var(--np-purple);
-      color: #fff;
-    }
-    button.primary:hover, .btn.primary:hover { background: #7540e8; border-color: #7540e8; }
-    button.mini, .mini {
-      padding: 4px 10px;
-      font-size: var(--fs-xs);
-      border-radius: 5px;
-    }
-    button.danger, .btn.danger { background: rgba(255,79,106,.1); border-color: rgba(255,79,106,.2); color: var(--bad); }
-    button.danger:hover { background: rgba(255,79,106,.2); }
-
-    /* ── FORMS ── */
-    .form-group { margin-bottom: var(--sp-4); }
-    label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); margin-bottom: var(--sp-1); }
-    input[type=text], input[type=password], input[type=email], input[type=number], input[type=url], select, textarea {
-      width: 100%;
-      background: var(--bg-2);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: var(--fs-md);
-      padding: 9px 12px;
-      transition: border-color .15s;
-      outline: none;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--np-purple); }
-    textarea { resize: vertical; min-height: 120px; }
-    select option { background: var(--bg-1); }
-
-    /* ── TABLE ── */
-    .table-wrap { overflow-x: auto; }
-    table.data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-    table.data-table th { text-align: left; font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line); }
-    table.data-table td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line-soft); vertical-align: top; }
-    table.data-table tr:last-child td { border-bottom: 0; }
-    table.data-table tr:hover td { background: var(--bg-hover); }
-    table.md-table { width: 100%; border-collapse: collapse; margin: var(--sp-4) 0; font-size: var(--fs-sm); }
-    table.md-table th { background: var(--np-purple-soft); color: var(--np-purple); font-weight: 700; padding: 8px 12px; text-align: left; border: 1px solid rgba(134,79,254,.15); }
-    table.md-table td { padding: 8px 12px; border: 1px solid var(--line); }
-
-    /* ── EMPTY / HINT ── */
-    .empty { color: var(--text-dim); font-size: var(--fs-sm); padding: var(--sp-3) 0; }
-    .hint { font-size: var(--fs-xs); color: var(--text-dim); margin-top: var(--sp-2); line-height: 1.5; }
-    .hint a { color: var(--np-purple); text-decoration: none; }
-
-    /* ── ALERT ── */
-    .alert { padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-sm); margin-bottom: var(--sp-4); font-size: var(--fs-sm); }
-    .alert.good { background: rgba(34,221,136,.08); border: 1px solid rgba(34,221,136,.2); color: var(--good); }
-    .alert.warn { background: rgba(245,166,35,.08); border: 1px solid rgba(245,166,35,.2); color: var(--warn); }
-    .alert.bad  { background: rgba(255,79,106,.08); border: 1px solid rgba(255,79,106,.2); color: var(--bad); }
-
-    /* ── DAILY BRIEF CARD ── */
-    .brief-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px;
-      background: var(--bg-2);
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      margin-bottom: 8px;
-    }
-    .brief-num { width: 24px; height: 24px; border-radius: 6px; background: var(--np-purple-soft); border: 1px solid rgba(134,79,254,.2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--np-purple); flex-shrink: 0; }
-    .brief-body { flex: 1; min-width: 0; }
-    .brief-cat { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; }
-    .brief-cat.coverage-gap { color: var(--np-purple); }
-    .brief-cat.competitor-gap { color: var(--warn); }
-    .brief-cat.quality-flag { color: var(--bad); }
-    .brief-cat.general { color: var(--np-cyan); }
-    .brief-kw { font-size: .88rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* ── ARTICLE PREVIEW ── */
-    .article-body h1, .article-body h2, .article-body h3, .article-body h4 { color: var(--text-heading); margin: 1.5rem 0 .75rem; font-weight: 700; }
-    .article-body h1 { font-size: 1.5rem; }
-    .article-body h2 { font-size: 1.2rem; border-bottom: 1px solid var(--line-soft); padding-bottom: .5rem; }
-    .article-body h3 { font-size: 1rem; }
-    .article-body p { margin-bottom: 1rem; color: var(--text); line-height: 1.75; }
-    .article-body ul, .article-body ol { margin: .75rem 0 1rem 1.5rem; }
-    .article-body li { margin-bottom: .4rem; color: var(--text); line-height: 1.6; }
-    .article-body a { color: var(--np-purple); }
-    .article-body strong { color: var(--text-heading); }
-    .article-body img { max-width: 100%; border-radius: var(--radius); margin: 1rem 0; }
-
-    /* ── TABS ── */
-    .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: var(--sp-4); }
-    .tab { padding: 8px 16px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--np-purple); border-bottom-color: var(--np-purple); }
-
-    /* ── PILL / filter ── */
-    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--sp-4); }
-    .pill { padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .15s; }
-    .pill:hover { border-color: var(--np-purple); color: var(--np-purple); }
-    .pill.active { background: var(--np-purple-dim); border-color: rgba(134,79,254,.3); color: var(--np-purple); }
-
-    /* ── TIER BADGE ── */
-    .tier-direct { color: var(--bad); }
-    .tier-scheduler { color: var(--warn); }
-    .tier-writing { color: var(--np-cyan); }
-    .tier-enterprise { color: var(--text-dim); }
+  .sidebar-user {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; padding: 8px 10px;
+    background: rgba(255,255,255,.03); border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .sidebar-user-info { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-user-name { font-size: 12px; color: #e6ecee; font-weight: 600; }
+  .sidebar-user-info a { font-size: 10px; color: var(--text-muted); }
+  .sidebar-logout { font-size: 11px; color: var(--text-muted); padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1); transition: all .15s; }
+  .sidebar-logout:hover { color: var(--bad); border-color: rgba(255,71,87,.4); background: rgba(255,71,87,.06); }
   </style>
 </head>
-<body>
-
-<nav class="sidebar">
-  <div class="sidebar-brand">
-    <div class="logo-mark">N</div>
+<body data-theme="<%= typeof userTheme !== 'undefined' ? userTheme : 'np-purple' %>">
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">NP</div>
     <div class="brand-text">
-      <div class="brand-name">NativPost</div>
-      <div class="brand-sub">SEO Command</div>
+      <strong>Infected</strong>
+      <span>SEO Command</span>
     </div>
   </div>
+  <nav>
+    <div class="nav-section">
+      <span class="nav-section-label">Overview</span>
+      <span class="nav-section-line"></span>
+    </div>
+    <a class="<%= currentPath==='/'?'active':'' %>" href="/">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </a>
+    <a class="<%= currentPath==='/daily-brief'?'active':'' %>" href="/daily-brief">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="4" x2="8" y2="8.5"/><line x1="8" y1="8.5" x2="10.5" y2="11"/></svg>
+      Daily Brief
+    </a>
+    <a class="<%= currentPath==='/reports'?'active':'' %>" href="/reports">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 8,9 11,4 15,4"/><line x1="1" y1="15" x2="15" y2="15"/></svg>
+      Reports
+    </a>
 
-  <div class="nav-section">Overview</div>
-  <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>"><span class="nav-icon">▦</span> Dashboard</a>
-  <a href="/daily-brief" class="<%= currentPath === '/daily-brief' ? 'active' : '' %>"><span class="nav-icon">📋</span> Daily Brief</a>
-  <a href="/reports" class="<%= currentPath === '/reports' ? 'active' : '' %>"><span class="nav-icon">📊</span> Reports</a>
+    <div class="nav-section">
+      <span class="nav-section-label">Research</span>
+      <span class="nav-section-line"></span>
+    </div>
+    <a class="<%= currentPath==='/sites'?'active':'' %>" href="/sites">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><ellipse cx="8" cy="8" rx="3" ry="6.5"/><line x1="1.5" y1="8" x2="14.5" y2="8"/></svg>
+      Own Sites
+    </a>
+    <a class="<%= currentPath==='/competitors'?'active':'' %>" href="/competitors">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M10.5 5.5a4 4 0 1 1 0 8"/><line x1="2" y1="14" x2="2" y2="12.5" stroke-width="2"/><line x1="12" y1="14" x2="12" y2="12.5" stroke-width="2"/></svg>
+      Competitors
+    </a>
+    <a class="<%= currentPath==='/keywords'?'active':'' %>" href="/keywords">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="14.5" y2="14.5"/><line x1="5" y1="7" x2="9" y2="7"/><line x1="7" y1="5" x2="7" y2="9"/></svg>
+      Keywords
+    </a>
+    <a class="<%= currentPath==='/serp'?'active':'' %>" href="/serp">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="3" rx="1"/><rect x="1" y="7" width="10" height="3" rx="1"/><rect x="1" y="12" width="7" height="3" rx="1"/></svg>
+      SERP Intelligence
+    </a>
+    <a class="<%= currentPath==='/backlinks'?'active':'' %>" href="/backlinks">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5L7 4"/><path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5L9 12"/></svg>
+      Backlinks
+    </a>
+    <a class="<%= currentPath==='/backlinks/prospects'?'active':'' %>" href="/backlinks/prospects">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l3-3m6-6l3-3M8 8l4-4M4 12l4-4"/><circle cx="13" cy="3" r="1.5"/><circle cx="3" cy="13" r="1.5"/></svg>
+      Link Gap
+    </a>
 
-  <div class="nav-section">Search</div>
-  <a href="/sites" class="<%= currentPath === '/sites' ? 'active' : '' %>"><span class="nav-icon">🌐</span> Own Site</a>
-  <a href="/competitors" class="<%= currentPath === '/competitors' ? 'active' : '' %>"><span class="nav-icon">⚔️</span> Competitors</a>
-  <a href="/keywords" class="<%= currentPath === '/keywords' ? 'active' : '' %>"><span class="nav-icon">🔑</span> Keywords</a>
-  <a href="/serp" class="<%= currentPath === '/serp' ? 'active' : '' %>"><span class="nav-icon">🔍</span> SERP Intel</a>
-  <a href="/backlinks" class="<%= currentPath === '/backlinks' ? 'active' : '' %>"><span class="nav-icon">🔗</span> Backlinks</a>
+    <div class="nav-section">
+      <span class="nav-section-label">Content</span>
+      <span class="nav-section-line"></span>
+    </div>
+    <a class="<%= currentPath==='/content-studio'?'active':'' %>" href="/content-studio">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2.5a1.5 1.5 0 0 1 2.5 1.5L5 12.5 2 13.5l1-3L11 2.5z"/></svg>
+      Content Studio
+    </a>
+    <a class="<%= currentPath==='/articles'?'active':'' %>" href="/articles">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="10.5" x2="8.5" y2="10.5"/></svg>
+      Drafts &amp; Articles
+    </a>
+    <a class="<%= currentPath==='/review'?'active':'' %>" href="/review">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9.5a6 6 0 1 1-4.5-5.8"/><polyline points="9,9 11,11 14.5,7"/></svg>
+      Review Queue
+    </a>
+    <a class="<%= currentPath==='/publish'?'active':'' %>" href="/publish">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3"/><polyline points="11,5 8,2 5,5"/><line x1="8" y1="2" x2="8" y2="11"/></svg>
+      Publish Queue
+    </a>
+    <a class="<%= currentPath==='/reports/internal-links'?'active':'' %>" href="/reports/internal-links">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><line x1="6" y1="7" x2="10" y2="5"/><line x1="6" y1="9" x2="10" y2="11"/></svg>
+      Internal Links
+    </a>
+    <a class="<%= currentPath==='/assets'?'active':'' %>" href="/assets">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 10l3.5-3.5 3 3 2.5-2.5 4 4"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
+      Image Library
+    </a>
 
-  <div class="nav-section">Content</div>
-  <a href="/content-studio" class="<%= currentPath === '/content-studio' ? 'active' : '' %>"><span class="nav-icon">✍️</span> Content Studio</a>
-  <a href="/articles" class="<%= currentPath === '/articles' ? 'active' : '' %>"><span class="nav-icon">📝</span> Articles</a>
-  <a href="/articles?status=pending_review" class="<%= currentPath === '/review' ? 'active' : '' %>"><span class="nav-icon">👁</span> Review Queue</a>
-  <a href="/articles?status=approved" class="<%= currentPath === '/publish' ? 'active' : '' %>"><span class="nav-icon">🚀</span> Publish Queue</a>
-
+    <div class="nav-section">
+      <span class="nav-section-label">System</span>
+      <span class="nav-section-line"></span>
+    </div>
+    <a class="<%= currentPath==='/settings'?'active':'' %>" href="/settings">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
+      Settings
+    </a>
+    <a class="<%= currentPath==='/admin/live-games'?'active':'' %>" href="/admin/live-games">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1.5"/><path d="M5 8h2m-1-1v2"/><circle cx="10.5" cy="7.5" r=".75" fill="currentColor"/><circle cx="12.5" cy="9.5" r=".75" fill="currentColor"/></svg>
+      Platform Strategy
+    </a>
+    <a class="<%= currentPath==='/admin/game-facts'?'active':'' %>" href="/admin/game-facts">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".75" fill="currentColor"/></svg>
+      Brand Facts
+    </a>
+    <% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') { %>
+      <div class="nav-section">
+        <span class="nav-section-label">Admin</span>
+        <span class="nav-section-line"></span>
+      </div>
+      <a class="<%= currentPath==='/admin/game-radar'?'active':'' %>" href="/admin/game-radar">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="3.5"/><line x1="8" y1="1.5" x2="8" y2="8"/><line x1="8" y1="8" x2="12" y2="5"/></svg>
+        Keyword Radar
+      </a>
+      <a class="<%= currentPath==='/admin/api-balances'?'active':'' %>" href="/admin/api-balances">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="1" x2="8" y2="15"/><path d="M5 4h4.5a2.5 2.5 0 0 1 0 5H5m0 0h5.5a2.5 2.5 0 0 1 0 5H5"/></svg>
+        API Balances
+      </a>
+      <a class="<%= currentPath==='/admin/users'?'active':'' %>" href="/admin/users">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M1.5 14.5c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/></svg>
+        Users
+      </a>
+    <% } %>
+  </nav>
   <div class="sidebar-footer">
-    <a href="/settings">⚙️ Settings</a>
-    <a href="/auth/logout">→ Sign out</a>
+    <form method="post" action="/maintenance/run-all" onsubmit="return confirm('Crawl &amp; Audit Sites?\n\nRe-scans your sites and competitors for technical SEO data.\nNo AI credits used. No content generated. No publishing.')">
+      <button class="sidebtn" title="Crawls own sites and competitors — no OpenAI, no DataForSEO credits, no publishing">
+        Crawl &amp; Audit Sites
+        <small>No credits used</small>
+      </button>
+    </form>
+    <div class="sidebar-user">
+      <div class="sidebar-user-info">
+        <span class="sidebar-user-name"><%= (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'Guest' %></span>
+        <% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') { %>
+          <a href="/admin/users">Manage users</a>
+        <% } else { %>
+          <a href="/settings">Settings</a>
+        <% } %>
+      </div>
+      <a href="/auth/logout" class="sidebar-logout">Sign out</a>
+    </div>
   </div>
-</nav>
+</aside>
+<main class="main">
 
-<main>

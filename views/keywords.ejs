@@ -1,116 +1,122 @@
 <%- include('layout-start') %>
-
 <section class="hero">
-  <p class="eyebrow">Search</p>
-  <h1>Keywords</h1>
-  <p>All tracked keywords organized by cluster. Keywords without articles are your top content opportunities.</p>
+  <div>
+    <p class="eyebrow">Keyword strategy</p>
+    <h1>Keywords</h1>
+    <p>Search phrases driving your SEO strategy. Keywords from GSC sync carry real impression and position data. Competitor crawls surface gap opportunities.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/serp">Research keywords →</a>
+    <form method="post" action="/keywords/cluster"><button class="btn primary">Recluster / rescore all</button></form>
+  </div>
 </section>
 
-<% if (typeof query !== 'undefined') { %>
-  <% if (query.added) { %><div class="alert good">✓ Keyword added.</div><% } %>
-  <% if (query.serp_done) { %><div class="alert good">✓ SERP lookup complete. Competitor gaps updated.</div><% } %>
-<% } %>
-
-<div class="grid two" style="align-items:start">
-  <div>
-    <!-- FILTER BY CLUSTER -->
-    <div class="pill-row" style="margin-bottom:var(--sp-4)">
-      <a href="/keywords" class="pill <%= !selectedCluster ? 'active' : '' %>">All</a>
-      <% clusters.forEach(function(c) { %>
-      <a href="/keywords?cluster=<%= c.key %>" class="pill <%= selectedCluster===c.key ? 'active' : '' %>"><%= c.label %></a>
-      <% }); %>
-    </div>
-
-    <section class="card">
-      <div class="card-head"><h2>Keywords (<%= rows.length %>)</h2></div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Keyword</th>
-              <th>Cluster</th>
-              <th>Intent</th>
-              <th>Volume</th>
-              <th>Priority</th>
-              <th>Article?</th>
-              <th>SERP</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% rows.forEach(function(k) { %>
-            <tr>
-              <td style="font-size:var(--fs-sm);color:var(--text)"><%= k.keyword %></td>
-              <td><span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= k.cluster_name||'—' %></span></td>
-              <td><span class="badge <%= k.intent==='commercial'?'purple':'' %>"><%= k.intent||'mixed' %></span></td>
-              <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= k.volume||'—' %></td>
-              <td><span class="badge <%= Number(k.priority_score||0)>=70?'good':'' %>"><%= k.priority_score||50 %></span></td>
-              <td>
-                <% if (k.has_article) { %>
-                  <span class="badge good">✓</span>
-                <% } else { %>
-                  <form method="get" action="/content-studio" style="display:inline">
-                    <input type="hidden" name="keyword" value="<%= k.keyword %>">
-                    <button class="mini primary">Generate</button>
-                  </form>
-                <% } %>
-              </td>
-              <td>
-                <form method="post" action="/keywords/serp/<%= k.id %>">
-                  <button class="mini">Lookup</button>
-                </form>
-              </td>
-            </tr>
-            <% }); %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <!-- ADD KEYWORD -->
-  <div>
-    <section class="card" style="margin-bottom:var(--sp-4)">
-      <div class="card-head"><h2>Add Keyword</h2></div>
-      <form method="post" action="/keywords/add">
-        <div class="form-group">
-          <label>Keyword *</label>
-          <input type="text" name="keyword" placeholder="e.g. brand voice ai tool" required>
-        </div>
-        <div class="form-group">
-          <label>Cluster</label>
-          <select name="cluster_key">
-            <% clusters.forEach(function(c) { %>
-            <option value="<%= c.key %>"><%= c.label %></option>
-            <% }); %>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Intent</label>
+<div class="grid two">
+  <section class="card">
+    <h2>Add keyword manually</h2>
+    <form class="stack" method="post" action="/keywords">
+      <label>Site
+        <select name="site_id">
+          <option value="">No site</option>
+          <% sites.forEach(function(s){ %><option value="<%= s.id %>"><%= s.name %></option><% }); %>
+        </select>
+      </label>
+      <label>Keyword<input name="keyword" placeholder="minecraft server hosting" required></label>
+      <div class="grid two" style="gap:8px">
+        <label>Cluster<input name="cluster_name" placeholder="Auto if blank"></label>
+        <label>Volume<input name="volume" type="number" placeholder="Monthly searches"></label>
+        <label>Difficulty (0-100)<input name="difficulty" type="number" step="0.1" placeholder="35"></label>
+        <label>Intent
           <select name="intent">
+            <option value="">Auto-detect</option>
+            <option value="commercial">Commercial</option>
             <option value="informational">Informational</option>
-            <option value="commercial" selected>Commercial</option>
-            <option value="navigational">Navigational</option>
             <option value="transactional">Transactional</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>Monthly search volume (if known)</label>
-          <input type="number" name="volume" min="0" placeholder="e.g. 1200">
-        </div>
-        <button type="submit" class="primary" style="width:100%">Add Keyword</button>
-      </form>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Keyword Clusters</h2></div>
-      <% clusters.forEach(function(c) { %>
-      <div style="padding:8px 0;border-top:1px solid var(--line-soft)">
-        <div style="font-size:.82rem;font-weight:600;color:var(--text-heading)"><%= c.label %></div>
-        <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px"><%= c.keywords.slice(0,3).join(', ') %>…</div>
+        </label>
       </div>
-      <% }); %>
-    </section>
-  </div>
+      <button class="btn primary">Add keyword</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Keyword summary</h2>
+    <%
+      var _total = keywords.length;
+      var _withVol = keywords.filter(function(k){ return Number(k.volume||0) > 0; }).length;
+      var _fromGSC = keywords.filter(function(k){ return k.source==='gsc'; }).length;
+      var _fromComp = keywords.filter(function(k){ return k.source==='competitor-crawl'; }).length;
+      var _commercial = keywords.filter(function(k){ return k.intent==='commercial'; }).length;
+      var _informational = keywords.filter(function(k){ return k.intent==='informational'; }).length;
+      var _clusters = {};
+      keywords.forEach(function(k){ if(k.cluster_name){ _clusters[k.cluster_name] = (_clusters[k.cluster_name]||0)+1; } });
+      var _clusterCount = Object.keys(_clusters).length;
+    %>
+    <div class="stats" style="margin:0;grid-template-columns:repeat(3,1fr)">
+      <div><b><%= _total %></b><span>Total keywords</span></div>
+      <div><b><%= _clusterCount %></b><span>Topic clusters</span></div>
+      <div><b><%= _withVol %></b><span>With volume data</span></div>
+      <div><b><%= _fromGSC %></b><span>From GSC</span></div>
+      <div><b><%= _fromComp %></b><span>From competitors</span></div>
+      <div><b><%= _commercial %></b><span>Commercial intent</span></div>
+    </div>
+    <% if(!_fromGSC){ %>
+      <div class="notice-warn" style="margin-top:.75rem;font-size:var(--fs-sm)"><strong>No GSC keywords.</strong> Connect Google in <a href="/settings">Settings</a> and sync to get real ranking data.</div>
+    <% } %>
+  </section>
 </div>
 
+<!-- TOPIC CLUSTERS -->
+<% if(_clusterCount > 0){ %>
+<section class="card">
+  <div class="card-head"><h2>Topic clusters</h2><span class="badge"><%= _clusterCount %> clusters</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+    <% Object.entries(_clusters).sort(function(a,b){ return b[1]-a[1]; }).slice(0,24).forEach(function(entry){ %>
+      <div style="background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px">
+        <strong style="font-size:var(--fs-md)"><%= entry[0] %></strong>
+        <span style="display:block;color:var(--text-muted);font-size:var(--fs-sm);margin-top:2px"><%= entry[1] %> keyword<%= entry[1]===1?'':'s' %></span>
+      </div>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+
+<!-- KEYWORD TABLE -->
+<section class="card">
+  <div class="card-head"><h2>All keywords (<%= keywords.length %>)</h2></div>
+  <% if(!keywords.length){ %>
+    <p class="empty">No keywords yet. Add one above, run competitor crawls, or connect GSC for real ranking data.</p>
+  <% } else { %>
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
+      <thead><tr style="border-bottom:1px solid var(--line);text-align:left">
+        <th style="padding:.3rem .5rem">Keyword</th>
+        <th style="padding:.3rem .5rem">Cluster</th>
+        <th style="padding:.3rem .5rem">Intent</th>
+        <th style="padding:.3rem .5rem">Priority</th>
+        <th style="padding:.3rem .5rem">Volume</th>
+        <th style="padding:.3rem .5rem">Difficulty</th>
+        <th style="padding:.3rem .5rem">Source</th>
+        <th style="padding:.3rem .5rem">Site</th>
+      </tr></thead>
+      <tbody>
+      <% keywords.forEach(function(k){ %>
+        <tr style="border-bottom:1px solid var(--line)">
+          <td style="padding:.35rem .5rem"><strong><%= k.keyword %></strong></td>
+          <td style="padding:.35rem .5rem;color:var(--text-muted)"><%= k.cluster_name||'—' %></td>
+          <td style="padding:.35rem .5rem">
+            <span style="font-size:var(--fs-sm);padding:2px 7px;border-radius:var(--r-sm);background:<%= k.intent==='commercial'?'rgba(0, 230, 118, 0.12)':k.intent==='transactional'?'rgba(34,197,94,.15)':'var(--line)' %>">
+              <%= k.intent||'mixed' %>
+            </span>
+          </td>
+          <td style="padding:.35rem .5rem"><b><%= k.priority_score||0 %></b></td>
+          <td style="padding:.35rem .5rem"><%= k.volume||'—' %></td>
+          <td style="padding:.35rem .5rem"><%= k.difficulty||'—' %></td>
+          <td style="padding:.35rem .5rem;color:var(--text-muted);font-size:var(--fs-sm)"><%= k.source||'manual' %></td>
+          <td style="padding:.35rem .5rem;color:var(--text-muted)"><%= k.site_name||'—' %></td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
 <%- include('layout-end') %>

@@ -1,0 +1,116 @@
+<%- include('layout-start') %>
+<%
+  var _prospects = prospects || [];
+  var _mode = dfsMode || 'live';
+%>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Backlinks · Link Gap Analysis</span>
+    <h1>Backlink prospects</h1>
+    <p>Domains that link to your competitors but not to you — the classic "link gap" feature. Data via DataForSEO's <code>domain_intersection/live</code> endpoint. Each domain is scored by how many of your competitors it links to, its domain rank, and backlink count. Sorted by prospect score.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/backlinks/prospects/discover" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Scanning…'">
+      <button class="btn primary">Run link gap scan</button>
+    </form>
+  </div>
+</section>
+
+<% if (msg) { %>
+<div class="notice-good"><%= msg %></div>
+<% } %>
+
+<% if (_mode === 'sandbox') { %>
+<div class="notice-warn">
+  <strong>SANDBOX MODE</strong> — you're using DataForSEO's free sandbox, which returns correctly-structured but fake data. Prospect results are for UI testing only. When ready for real data, set <code>DFS_BACKLINKS_MODE=live</code> in <code>.env.local</code> and activate Backlinks API access at DataForSEO (<a href="https://app.dataforseo.com/" target="_blank" rel="noopener">dashboard</a> → $100/mo minimum commitment, or use a pay-as-you-go reseller like seoutils.app).
+</div>
+<% } %>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Discovered prospects <% if (_prospects.length) { %><span style="font-size:var(--fs-sm);color:var(--text-muted);font-weight:400">· <%= _prospects.length %> total</span><% } %></h2>
+  </div>
+  <% if (!_prospects.length) { %>
+    <p class="empty">
+      No prospects yet. Click <strong>Run link gap scan</strong> above to pull domains linking to your tracked competitors. You need at least one competitor added under <a href="/competitors">Competitors</a> first.
+    </p>
+    <p class="hint">
+      The scan pulls up to 5 of your highest-scored competitors, asks DataForSEO which domains link to any of them but NOT to you, then scores and stores the top results here.
+    </p>
+  <% } else { %>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Score</th>
+          <th>Competitors linked</th>
+          <th>Rank</th>
+          <th>Backlinks</th>
+          <th>Spam</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% _prospects.forEach(function(p){
+        var score = Number(p.prospect_score||0);
+        var scoreClass = score >= 70 ? 'good' : (score >= 40 ? 'warn' : '');
+        var spam = Number(p.spam_score||0);
+        var spamClass = spam >= 10 ? 'bad' : (spam >= 5 ? 'warn' : '');
+      %>
+        <tr>
+          <td><a href="https://<%= p.source_domain %>" target="_blank" rel="noopener"><strong><%= p.source_domain %></strong></a></td>
+          <td><span class="badge <%= scoreClass %>"><%= score %></span></td>
+          <td>
+            <span class="badge info"><%= p.competitor_count %>/5</span>
+            <% if (p.linked_competitors) { %>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px"><%= p.linked_competitors %></div>
+            <% } %>
+          </td>
+          <td style="font-variant-numeric:tabular-nums"><%= p.domain_rank %></td>
+          <td style="font-variant-numeric:tabular-nums"><%= Number(p.backlinks_count||0).toLocaleString() %></td>
+          <td><% if (spam > 0) { %><span class="badge <%= spamClass %>"><%= spam %></span><% } else { %>—<% } %></td>
+          <td><span class="badge"><%= p.status %></span></td>
+          <td>
+            <form method="post" action="/backlinks/prospects/<%= p.id %>/status" class="prospect-status-form">
+              <select name="status" onchange="this.form.submit()">
+                <option value="new" <%= p.status==='new'?'selected':'' %>>New</option>
+                <option value="reviewed" <%= p.status==='reviewed'?'selected':'' %>>Reviewed</option>
+                <option value="contacted" <%= p.status==='contacted'?'selected':'' %>>Contacted</option>
+                <option value="earned" <%= p.status==='earned'?'selected':'' %>>Earned</option>
+                <option value="rejected" <%= p.status==='rejected'?'selected':'' %>>Rejected</option>
+              </select>
+            </form>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="card" style="margin-top:var(--sp-4)">
+  <div class="card-head"><h2>About the prospect score</h2></div>
+  <p class="hint">
+    <strong>Prospect score</strong> = <code>(competitor_count × 25) + min(50, rank/20) + min(20, log10(1+backlinks)×5) − min(40, spam_score)</code>. Higher = better outreach target. A domain linking to 4/5 of your competitors is almost certainly open to linking to you too — that's the whole point of link gap.
+  </p>
+</section>
+
+<style>
+.prospect-status-form select {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: var(--fs-xs);
+  font-family: inherit;
+}
+.prospect-status-form select:focus {
+  outline: none;
+  border-color: var(--igh-green);
+}
+</style>
+
+<%- include('layout-end') %>

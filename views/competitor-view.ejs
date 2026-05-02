@@ -1,0 +1,127 @@
+<%- include('layout-start') %>
+<section class="hero">
+  <div>
+    <p class="eyebrow">Competitor deep-dive</p>
+    <h1><%= competitor.display_name || competitor.display_url %></h1>
+    <p><a target="_blank" href="<%= competitor.display_url %>"><%= competitor.display_url %></a> · vs <%= competitor.site_name || 'all own sites' %></p>
+  </div>
+  <form method="post" action="/competitors/<%= competitor.id %>/audit" onsubmit="return confirm('Re-crawl this competitor? Free — no credits used.')">
+    <button class="btn primary">Re-crawl now</button>
+  </form>
+</section>
+
+<% if(audit && audit.error){ %>
+  <div class="notice-warn"><strong>Last crawl error:</strong> <%= audit.error %></div>
+<% } %>
+
+<!-- SCORE STATS -->
+<div class="stats">
+  <div><b><%= Math.round(competitor.audit_score||0) %></b><span>Crawl score</span></div>
+  <div><b><%= audit ? (audit.indexablePages||pages.length) : pages.length %></b><span>Pages found</span></div>
+  <div><b><%= audit ? (audit.contentPages||0) : 0 %></b><span>Content pages</span></div>
+  <div><b><%= audit ? (audit.keywordCount||0) : 0 %></b><span>Keywords extracted</span></div>
+  <div><b><%= audit ? (audit.externalDomains||0) : 0 %></b><span>Ext. domains</span></div>
+  <div><b><%= audit ? (audit.avgWords||0) : 0 %></b><span>Avg word count</span></div>
+  <div><b><%= audit ? (audit.hasRobots?'Yes':'No') : '—' %></b><span>Robots.txt</span></div>
+  <div><b><%= audit ? (audit.hasSitemap?'Yes':'No') : '—' %></b><span>Sitemap</span></div>
+</div>
+
+<div class="grid two">
+  <!-- HOMEPAGE SEO -->
+  <section class="card">
+    <h2>Homepage SEO signals</h2>
+    <div class="metric-row">
+      <strong>Title tag</strong>
+      <span><%= audit && audit.homepageTitle ? audit.homepageTitle : (competitor.homepage_title || '— missing') %></span>
+    </div>
+    <div class="metric-row">
+      <strong>H1</strong>
+      <span><%= audit && audit.homepageH1 ? audit.homepageH1 : '— not detected' %></span>
+    </div>
+    <div class="metric-row">
+      <strong>Meta description</strong>
+      <span><%= audit && audit.homepageMeta ? audit.homepageMeta.slice(0,160) : '— missing' %></span>
+    </div>
+    <div class="metric-row">
+      <strong>Technical</strong>
+      <span>
+        <% if(audit){ %>
+          <%= audit.hasRobots ? '✓ Robots' : '✗ No robots' %> ·
+          <%= audit.hasSitemap ? '✓ Sitemap' : '✗ No sitemap' %> ·
+          <%= audit.hasH1 ? '✓ H1' : '✗ No H1' %> ·
+          <%= audit.hasMeta ? '✓ Meta' : '✗ No meta' %>
+        <% } else { %>Not crawled yet<% } %>
+      </span>
+    </div>
+    <div class="metric-row">
+      <strong>Avg page words</strong>
+      <span><%= audit ? (audit.avgWords||0) : '—' %> words</span>
+    </div>
+  </section>
+
+  <!-- KEYWORD GAPS -->
+  <section class="card">
+    <h2>Keyword terms extracted (<%= audit ? (audit.keywords||[]).length : 0 %>)</h2>
+    <p class="hint">These terms appear across their pages. High-frequency terms you don't cover are content gaps.</p>
+    <% if(!(audit && (audit.keywords||[]).length)){ %>
+      <p class="empty">No keywords captured. Run a crawl.</p>
+    <% } %>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <% (audit && audit.keywords || []).slice(0,40).forEach(function(k){ %>
+        <span style="padding:3px 10px;border-radius:var(--r-sm);background:var(--bg-2);border:1px solid var(--line);font-size:var(--fs-sm)">
+          <%= k.keyword %> <b style="color:var(--info)"><%= k.count %></b>
+        </span>
+      <% }); %>
+    </div>
+  </section>
+</div>
+
+<!-- CRAWLED PAGES -->
+<section class="card">
+  <div class="card-head">
+    <h2>Crawled pages (<%= pages.length %>)</h2>
+  </div>
+  <% if(!pages.length){ %>
+    <p class="empty">No pages saved yet. Run a crawl.</p>
+  <% } %>
+  <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm)">
+    <% if(pages.length){ %>
+    <thead><tr style="border-bottom:1px solid var(--line);text-align:left">
+      <th style="padding:.35rem .5rem">Page</th>
+      <th style="padding:.35rem .5rem">Type</th>
+      <th style="padding:.35rem .5rem">Words</th>
+      <th style="padding:.35rem .5rem">Title</th>
+      <th style="padding:.35rem .5rem">Meta</th>
+    </tr></thead>
+    <% } %>
+    <tbody>
+    <% pages.forEach(function(p){ %>
+      <tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:.4rem .5rem;max-width:300px">
+          <a href="<%= p.page_url %>" target="_blank" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block"><%= p.page_title||p.page_url %></a>
+        </td>
+        <td style="padding:.4rem .5rem;color:var(--text-muted)"><%= p.page_type||'page' %></td>
+        <td style="padding:.4rem .5rem"><%= p.word_count||0 %></td>
+        <td style="padding:.4rem .5rem"><%= p.page_title ? '✓' : '✗' %></td>
+        <td style="padding:.4rem .5rem"><%= p.meta_description ? '✓' : '✗' %></td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</section>
+
+<!-- IMAGE CANDIDATES -->
+<% if(audit && (audit.imageCandidates||[]).length){ %>
+<section class="card">
+  <h2>Image candidates from homepage</h2>
+  <div class="asset-grid">
+    <% (audit.imageCandidates||[]).slice(0,12).forEach(function(img){ %>
+      <div class="asset">
+        <img src="<%= img.url %>" alt="" onerror="this.style.display='none'">
+        <span><%= img.alt||'No alt text' %></span>
+      </div>
+    <% }); %>
+  </div>
+</section>
+<% } %>
+<%- include('layout-end') %>

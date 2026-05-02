@@ -1,0 +1,134 @@
+<%- include('layout-start') %>
+<%
+  var _suggestions = (typeof suggestions !== 'undefined') ? suggestions : [];
+  var _counts = (typeof counts !== 'undefined') ? counts : { pending:0, applied:0, rejected:0, stale:0, total:0 };
+  var _filter = (typeof filterStatus !== 'undefined') ? filterStatus : 'pending';
+  var _msg = (typeof message !== 'undefined') ? message : null;
+%>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Internal linking</span>
+    <h1>Internal link opportunities</h1>
+    <p>When a new article publishes, the recommender scans older published articles for mentions of its keyword or game that don't already link to it. Apply suggestions to insert one natural markdown link into each old article and re-publish it to Contentful.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/reports/internal-links/rescan" onsubmit="return confirm('Rescan all published articles for new suggestions?')">
+      <button class="btn">Rescan all published</button>
+    </form>
+    <form method="post" action="/reports/internal-links/apply-all" onsubmit="return confirm('Apply every pending suggestion? Each one inserts one markdown link into the old article and re-publishes to Contentful.')">
+      <button class="btn primary">Apply all pending (<%= _counts.pending %>)</button>
+    </form>
+  </div>
+</section>
+
+<% if (_msg) { %>
+<div class="notice-good"><%= _msg %></div>
+<% } %>
+
+<div class="stats">
+  <div><b><%= _counts.pending %></b><span>Pending</span></div>
+  <div><b><%= _counts.applied %></b><span>Applied</span></div>
+  <div><b><%= _counts.rejected %></b><span>Rejected</span></div>
+  <div><b><%= _counts.stale %></b><span>Stale</span></div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Suggestions</h2>
+    <div class="tabs">
+      <a href="/reports/internal-links?status=pending"  class="<%= _filter==='pending' ?'active':'' %>">Pending</a>
+      <a href="/reports/internal-links?status=applied"  class="<%= _filter==='applied' ?'active':'' %>">Applied</a>
+      <a href="/reports/internal-links?status=rejected" class="<%= _filter==='rejected'?'active':'' %>">Rejected</a>
+      <a href="/reports/internal-links?status=stale"    class="<%= _filter==='stale'   ?'active':'' %>">Stale</a>
+      <a href="/reports/internal-links?status=all"      class="<%= _filter==='all'     ?'active':'' %>">All</a>
+    </div>
+  </div>
+
+  <% if (!_suggestions.length) { %>
+    <p class="empty">
+      <% if (_filter === 'pending') { %>
+        No pending suggestions. New ones will appear here automatically when articles publish. Click <strong>Rescan all published</strong> to backfill.
+      <% } else { %>
+        No <%= _filter %> suggestions.
+      <% } %>
+    </p>
+  <% } else { %>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Source article (old)</th>
+          <th>Match phrase</th>
+          <th>Target (new)</th>
+          <th>Status</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% _suggestions.forEach(function(s){
+          var statusBadge = s.status === 'applied' ? 'good' : (s.status === 'pending' ? 'info' : (s.status === 'stale' ? 'warn' : ''));
+        %>
+          <tr>
+            <td>
+              <strong><%= s.source_title || ('Article #' + s.source_article_id) %></strong>
+              <% if (s.source_url) { %>
+                <div class="muted-link"><a href="<%= s.source_url %>" target="_blank" rel="noopener"><%= s.source_url %></a></div>
+              <% } %>
+            </td>
+            <td>
+              <code class="phrase-code"><%= s.match_phrase %></code>
+              <% if (s.reason) { %>
+                <div class="phrase-reason"><%= s.reason %></div>
+              <% } %>
+            </td>
+            <td>
+              <strong><%= s.target_title || ('Article #' + s.target_article_id) %></strong>
+              <% if (s.target_keyword) { %>
+                <div class="muted-link">kw: <%= s.target_keyword %></div>
+              <% } %>
+              <% if (s.target_published_url) { %>
+                <div class="muted-link"><a href="<%= s.target_published_url %>" target="_blank" rel="noopener"><%= s.target_published_url %></a></div>
+              <% } %>
+            </td>
+            <td>
+              <span class="badge <%= statusBadge %>"><%= s.status %></span>
+              <% if (s.applied_at) { %>
+                <div class="applied-at"><%= new Date(s.applied_at).toLocaleString() %></div>
+              <% } %>
+            </td>
+            <td class="actions-col">
+              <% if (s.status === 'pending') { %>
+                <form method="post" action="/reports/internal-links/<%= s.id %>/apply" class="inline-form-min"><button class="mini primary">Apply</button></form>
+                <form method="post" action="/reports/internal-links/<%= s.id %>/reject" class="inline-form-min"><button class="mini">Reject</button></form>
+              <% } else if (s.status === 'applied') { %>
+                <span class="badge good">Live</span>
+              <% } else if (s.status === 'stale') { %>
+                <span class="badge warn" title="Source body was edited; phrase no longer present">Stale</span>
+              <% } else { %>
+                <span class="badge"><%= s.status %></span>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<style>
+.muted-link { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+.muted-link a { color: var(--text-muted); }
+.muted-link a:hover { color: var(--igh-green); }
+.phrase-code {
+  display: inline-block; font-family: var(--font-mono); font-size: var(--fs-xs);
+  background: var(--igh-green-faint); color: var(--igh-green);
+  padding: 3px 8px; border-radius: var(--r-xs); border: 1px solid var(--igh-green-line);
+}
+.phrase-reason { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+.applied-at { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px; }
+.actions-col { text-align: right; white-space: nowrap; }
+.actions-col form { display: inline-block; margin-left: 4px; }
+.inline-form-min { display: inline-block; }
+</style>
+
+<%- include('layout-end') %>

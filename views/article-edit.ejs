@@ -1,66 +1,182 @@
 <%- include('layout-start') %>
-
 <section class="hero">
-  <p class="eyebrow"><a href="/articles/<%= article.id %>" style="color:var(--np-purple);text-decoration:none">← Back to preview</a></p>
-  <h1>Edit Article</h1>
-  <p>Edit and refine the generated article before approving it for publishing.</p>
+  <div>
+    <p class="eyebrow"><%= article ? 'Edit draft' : 'New article' %></p>
+    <h1><%= article ? article.title||'Untitled' : 'New SEO Article' %></h1>
+    <% if(article){ %>
+      <p>
+        Quality: <strong style="color:<%= Number(article.quality_score||0)>=minQualityScore?'var(--good,var(--igh-green))':'var(--bad,var(--bad))' %>"><%= article.quality_score||0 %>/<%= minQualityScore %></strong>
+        · Status: <strong><%= article.status %></strong>
+        · <%= article.primary_keyword||'No keyword' %>
+      </p>
+    <% } %>
+  </div>
 </section>
 
-<form method="post" action="/articles/<%= article.id %>/save">
-  <div class="grid two" style="align-items:start">
-    <div>
-      <section class="card" style="margin-bottom:var(--sp-4)">
-        <div class="card-head"><h2>SEO Fields</h2></div>
-        <div class="form-group">
-          <label>Title (H1)</label>
-          <input type="text" name="title" value="<%= article.title||'' %>" required>
-        </div>
-        <div class="form-group">
-          <label>URL slug</label>
-          <input type="text" name="slug" value="<%= article.slug||'' %>" placeholder="e.g. ai-social-media-content-generator">
-          <div class="hint">nativpost.com/blog/<em>your-slug</em></div>
-        </div>
-        <div class="form-group">
-          <label>Meta description <span style="color:var(--text-dim)">(max 160 chars)</span></label>
-          <textarea name="meta_description" rows="3" maxlength="160"><%= article.meta_description||'' %></textarea>
-        </div>
-        <div class="form-group">
-          <label>Excerpt (2-sentence summary)</label>
-          <textarea name="excerpt" rows="3"><%= article.excerpt||'' %></textarea>
-        </div>
-        <div class="form-group">
-          <label>Featured image URL</label>
-          <input type="url" name="featured_image_url" value="<%= article.featured_image_url||'' %>" placeholder="https://...">
-        </div>
-        <div class="form-group">
-          <label>Featured image alt text</label>
-          <input type="text" name="featured_image_alt" value="<%= article.featured_image_alt||'' %>">
-        </div>
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>Workflow Status</h2></div>
-        <div class="form-group">
-          <label>Status</label>
-          <select name="status">
-            <option value="draft" <%= article.status==='draft'?'selected':'' %>>Draft</option>
-            <option value="pending_review" <%= article.status==='pending_review'?'selected':'' %>>Pending Review</option>
-            <option value="approved" <%= article.status==='approved'?'selected':'' %>>Approved (queue for publish)</option>
-            <option value="published" <%= article.status==='published'?'selected':'' %>>Published</option>
-            <option value="rejected" <%= article.status==='rejected'?'selected':'' %>>Rejected</option>
-          </select>
-        </div>
-        <button type="submit" class="primary" style="width:100%">Save Changes</button>
-      </section>
-    </div>
+<div class="grid two">
+<div>
+<form class="card" method="post" enctype="multipart/form-data" action="<%= article ? '/articles/'+article.id : '/articles/new' %>">
+  <h2>Article fields</h2>
+  <div class="grid two" style="gap:10px">
+    <label>Site
+      <select name="site_id">
+        <option value="">No site</option>
+        <% sites.forEach(function(s){ %><option value="<%= s.id %>" <%= article&&article.site_id==s.id?'selected':'' %>><%= s.name %></option><% }); %>
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <% ['draft','review','approved','queued','published'].forEach(function(st){ %>
+          <option value="<%= st %>" <%= article&&article.status===st?'selected':'' %>><%= st %></option>
+        <% }); %>
+      </select>
+    </label>
+    <label>Title<input name="title" value="<%= article ? article.title||'' : '' %>" required></label>
+    <label>Slug<input name="slug" value="<%= article ? article.slug||'' : '' %>" placeholder="auto-created if blank"></label>
+    <label>Primary keyword<input name="primary_keyword" value="<%= article ? article.primary_keyword||'' : '' %>"></label>
+    <label>Meta title<input name="meta_title" value="<%= article ? article.meta_title||'' : '' %>"></label>
+  </div>
+  <label style="margin-top:8px">Meta description
+    <textarea name="meta_description" rows="2"><%= article ? article.meta_description||'' : '' %></textarea>
+  </label>
+  <label>Excerpt<textarea name="excerpt" rows="2"><%= article ? article.excerpt||'' : '' %></textarea></label>
 
-    <section class="card">
-      <div class="card-head"><h2>Article Body (Markdown)</h2></div>
-      <div class="form-group">
-        <textarea name="body" rows="40" style="font-family:var(--mono);font-size:.8rem"><%= article.body||'' %></textarea>
-        <div class="hint"><%= Number(article.word_count||0).toLocaleString() %> words · Write in Markdown — headings, **bold**, *italic*, [links](url), tables supported</div>
-      </div>
-    </section>
+  <div class="grid two" style="gap:10px;margin-top:8px">
+    <label>Image library
+      <select name="featured_image_id">
+        <option value="">Keep current image</option>
+        <% assets.forEach(function(a){ %><option value="<%= a.id %>" <%= article&&article.featured_image_id==a.id?'selected':'' %>><%= a.folder_name||'General' %> / <%= a.label %><%= a.game_slug?' ('+a.game_slug+')':'' %></option><% }); %>
+      </select>
+    </label>
+    <input type="hidden" name="current_featured_image_id" value="<%= article ? article.featured_image_id||'' : '' %>">
+    <label>Manual image URL<input name="featured_image_url" value="<%= article ? article.featured_image_url||'' : '' %>"></label>
+    <label>Image alt text<input name="featured_image_alt" value="<%= article ? article.featured_image_alt||'' : '' %>"></label>
+    <label>Schedule (Denver time)
+      <%
+        var schedVal = '';
+        if (article && article.scheduled_for) {
+          try { var d=new Date(article.scheduled_for); if(!isNaN(d)) schedVal=d.toISOString().slice(0,16); } catch(e){}
+        }
+      %>
+      <input type="datetime-local" name="scheduled_for" value="<%= schedVal %>">
+    </label>
+  </div>
+
+  <% if(article && article.featured_image_url){ %>
+  <div style="margin:12px 0">
+    <img src="<%= article.featured_image_url %>" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--line)" alt="" onerror="this.style.display='none'">
+  </div>
+  <% } %>
+
+  <% if(article){ %>
+  <div class="card" style="margin:12px 0;padding:14px">
+    <h3 style="font-size:var(--fs-md);margin-bottom:8px">Upload / change image</h3>
+    <div class="grid two" style="gap:8px">
+      <label>Image file<input type="file" name="image" accept="image/*"></label>
+      <label>Label<input name="label" value="<%= article.title %> featured image"></label>
+      <label>Game slug<input name="game_slug" value="<%= article.primary_keyword||'' %>"></label>
+      <label>Alt text<input name="alt_text" value="<%= article.featured_image_alt||article.primary_keyword||article.title %>"></label>
+    </div>
+    <button class="btn" type="submit" formaction="/articles/<%= article.id %>/upload-image" formenctype="multipart/form-data" style="margin-top:8px">Upload &amp; attach image</button>
+  </div>
+  <% } %>
+
+  <label>Review notes<textarea name="review_notes" rows="2"><%= article ? article.review_notes||'' : '' %></textarea></label>
+  <label>Article body<textarea class="body-editor" name="body"><%= article ? article.body||'' : '' %></textarea></label>
+
+  <div class="actions" style="margin-top:12px">
+    <button class="btn primary" type="submit">Save</button>
+    <% if(article){ %>
+      <a class="btn" href="/articles/<%= article.id %>">Preview</a>
+      <button class="btn" type="submit" name="status" value="review">Send to Review</button>
+      <button class="btn" type="submit" name="status" value="approved">Approve</button>
+      <button class="btn" type="submit" name="status" value="queued">Queue</button>
+      <form method="post" action="/articles/<%= article.id %>/reject-regenerate" onsubmit="return confirm('Reject this draft and generate a replacement? Uses 1 OpenAI credit. The current draft will be deleted.')"><button class="btn danger" type="submit">Reject + regenerate</button></form>
+    <% } %>
   </div>
 </form>
+</div>
 
+<!-- QUALITY SCORE PANEL -->
+<% if(article){ %>
+<div>
+  <section class="card">
+    <div class="card-head">
+      <h2>Quality score</h2>
+      <div class="score-circle" style="width:44px;height:44px;font-size:var(--fs-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(135deg,var(--igh-green-dim),var(--igh-green))':'linear-gradient(135deg,var(--bad),var(--bad))' %>">
+        <%= article.quality_score||0 %>
+      </div>
+    </div>
+    <div style="margin-bottom:.75rem">
+      <div style="background:var(--line);border-radius:var(--r-sm);height:8px;overflow:hidden">
+        <div style="height:100%;border-radius:var(--r-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(90deg,var(--igh-green-dim),var(--igh-green))':'linear-gradient(90deg,var(--bad),var(--bad))' %>;width:<%= Math.min(100,Number(article.quality_score||0)) %>%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--text-muted);margin-top:3px">
+        <span>0</span>
+        <span>Threshold: <%= minQualityScore %></span>
+        <span>100</span>
+      </div>
+    </div>
+    <% if(article.review_notes){ %>
+      <% var _noteLines = article.review_notes.split('\n').filter(function(l){ return l.trim(); }); %>
+      <% _noteLines.forEach(function(line){ %>
+        <% if(line.startsWith('Quality gate')){ %>
+          <% var _failParts = line.replace(/^Quality gate \d+\/\d+:\s*/,'').split('.').filter(Boolean); %>
+          <% _failParts.forEach(function(issue){ %>
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:var(--fs-sm);border-top:1px solid rgba(255,255,255,.05)">
+              <span style="color:var(--bad);flex-shrink:0">✗</span>
+              <span style="color:var(--text-muted)"><%= issue.trim() %></span>
+            </div>
+          <% }); %>
+        <% } else if(line.trim() && !line.startsWith('AI generated') && !line.startsWith('Cluster:') && !line.startsWith('SERP avg') && !line.startsWith('Regenerated')){ %>
+          <div style="font-size:var(--fs-sm);color:var(--text-muted);padding:3px 0;border-top:1px solid rgba(255,255,255,.05)"><%= line %></div>
+        <% } %>
+      <% }); %>
+    <% } %>
+  </section>
+
+  <!-- QUICK CHECKS -->
+  <section class="card">
+    <h2>Field checks</h2>
+    <%
+      var _title = article.title||'';
+      var _meta  = article.meta_description||'';
+      var _kw    = article.primary_keyword||'';
+      var _img   = article.featured_image_url||'';
+      var _alt   = article.featured_image_alt||'';
+      var checks = [
+        { label:'Title length (35-72 chars)', ok: _title.length>=35&&_title.length<=72, val: _title.length+' chars' },
+        { label:'Meta desc (120-160 chars)',  ok: _meta.length>=120&&_meta.length<=160,  val: _meta.length+' chars' },
+        { label:'Primary keyword set',        ok: !!_kw, val: _kw||'Missing' },
+        { label:'Featured image',             ok: !!_img, val: _img?'Set':'Missing' },
+        { label:'Image alt text (8+ chars)',  ok: _alt.length>=8, val: _alt.length+' chars' },
+      ];
+    %>
+    <% checks.forEach(function(c){ %>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font-size:var(--fs-sm)">
+        <span style="color:<%= c.ok?'var(--good,var(--igh-green))':'var(--text-muted)' %>"><%= c.ok?'✓':'○' %> <%= c.label %></span>
+        <span style="color:var(--text-muted);font-size:var(--fs-xs)"><%= c.val %></span>
+      </div>
+    <% }); %>
+  </section>
+
+  <section class="card">
+    <h2>Publishing</h2>
+    <div class="metric-row"><strong>Status</strong><span><%= article.status %></span></div>
+    <% if(article.scheduled_for){ %>
+      <div class="metric-row"><strong>Scheduled</strong><span><%= new Date(article.scheduled_for).toLocaleString() %></span></div>
+    <% } %>
+    <% if(article.published_at){ %>
+      <div class="metric-row"><strong>Published</strong><span><%= new Date(article.published_at).toLocaleString() %></span></div>
+    <% } %>
+    <% if(article.published_url){ %>
+      <div class="metric-row"><strong>Live URL</strong><span><a href="<%= article.published_url %>" target="_blank"><%= article.published_url %></a></span></div>
+    <% } %>
+    <% if(article.contentful_entry_id){ %>
+      <div class="metric-row"><strong>Contentful ID</strong><span style="font-size:var(--fs-sm);font-family:monospace"><%= article.contentful_entry_id %></span></div>
+    <% } %>
+  </section>
+</div>
+<% } %>
+</div>
 <%- include('layout-end') %>

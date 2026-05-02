@@ -1,0 +1,96 @@
+<%- include('layout-start') %>
+<section class="hero">
+  <div>
+    <p class="eyebrow">Publishing</p>
+    <h1>Publish Queue</h1>
+    <p>
+      Queued posts publish automatically on their scheduled date up to <strong><%= autoPublishDailyLimit %></strong> per day.
+      Scheduler runs every <strong><%= autoPublishIntervalMinutes %></strong> minute(s).
+      Articles below quality threshold <strong><%= minQualityScore %></strong> are blocked and returned to Review.
+    </p>
+  </div>
+  <form method="post" action="/publish/auto" onsubmit="return confirm('Run the publish scheduler now? Due articles will be published to Contentful immediately.')">
+    <button class="btn primary">Publish due posts now</button>
+  </form>
+</section>
+
+<% if (Number(published) > 0 || Number(failed) > 0) { %>
+<div class="notice-<%= Number(failed) > 0 ? 'warn' : 'good' %>">
+  <strong>Publish run complete.</strong>
+  Published: <strong><%= published || 0 %></strong> &middot;
+  Failed: <strong><%= failed || 0 %></strong>
+  <% if(Number(failed) > 0){ %> — check blocked articles below for error details.<% } %>
+</div>
+<% } %>
+
+<%
+  var _allArticles = (typeof articles !== 'undefined' && Array.isArray(articles)) ? articles : [];
+  var _queued = _allArticles.filter(function(a){ return a.status === 'queued' || a.status === 'approved'; });
+  var _publishedList = _allArticles.filter(function(a){ return a.status === 'published'; });
+  var _blocked = _allArticles.filter(function(a){ return a.status === 'blocked' || a.status === 'failed'; });
+%>
+
+<% if(_blocked.length){ %>
+<section class="card" style="border-color:rgba(239,68,68,.4)">
+  <div class="card-head"><h2 style="color:var(--bad)">Blocked / failed (<%= _blocked.length %>)</h2></div>
+  <% _blocked.forEach(function(a){ %>
+    <div class="list-row">
+      <div>
+        <strong><a href="/articles/<%= a.id %>/edit"><%= a.title %></a></strong>
+        <span>Quality: <b><%= a.quality_score || 0 %></b>/<%= minQualityScore %> &middot; <%= a.status %></span>
+        <% if(a.review_notes){ %><p class="quality-notes"><%= a.review_notes.slice(0,300) %></p><% } %>
+      </div>
+      <div class="actions">
+        <a class="mini" href="/articles/<%= a.id %>/edit">Fix &amp; edit</a>
+        <form method="post" action="/articles/<%= a.id %>/status">
+          <button class="mini" name="status" value="review">Return to review</button>
+        </form>
+      </div>
+    </div>
+  <% }); %>
+</section>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><h2>Queued &amp; approved (<%= _queued.length %>)</h2></div>
+  <% if(!_queued.length){ %>
+    <p class="empty">No articles queued. Approve articles from the Review Queue to add them here.</p>
+  <% } %>
+  <% _queued.forEach(function(a){ %>
+    <div class="list-row">
+      <div>
+        <strong><a href="/articles/<%= a.id %>"><%= a.title %></a></strong>
+        <span>
+          <%= a.site_name || 'No site' %> &middot;
+          Status: <b><%= a.status %></b> &middot;
+          Quality: <b><%= a.quality_score || 0 %></b>/<%= minQualityScore %> &middot;
+          <%= schedulePublishLabel(a) %>
+        </span>
+        <% if(a.published_url){ %><p><a target="_blank" href="<%= a.published_url %>"><%= a.published_url %></a></p><% } %>
+      </div>
+      <div class="actions">
+        <a class="mini" href="/articles/<%= a.id %>/edit">Edit</a>
+        <form class="inline-form" method="post" action="/publish/<%= a.id %>" onsubmit="return confirm('Publish this article to Contentful now? This is immediate.')">
+          <input name="published_url" placeholder="Optional final URL" style="width:180px">
+          <button class="mini primary">Publish now</button>
+        </form>
+      </div>
+    </div>
+  <% }); %>
+</section>
+
+<% if(_publishedList.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Recently published (<%= _publishedList.length %>)</h2></div>
+  <% _publishedList.slice(0,20).forEach(function(a){ %>
+    <div class="list-row">
+      <div>
+        <strong><a href="/articles/<%= a.id %>"><%= a.title %></a></strong>
+        <span><%= a.site_name || 'No site' %> &middot; <%= publishedLabel(a) %></span>
+        <% if(a.published_url){ %><p><a target="_blank" href="<%= a.published_url %>"><%= a.published_url %></a></p><% } %>
+      </div>
+    </div>
+  <% }); %>
+</section>
+<% } %>
+<%- include('layout-end') %>

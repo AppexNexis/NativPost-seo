@@ -1,79 +1,569 @@
 <%- include('layout-start') %>
-<section class="hero"><p class="eyebrow">Overview</p><h1>Reports</h1><p>SEO performance overview — keyword coverage, content pipeline, and competitor gap analysis.</p></section>
+<%
+  var _articles   = (typeof articles   !== 'undefined') ? articles   : [];
+  var _keywords   = (typeof keywords   !== 'undefined') ? keywords   : [];
+  var _gaps       = (typeof gaps       !== 'undefined') ? gaps       : [];
+  var _backlinks  = (typeof backlinks  !== 'undefined') ? backlinks  : [];
+  var _comps      = (typeof competitors!== 'undefined') ? competitors : [];
+  var _metrics    = (typeof metrics    !== 'undefined') ? metrics    : [];
+  var _techIssues = (typeof techIssues !== 'undefined') ? techIssues : [];
+  var _rankingTop = (typeof rankingTop !== 'undefined') ? rankingTop : [];
+  var _weekly     = (typeof weeklyChange !== 'undefined') ? weeklyChange : { movers_up:[], movers_down:[], new_keywords:[], lost_keywords:[], summary:{} };
+  var _decay      = (typeof decayPages !== 'undefined') ? decayPages : [];
+  var _posHistory = (typeof positionHistory !== 'undefined') ? positionHistory : [];
 
-<div class="grid three" style="margin-bottom:var(--sp-4)">
-  <section class="card">
-    <div class="card-head"><h2>Content Pipeline</h2></div>
-    <% var statuses = ['draft','pending_review','approved','published','rejected']; %>
-    <% statuses.forEach(function(s) { var cnt = artMap[s]||0; var cls = s==='published'?'good':s==='approved'?'purple':s==='rejected'?'bad':s==='pending_review'?'warn':''; %>
-    <div class="metric-row">
-      <strong><%= s.replace(/_/g,' ') %></strong>
-      <span class="badge <%= cls %>"><%= cnt %></span>
+  var _published  = _articles.filter(function(a){ return a.status==='published'; });
+  var _queued     = _articles.filter(function(a){ return a.status==='queued'; });
+  var _review     = _articles.filter(function(a){ return a.status==='review'; });
+  var _draft      = _articles.filter(function(a){ return a.status==='draft'; });
+  var _critical   = _techIssues.filter(function(i){ return i.severity==='critical'; });
+  var _warnings   = _techIssues.filter(function(i){ return i.severity==='warning'; });
+  var _infos      = _techIssues.filter(function(i){ return i.severity==='info'; });
+
+  var _hasGSC = _rankingTop.length > 0 || (_weekly.movers_up && _weekly.movers_up.length > 0);
+
+  // Actual date span in position history — for honest chart header
+  var _allDates = [];
+  _posHistory.forEach(function(kw){ (kw.history||[]).forEach(function(h){ if(h.date) _allDates.push(String(h.date).slice(0,10)); }); });
+  _allDates = Array.from(new Set(_allDates)).sort();
+%>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">Reporting</span>
+    <h1>Reports</h1>
+    <p>SEO health, rankings, content pipeline, keyword gaps, technical issues — all in one place.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/reports/run-audit"><button class="btn primary">Run technical audit</button></form>
+  </div>
+</section>
+
+<div class="stats">
+  <div><b><%= _published.length %></b><span>Published</span></div>
+  <div><b><%= _queued.length %></b><span>Queued</span></div>
+  <div><b><%= _review.length %></b><span>In review</span></div>
+  <div><b><%= _draft.length %></b><span>Drafts</span></div>
+  <div><b><%= _keywords.length %></b><span>Keywords</span></div>
+  <div><b><%= _gaps.length %></b><span>Gaps</span></div>
+  <div><b><%= _comps.length %></b><span>Competitors</span></div>
+  <div><b><%= _backlinks.filter(function(b){ return b.status==='earned'; }).length %></b><span>Earned links</span></div>
+</div>
+
+<!-- WEEKLY CHANGE REPORT -->
+<section class="card">
+  <div class="card-head">
+    <h2>What changed this week</h2>
+    <a href="/settings">Sync GSC →</a>
+  </div>
+  <% if(!_hasGSC){ %>
+    <p class="empty">No GSC data yet. Connect Google Search Console in <a href="/settings">Settings</a> and sync — then this section will show which keywords improved or declined this week.</p>
+  <% } else { %>
+    <div class="review-summary">
+      <div class="review-stat good"><strong><%= _weekly.summary.improved||0 %></strong><span>Improved</span></div>
+      <div class="review-stat warn"><strong><%= _weekly.summary.declined||0 %></strong><span>Declined</span></div>
+      <div class="review-stat"><strong><%= _weekly.summary.new||0 %></strong><span>New rankings</span></div>
     </div>
-    <% }); %>
-  </section>
 
-  <section class="card">
-    <div class="card-head"><h2>Top Competitor Gaps</h2></div>
-    <p class="hint" style="margin-bottom:var(--sp-3)">Keywords competitors rank for that NativPost doesn't — high-priority content targets.</p>
-    <% if (!serpGaps.length) { %>
-      <p class="empty">No gaps found yet. Run SERP lookups on tracked keywords.</p>
+    <% if(_weekly.movers_up.length){ %>
+      <h3 class="mover-title">Biggest movers up</h3>
+      <table class="data">
+        <thead><tr><th>Keyword</th><th>Change</th><th>Delta</th></tr></thead>
+        <tbody>
+          <% _weekly.movers_up.slice(0,5).forEach(function(r){ %>
+            <tr>
+              <td><%= r.keyword %></td>
+              <td><%= r.prev_position.toFixed(0) %> → <strong><%= r.position.toFixed(0) %></strong></td>
+              <td><span class="badge good">+<%= r.delta.toFixed(0) %></span></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
     <% } %>
-    <% serpGaps.slice(0,6).forEach(function(g) { %>
-    <div class="metric-row">
-      <div>
-        <strong style="font-size:var(--fs-sm)"><%= g.keyword %></strong>
-        <span><%= g.comp_name %> at #<%= g.competitor_position %> · NativPost at #<%= g.nativpost_position >= 999 ? '—' : g.nativpost_position %></span>
+
+    <% if(_weekly.movers_down.length){ %>
+      <h3 class="mover-title mover-title--down">Biggest declines</h3>
+      <table class="data">
+        <thead><tr><th>Keyword</th><th>Change</th><th>Delta</th></tr></thead>
+        <tbody>
+          <% _weekly.movers_down.slice(0,5).forEach(function(r){ %>
+            <tr>
+              <td><%= r.keyword %></td>
+              <td><%= r.prev_position.toFixed(0) %> → <strong><%= r.position.toFixed(0) %></strong></td>
+              <td><span class="badge bad"><%= r.delta.toFixed(0) %></span></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  <% } %>
+</section>
+
+<!-- POSITION HISTORY CHART -->
+<section class="card">
+  <div class="card-head">
+    <h2>
+      Ranking position trends
+      <% if (_allDates.length) { %>
+        <span class="card-subtitle">· <%= _allDates.length %> day<%= _allDates.length===1?'':'s' %> of data</span>
+      <% } %>
+    </h2>
+    <a href="/settings">Sync GSC →</a>
+  </div>
+  <% if(!_posHistory.length && !_rankingTop.length){ %>
+    <p class="empty">No ranking data yet. Connect GSC in <a href="/settings">Settings</a> and sync — rankings will appear here.</p>
+  <% } else if(!_posHistory.length && _rankingTop.length){ %>
+    <%/* No history yet but we have current rankings - show as cards without sparklines */%>
+    <p class="hint" style="margin-bottom:1rem">Current positions from last GSC sync. Trend lines will appear after a second sync.</p>
+    <div class="rank-cards-grid">
+      <% _rankingTop.slice(0,12).forEach(function(row) {
+        var pos = Number(row.position||50);
+        var posClass = pos <= 3 ? 'pos-top3' : pos <= 10 ? 'pos-top10' : pos <= 20 ? 'pos-top20' : 'pos-lower';
+      %>
+      <div class="rank-card">
+        <div class="rank-card-header">
+          <div class="rank-card-kw"><%= row.keyword %></div>
+          <div class="rank-card-pos <%= posClass %>">#<%= pos.toFixed(0) %></div>
+        </div>
+        <div class="rank-card-body">
+          <span style="font-size:.72rem;color:var(--text-muted)"><%= row.clicks %> clicks · <%= row.impressions %> impressions</span>
+        </div>
+        <div class="rank-card-dates"><%= String(row.recorded_on||'').slice(0,10) %></div>
       </div>
-      <form method="get" action="/content-studio">
-        <input type="hidden" name="keyword" value="<%= g.keyword %>">
-        <button class="mini primary">Generate</button>
-      </form>
+      <% }); %>
     </div>
+  <% } else if (_allDates.length < 2) { %>
+    <p class="hint" style="margin-bottom:1rem">Current positions — trend lines appear after a second daily sync.</p>
+    <div class="rank-cards-grid">
+      <% _posHistory.forEach(function(kw) {
+        var history = (kw.history||[]).filter(function(h){ return h.date && h.position; });
+        if (!history.length) return;
+        var last = history[history.length-1];
+        var pos = last.position;
+        var posClass = pos <= 3 ? 'pos-top3' : pos <= 10 ? 'pos-top10' : pos <= 20 ? 'pos-top20' : 'pos-lower';
+      %>
+      <div class="rank-card">
+        <div class="rank-card-header">
+          <div class="rank-card-kw"><%= kw.keyword %></div>
+          <div class="rank-card-pos <%= posClass %>">#<%= pos.toFixed(0) %></div>
+        </div>
+        <div class="rank-card-body"><span style="font-size:.72rem;color:var(--text-muted)">Trend available after next sync</span></div>
+        <div class="rank-card-dates"><%= String(last.date||'').slice(0,10) %></div>
+      </div>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <p class="hint" style="margin-bottom:1rem">Lower position number = better rank. Green = improving, red = declining.</p>
+    <div class="rank-cards-grid">
+      <% _posHistory.forEach(function(kw, ki) {
+        var history = (kw.history||[]).filter(function(h){ return h.date && h.position; });
+        if (!history.length) return;
+        var first = history[0];
+        var last  = history[history.length-1];
+        var delta = last.position - first.position; // positive = rank got worse (higher number), negative = rank improved
+        var trendClass = delta < -0.5 ? 'trend-up' : delta > 0.5 ? 'trend-down' : 'trend-flat';
+        var trendIcon  = delta < -0.5 ? '↑' : delta > 0.5 ? '↓' : '→';
+        // Clear language: climbing = rank number went DOWN (better), falling = rank number went UP (worse)
+        var trendLabel = delta < -0.5
+          ? 'Climbing (' + Math.abs(delta).toFixed(0) + ' spots)'
+          : delta > 0.5
+            ? 'Falling (' + Math.abs(delta).toFixed(0) + ' spots)'
+            : 'Stable';
+        var pos = last.position;
+        var posClass = pos <= 3 ? 'pos-top3' : pos <= 10 ? 'pos-top10' : pos <= 20 ? 'pos-top20' : 'pos-lower';
+
+        // SVG sparkline — lower position = better rank = higher on chart
+        var svgW = 120, svgH = 36, pad = 4;
+        var positions = history.map(function(h){ return Number(h.position||50); });
+        var minP = Math.max(1, Math.min.apply(null, positions) - 2);
+        var maxP = Math.min(100, Math.max.apply(null, positions) + 2);
+        if (maxP === minP) { minP = Math.max(1, minP-2); maxP = minP+4; }
+        var points = positions.map(function(p, i){
+          var x = pad + (positions.length < 2 ? (svgW-pad*2)/2 : i / (positions.length-1) * (svgW-pad*2));
+          // INVERT: position 1 (best) = top of chart (low Y), position 100 (worst) = bottom (high Y)
+          var y = pad + ((p - minP) / (maxP - minP)) * (svgH - pad*2);
+          return x.toFixed(1) + ',' + y.toFixed(1);
+        }).join(' ');
+        var sparkColor = delta < -0.5 ? '#22ff44' : delta > 0.5 ? '#ff4757' : '#5a6570';
+      %>
+      <div class="rank-card">
+        <div class="rank-card-header">
+          <div class="rank-card-kw"><%= kw.keyword %></div>
+          <div class="rank-card-pos <%= posClass %>">#<%= pos <= 100 ? pos.toFixed(0) : '100+' %></div>
+        </div>
+        <div class="rank-card-body">
+          <svg width="<%= svgW %>" height="<%= svgH %>" viewBox="0 0 <%= svgW %> <%= svgH %>" style="overflow:visible">
+            <% if(positions.length >= 2) { %>
+            <polyline points="<%= points %>" fill="none" stroke="<%= sparkColor %>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+            <% } %>
+            <% history.forEach(function(h,i){
+              var x = pad + (positions.length < 2 ? (svgW-pad*2)/2 : i / (positions.length-1) * (svgW-pad*2));
+              var y = pad + ((Number(h.position) - minP) / (maxP - minP)) * (svgH - pad*2);
+            %>
+            <circle cx="<%= x.toFixed(1) %>" cy="<%= y.toFixed(1) %>" r="2.5" fill="<%= sparkColor %>" opacity="0.85">
+              <title><%= (h.date instanceof Date ? h.date.toISOString() : String(h.date||'')).slice(0,10) %>: #<%= Number(h.position).toFixed(0) %></title>
+            </circle>
+            <% }); %>
+          </svg>
+          <div class="rank-card-trend <%= trendClass %>">
+            <span class="trend-icon"><%= trendIcon %></span>
+            <span class="trend-label"><%= trendLabel %></span>
+          </div>
+        </div>
+        <div class="rank-card-dates">
+          <%= (first.date instanceof Date ? first.date.toISOString() : String(first.date||'')).slice(5,10) %> → <%= (last.date instanceof Date ? last.date.toISOString() : String(last.date||'')).slice(5,10) %>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+  <% } %>
+</section>
+
+<style>
+.rank-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+.rank-card {
+  background: var(--bg-2, #1a1f28);
+  border: 1px solid var(--line, #252c38);
+  border-radius: 10px;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color .15s;
+}
+.rank-card:hover { border-color: var(--igh-green, #22ff44); }
+.rank-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.rank-card-kw { font-size:.78rem; font-weight:600; color:var(--text,#e6ecee); line-height:1.3; flex:1; word-break:break-word; }
+.rank-card-pos { font-size:1.1rem; font-weight:700; white-space:nowrap; padding:2px 8px; border-radius:6px; font-variant-numeric:tabular-nums; }
+.pos-top3  { color:#22ff44; background:rgba(34,255,68,.12); }
+.pos-top10 { color:#4aff66; background:rgba(74,255,102,.08); }
+.pos-top20 { color:#ffb020; background:rgba(255,176,32,.08); }
+.pos-lower { color:var(--text-muted,#6b7680); background:rgba(255,255,255,.04); }
+.rank-card-body { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.rank-card-trend { display:flex; align-items:center; gap:4px; font-size:.75rem; font-weight:600; white-space:nowrap; }
+.trend-up   .trend-icon { color:#22ff44; }
+.trend-down .trend-icon { color:#ff4757; }
+.trend-flat .trend-icon { color:var(--text-muted,#6b7680); }
+.trend-up   .trend-label { color:#22ff44; }
+.trend-down .trend-label { color:#ff4757; }
+.trend-flat .trend-label { color:var(--text-muted,#6b7680); }
+.rank-card-dates { font-size:.7rem; color:var(--text-muted,#6b7680); }
+</style>
+
+<!-- RANKING TABLE -->
+<section class="card">
+  <div class="card-head">
+    <h2>Top ranking keywords <span class="card-subtitle">· last 30 days</span></h2>
+    <a href="/settings">Sync GSC →</a>
+  </div>
+  <% if(!_rankingTop.length){ %>
+    <p class="empty">No ranking data yet. Connect Google Search Console in <a href="/settings">Settings</a> — your rankings will appear here automatically after syncing.</p>
+  <% } else { %>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Keyword</th>
+          <th>Position</th>
+          <th>Clicks</th>
+          <th>Impressions</th>
+          <th>Page</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% _rankingTop.forEach(function(r){
+        var pos = Number(r.position||99);
+        var posClass = pos <= 10 ? 'good' : (pos <= 30 ? 'warn' : '');
+      %>
+        <tr>
+          <td><strong><%= r.keyword %></strong></td>
+          <td><span class="badge <%= posClass %>"><%= r.position ? Number(r.position).toFixed(1) : '—' %></span></td>
+          <td class="num"><%= (r.clicks||0).toLocaleString() %></td>
+          <td class="num dim"><%= (r.impressions||0).toLocaleString() %></td>
+          <td class="page-cell">
+            <% if(r.page_url){ %><a href="<%= r.page_url %>" target="_blank" rel="noopener"><%= String(r.page_url).replace(/^https?:\/\/[^\/]+/,'').slice(0,45) || '/' %></a><% } %>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<!-- TECHNICAL SEO AUDIT -->
+<section class="card">
+  <div class="card-head">
+    <h2>Technical SEO audit</h2>
+    <form method="post" action="/reports/run-audit"><button class="mini primary">Re-run audit</button></form>
+  </div>
+  <% if(!_techIssues.length){ %>
+    <p class="empty">No audit data yet. Click <strong>Run technical audit</strong> above — it reads your already-scanned pages with zero API cost. Scan your site under <a href="/sites">Own Sites</a> first if you haven't.</p>
+  <% } else { %>
+    <div class="review-summary">
+      <div class="review-stat warn"><strong><%= _critical.length %></strong><span>Critical</span></div>
+      <div class="review-stat"><strong><%= _warnings.length %></strong><span>Warnings</span></div>
+      <div class="review-stat good"><strong><%= _infos.length %></strong><span>Info</span></div>
+    </div>
+    <div class="issue-list">
+    <% _techIssues.forEach(function(issue){
+      var sev = issue.severity === 'critical' ? 'bad' : (issue.severity === 'warning' ? 'warn' : 'info');
+    %>
+      <div class="issue-row">
+        <span class="badge <%= sev %>"><%= issue.severity %></span>
+        <div class="issue-body">
+          <div class="issue-title"><%= issue.title %></div>
+          <div class="issue-detail"><%= issue.detail %></div>
+          <% if(issue.url && issue.url!=='multiple'){ %>
+            <a class="issue-link" href="<%= issue.url %>" target="_blank" rel="noopener"><%= issue.url.slice(0,90) %></a>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+    </div>
+  <% } %>
+</section>
+
+<!-- CONTENT DECAY DETECTION -->
+<% if(_decay.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Content decay — traffic declining</h2></div>
+  <p class="hint">Pages where traffic dropped 25%+ compared to 60–90 days ago. These need refreshing or internal link boosts.</p>
+  <div class="issue-list">
+  <% _decay.forEach(function(p){
+    var sev = p.severity === 'critical' ? 'bad' : 'warn';
+  %>
+    <div class="issue-row">
+      <span class="badge <%= sev %>">-<%= p.drop_pct %>%</span>
+      <div class="issue-body">
+        <div class="issue-title"><%= p.page_title||p.page_path %></div>
+        <div class="issue-detail"><%= p.recent_views.toLocaleString() %> views now vs <%= p.older_views.toLocaleString() %> views 60–90 days ago</div>
+        <a class="issue-link" href="<%= p.page_path %>" target="_blank" rel="noopener"><%= p.page_path.slice(0,70) %></a>
+      </div>
+    </div>
+  <% }); %>
+  </div>
+</section>
+<% } %>
+
+<div class="grid two">
+  <!-- CONTENT PIPELINE -->
+  <section class="card">
+    <div class="card-head"><h2>Content pipeline</h2><a href="/articles">All articles →</a></div>
+    <div class="pipeline-chips">
+      <div class="pipe-chip"><strong><%= _draft.length %></strong><span>Draft</span></div>
+      <div class="pipe-chip warn"><strong><%= _review.length %></strong><span>Review</span></div>
+      <div class="pipe-chip info"><strong><%= _queued.length %></strong><span>Queued</span></div>
+      <div class="pipe-chip good"><strong><%= _published.length %></strong><span>Published</span></div>
+    </div>
+    <% _articles.slice(0,6).forEach(function(a){
+      var statusBadge = a.status==='published' ? 'good' : (a.status==='queued' ? 'info' : (a.status==='review' ? 'warn' : ''));
+      var q = Number(a.quality_score||0);
+      var qBadge = q >= 80 ? 'good' : (q >= 60 ? 'warn' : 'bad');
+    %>
+      <div class="list-row compact">
+        <div class="list-row-main">
+          <a href="/articles/<%= a.id %>/edit"><strong class="truncate"><%= a.title %></strong></a>
+          <div class="list-row-meta">
+            <span class="badge <%= statusBadge %>"><%= a.status %></span>
+            <span class="badge <%= qBadge %>">Q <%= q %>/100</span>
+          </div>
+        </div>
+      </div>
     <% }); %>
   </section>
 
+  <!-- KEYWORD GAPS -->
   <section class="card">
-    <div class="card-head"><h2>Keyword Cluster Coverage</h2></div>
-    <% kwCoverage.forEach(function(c) {
-      var pct = c.total > 0 ? Math.round(c.covered/c.total*100) : 0;
-      var cls = pct >= 80 ? 'good' : pct >= 40 ? 'warn' : 'bad';
-    %>
-    <div style="margin-bottom:var(--sp-3)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <span style="font-size:var(--fs-sm);color:var(--text)"><%= c.cluster_name||c.cluster_key||'Unclustered' %></span>
-        <span class="badge <%= cls %>"><%= c.covered %>/<%= c.total %></span>
+    <div class="card-head"><h2>Top keyword gaps</h2><a href="/keywords">All keywords →</a></div>
+    <p class="hint">Hosting-related keywords competitors target that you have no published content for.</p>
+    <% if(!_gaps.length){ %>
+      <p class="empty">No gaps yet. Crawl competitors and sync GSC to discover opportunities.</p>
+    <% } %>
+    <% _gaps.slice(0,12).forEach(function(k){ %>
+      <div class="list-row compact">
+        <div class="list-row-main">
+          <strong class="truncate"><%= k.keyword %></strong>
+          <div class="list-row-meta">
+            <span><%= k.intent||'mixed' %></span>
+            <% if(k.volume){ %><span>Vol <%= Number(k.volume).toLocaleString() %></span><% } %>
+          </div>
+        </div>
+        <span class="badge info"><%= Math.round(k.priority_score||0) %></span>
       </div>
-      <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,pct) %>%"></div></div>
-    </div>
     <% }); %>
+    <% if(_gaps.length>12){ %><a class="see-more" href="/keywords">+ <%= _gaps.length-12 %> more →</a><% } %>
   </section>
 </div>
 
-<section class="card">
-  <div class="card-head"><h2>Top Published Articles</h2><a href="/articles?status=published">All published →</a></div>
-  <% if (!topPublished.length) { %>
-    <p class="empty">No published articles yet. Generate → Review → Approve → Publish.</p>
-  <% } %>
-  <div class="table-wrap">
-    <table class="data-table">
-      <thead><tr><th>Title</th><th>Keyword</th><th>Quality</th><th>Words</th><th>Published</th></tr></thead>
-      <tbody>
-        <% topPublished.forEach(function(a) {
-          var q = Number(a.quality_score||0);
-          var qClass = q >= 90 ? 'good' : q >= 70 ? 'warn' : 'bad';
-        %>
-        <tr>
-          <td style="font-size:var(--fs-sm);font-weight:600;color:var(--text-heading)"><%= a.title %></td>
-          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.primary_keyword||'—' %></td>
-          <td><span class="badge <%= qClass %>"><%= q %></span></td>
-          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= Number(a.word_count||0).toLocaleString() %></td>
-          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.published_at ? new Date(a.published_at).toLocaleDateString() : '—' %></td>
-        </tr>
+<div class="grid two">
+  <!-- GA4 TRAFFIC -->
+  <section class="card">
+    <div class="card-head"><h2>Traffic <span class="card-subtitle">· GA4, last 90 days</span></h2></div>
+    <% if(!_metrics.length){ %>
+      <p class="empty">No GA4 data yet. Connect Google in <a href="/settings">Settings</a> and sync GA4.</p>
+    <% } else { %>
+      <table class="data">
+        <thead><tr>
+          <th>Page</th>
+          <th class="num-col">Views</th>
+          <th class="num-col">Sessions</th>
+          <th class="num-col">Eng.</th>
+        </tr></thead>
+        <tbody>
+        <% _metrics.slice(0,12).forEach(function(m){ %>
+          <tr>
+            <td class="truncate" title="<%= m.page_title||m.page_path %>"><%= m.page_title||m.page_path %></td>
+            <td class="num"><strong><%= (m.views||0).toLocaleString() %></strong></td>
+            <td class="num dim"><%= (m.sessions||0).toLocaleString() %></td>
+            <td class="num dim"><%= m.engagement_rate?(Number(m.engagement_rate)*100).toFixed(0)+'%':'—' %></td>
+          </tr>
         <% }); %>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+
+  <!-- COMPETITORS -->
+  <section class="card">
+    <div class="card-head"><h2>Competitors</h2><a href="/competitors">Manage →</a></div>
+    <% if(!_comps.length){ %><p class="empty">No competitors tracked yet.</p><% } %>
+    <% var _maxScore=Math.max.apply(null,_comps.map(function(c){return Number(c.audit_score||0);}).concat([1])); %>
+    <% _comps.slice(0,8).forEach(function(c){ %>
+      <div class="comp-row">
+        <div class="comp-head">
+          <a href="/competitors/<%= c.id %>"><%= c.name||c.url %></a>
+          <span>Score <%= Math.round(Number(c.audit_score||0)) %></span>
+        </div>
+        <div class="bar"><i style="width:<%= Math.max(2,Math.round(Number(c.audit_score||0)/_maxScore*100)) %>%"></i></div>
+      </div>
+    <% }); %>
+    <p class="hint">Scores based on content depth and crawl quality. SERP keyword overlap is tracked on the <a href="/">Dashboard</a>.</p>
+  </section>
+</div>
+
+<!-- RECOMMENDED ACTIONS -->
+<section class="card">
+  <div class="card-head"><h2>Recommended actions</h2></div>
+  <div class="rec-grid">
+    <% if(!_metrics.length){ %>
+      <div class="rec-card">
+        <div class="rec-title">Connect Google GSC + GA4</div>
+        <div class="rec-body">Real ranking positions and traffic data.</div>
+        <a class="mini primary" href="/settings">Settings →</a>
+      </div>
+    <% } %>
+    <% if(_critical.length){ %>
+      <div class="rec-card danger">
+        <div class="rec-title"><%= _critical.length %> critical SEO issue<%= _critical.length===1?'':'s' %></div>
+        <div class="rec-body">Missing titles, H1s, or duplicates suppressing ranks.</div>
+        <form method="post" action="/reports/run-audit"><button class="mini">Re-audit</button></form>
+      </div>
+    <% } %>
+    <% if(_decay.length){ %>
+      <div class="rec-card warn">
+        <div class="rec-title"><%= _decay.length %> page<%= _decay.length===1?'':'s' %> losing traffic</div>
+        <div class="rec-body">Refresh or add internal links to these articles.</div>
+        <a class="mini" href="/articles">View articles →</a>
+      </div>
+    <% } %>
+    <% if(_review.length){ %>
+      <div class="rec-card warn">
+        <div class="rec-title"><%= _review.length %> article<%= _review.length===1?'':'s' %> in review</div>
+        <div class="rec-body">Approve ready articles to keep the pipeline moving.</div>
+        <a class="mini" href="/review">Review queue →</a>
+      </div>
+    <% } %>
+    <% if(_gaps.length){ %>
+      <div class="rec-card good">
+        <div class="rec-title"><%= _gaps.length %> keyword gap<%= _gaps.length===1?'':'s' %></div>
+        <div class="rec-body">Generate articles for these competitor keywords.</div>
+        <a class="mini primary" href="/content-studio">Content Studio →</a>
+      </div>
+    <% } %>
+    <% if(_weekly.movers_down && _weekly.movers_down.length){ %>
+      <div class="rec-card danger">
+        <div class="rec-title"><%= _weekly.movers_down.length %> declining keyword<%= _weekly.movers_down.length===1?'':'s' %></div>
+        <div class="rec-body">Update those articles to recover positions.</div>
+        <a class="mini" href="/articles?status=published">Published articles →</a>
+      </div>
+    <% } %>
+    <div class="rec-card">
+      <div class="rec-title">SERP Intelligence</div>
+      <div class="rec-body">Research competitors for any keyword.</div>
+      <a class="mini" href="/serp">SERP →</a>
+    </div>
   </div>
 </section>
+
+<!-- Page-scoped styles: things not worth elevating to the global stylesheet -->
+<style>
+.card-subtitle { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+.mover-title { font-size: var(--fs-md); color: var(--igh-green); margin: var(--sp-4) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--line-soft); }
+.mover-title--down { color: #ff8a95; }
+.chart-wrap { position: relative; overflow-x: auto; }
+canvas#posChart { display: block; width: 100%; height: 320px; }
+.chart-tooltip {
+  position: absolute; pointer-events: none; display: none;
+  background: var(--bg-2); border: 1px solid var(--line-strong);
+  border-radius: var(--r-md); padding: 8px 12px;
+  font-size: var(--fs-sm); color: var(--text); white-space: nowrap;
+  z-index: 10; box-shadow: var(--shadow-md);
+}
+.chart-tooltip .tip-kw { font-weight: 700; margin-bottom: 3px; }
+.chart-tooltip .tip-pos { font-variant-numeric: tabular-nums; }
+.chart-tooltip .tip-date { color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px; }
+
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .num-col { text-align: right; }
+table.data .dim { color: var(--text-muted); }
+table.data .page-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.data .page-cell a { font-size: var(--fs-xs); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 100%; }
+
+.issue-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.issue-row { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) 0; border-top: 1px solid var(--line-soft); }
+.issue-row:first-child { border-top: 0; padding-top: 0; }
+.issue-body { flex: 1; min-width: 0; }
+.issue-title { font-weight: 600; color: var(--text-heading); margin-bottom: 2px; }
+.issue-detail { font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.5; }
+.issue-link { font-size: var(--fs-xs); color: var(--igh-green); word-break: break-all; display: inline-block; margin-top: 4px; }
+
+.pipeline-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.pipe-chip { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3); text-align: center; }
+.pipe-chip strong { display: block; font-size: var(--fs-xl); color: var(--text-heading); font-variant-numeric: tabular-nums; }
+.pipe-chip span { color: var(--text-muted); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; }
+.pipe-chip.warn { border-color: rgba(255,176,32,.3); }
+.pipe-chip.warn strong { color: var(--warn); }
+.pipe-chip.info { border-color: rgba(61,180,255,.3); }
+.pipe-chip.info strong { color: var(--info); }
+.pipe-chip.good { border-color: var(--igh-green-line); background: var(--igh-green-faint); }
+.pipe-chip.good strong { color: var(--igh-green); }
+
+.list-row.compact { padding: var(--sp-2) 0; }
+.list-row.compact strong { font-size: var(--fs-sm); font-weight: 600; }
+.list-row-main { flex: 1; min-width: 0; }
+.list-row-meta { display: flex; gap: var(--sp-2); margin-top: 4px; align-items: center; font-size: var(--fs-xs); color: var(--text-muted); }
+.see-more { display: block; text-align: center; margin-top: var(--sp-2); font-size: var(--fs-sm); color: var(--text-muted); }
+
+.comp-row { margin-bottom: var(--sp-3); }
+.comp-head { display: flex; justify-content: space-between; font-size: var(--fs-sm); margin-bottom: 4px; }
+.comp-head span { color: var(--text-muted); }
+
+.rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-3); }
+.rec-card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2); }
+.rec-card.danger { border-color: rgba(255,71,87,.3); background: rgba(255,71,87,.04); }
+.rec-card.warn { border-color: rgba(255,176,32,.3); background: rgba(255,176,32,.04); }
+.rec-card.good { border-color: var(--igh-green-line); background: var(--igh-green-faint); }
+.rec-title { font-weight: 700; color: var(--text-heading); font-size: var(--fs-sm); }
+.rec-card.danger .rec-title { color: #ff8a95; }
+.rec-card.warn .rec-title { color: var(--warn); }
+.rec-card.good .rec-title { color: var(--igh-green); }
+.rec-body { font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.5; flex: 1; }
+.rec-card .mini { align-self: flex-start; }
+</style>
 
 <%- include('layout-end') %>

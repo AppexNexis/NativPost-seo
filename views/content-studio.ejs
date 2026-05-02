@@ -1,139 +1,270 @@
 <%- include('layout-start') %>
+<%
+  var _calendar = (typeof calendar !== 'undefined' && Array.isArray(calendar)) ? calendar : [];
+  var _gameRecommendations = (typeof gameRecommendations !== 'undefined' && Array.isArray(gameRecommendations)) ? gameRecommendations : [];
+  var _supportedGames = (typeof supportedGames !== 'undefined' && Array.isArray(supportedGames)) ? supportedGames : [];
+  var _now = new Date();
+  var _month = (typeof month !== 'undefined' && month && Array.isArray(month.cells)) ? month : {
+    label: _now.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+    weekdays: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    cells: Array.from({ length: 35 }, function(_,i){ return { empty: false, day: i+1, items:[] }; })
+  };
+  var _pendingCount = _calendar.filter(function(c){ return !c.article_id; }).length;
+  var _pendingLabel = _pendingCount + ' credit' + (_pendingCount === 1 ? '' : 's');
+%>
 
 <section class="hero">
-  <p class="eyebrow">Content</p>
-  <h1>Content Studio</h1>
-  <p>Generate high-quality SEO articles for NativPost using AI. Targets real keyword gaps and outranks competitors.</p>
+  <div>
+    <p class="eyebrow">AI SEO command center</p>
+    <h1>Content Studio</h1>
+    <p>Build a 30-day SEO publishing plan, generate AI article drafts from the calendar, review and approve, then publish. OpenAI: <strong><%= openaiConnected ? 'Connected ✓' : 'Not connected' %></strong>.</p>
+  </div>
 </section>
 
-<% if (typeof query !== 'undefined' && query && query.error) { %>
-<div class="alert bad">⚠️ Generation failed: <%= query.error %></div>
+<% if(!openaiConnected){ %>
+  <div class="notice-warn"><strong>OpenAI not connected.</strong> Drafts can be created as placeholders, but AI-written articles require OPENAI_API_KEY in .env.local.</div>
+<% } else { %>
+  <div class="notice-good"><strong>OpenAI connected.</strong> Build a 30-day plan first (free), then generate individual drafts from calendar items. Each draft uses 1 OpenAI credit.</div>
 <% } %>
 
-<div class="grid two" style="align-items:start">
-
-  <!-- GENERATE PANEL -->
-  <section class="card">
-    <div class="card-head"><h2>✍️ Generate Article</h2></div>
-
-    <form method="post" action="/content-studio/generate" id="gen-form">
-      <div class="form-group">
-        <label>Target keyword *</label>
-        <input type="text" name="keyword" id="kw-input" value="<%= typeof query !== 'undefined' && query.keyword ? query.keyword : '' %>" placeholder="e.g. ai social media content generator" required>
-        <div class="hint" style="margin-top:4px">The primary keyword this article will target. Be specific.</div>
-      </div>
-
-      <div class="form-group">
-        <label>Target word count</label>
-        <select name="word_target">
-          <option value="1000">~1,000 words (quick article)</option>
-          <option value="1400" selected>~1,400 words (standard)</option>
-          <option value="2000">~2,000 words (in-depth)</option>
-          <option value="2500">~2,500 words (comprehensive)</option>
-          <option value="3000">~3,000 words (pillar page)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Article type (auto-detected from keyword)</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-          <div class="hint" style="padding:8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
-            <strong style="color:var(--np-purple);font-size:.75rem">AUTO-DETECTED</strong><br>
-            The tool detects if your keyword is a comparison (vs/alternative), pricing review, how-to, Africa-market, platform-specific, or general article and applies the right structure automatically.
-          </div>
-          <div class="hint" style="padding:8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
-            <strong style="color:var(--good);font-size:.75rem">QUALITY GATE</strong><br>
-            Articles scoring below <%= minQualityScore %>/100 go to Draft. Above <%= minQualityScore %> goes to Pending Review automatically.
-          </div>
-        </div>
-      </div>
-
-      <button type="submit" class="primary" onclick="this.textContent='⏳ Generating… (30-60s)';this.disabled=true;document.getElementById('gen-form').submit();" style="width:100%">
-        Generate Article →
-      </button>
-      <div class="hint" style="text-align:center;margin-top:8px">Uses Anthropic Claude API · ~30-60 seconds · 1 API call</div>
-    </form>
-
-    <div style="border-top:1px solid var(--line-soft);margin-top:var(--sp-4);padding-top:var(--sp-4)">
-      <div class="card-head" style="margin-bottom:var(--sp-3)"><h2 style="font-size:.9rem">💡 Article Type Guide</h2></div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <% var types = [
-          {signal:'vs / alternative / compare', type:'Comparison', desc:'Head-to-head vs Ocoya, Buffer, Jasper with feature matrix'},
-          {signal:'pricing / cost / review / worth it', type:'Pricing Review', desc:'Full plan breakdown with conversion-optimized tables'},
-          {signal:'how to / guide / tutorial', type:'How-To Guide', desc:'Step-by-step instructional with NativPost CTA'},
-          {signal:'africa / nigeria / kenya / ghana', type:'Africa Market', desc:'Localized for African SMBs + Paystack angle'},
-          {signal:'linkedin / instagram / tiktok / twitter', type:'Platform Guide', desc:'Platform-specific content strategy + NativPost feature'},
-          {signal:'best / top N / tools for', type:'Listicle', desc:'Ranked comparison with NativPost positioning'},
-        ]; %>
-        <% types.forEach(function(t) { %>
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line-soft)">
-          <div style="flex-shrink:0;font-family:var(--mono);font-size:.68rem;color:var(--np-purple);background:var(--np-purple-soft);padding:2px 6px;border-radius:4px;white-space:nowrap"><%= t.signal %></div>
-          <div>
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-heading)"><%= t.type %></div>
-            <div style="font-size:.72rem;color:var(--text-muted)"><%= t.desc %></div>
-          </div>
-        </div>
-        <% }); %>
-      </div>
-    </div>
-  </section>
-
-  <!-- KEYWORD SUGGESTIONS -->
-  <div>
-    <section class="card" style="margin-bottom:var(--sp-4)">
-      <div class="card-head"><h2>🎯 Suggested Keywords</h2><a href="/keywords">All keywords →</a></div>
-      <p class="hint" style="margin-bottom:var(--sp-3)">Keywords with no article yet, sorted by priority. Click to pre-fill.</p>
-
-      <div class="pill-row" style="margin-bottom:var(--sp-3)">
-        <% clusters.forEach(function(c) { %>
-        <a href="/content-studio?cluster=<%= c.key %>" class="pill <%= typeof query !== 'undefined' && query.cluster === c.key ? 'active' : '' %>"><%= c.label %></a>
-        <% }); %>
-        <a href="/content-studio" class="pill <%= !( typeof query !== 'undefined' && query.cluster) ? 'active' : '' %>">All</a>
-      </div>
-
-      <% var filtered = keywords.filter(function(k){ return !k.has_article && (!(typeof query !== 'undefined' && query.cluster) || k.cluster_key === (query && query.cluster)); }).slice(0,20); %>
-      <% if (!filtered.length) { %>
-        <p class="empty">No uncovered keywords in this cluster. <a href="/keywords" style="color:var(--np-purple)">Add more →</a></p>
-      <% } %>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <% filtered.forEach(function(k) { %>
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line-soft);cursor:pointer" onclick="document.getElementById('kw-input').value='<%= k.keyword.replace(/'/g, "\\'") %>';window.scrollTo(0,0)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.84rem;font-weight:600;color:var(--text)"><%= k.keyword %></div>
-            <div style="font-size:.7rem;color:var(--text-muted)"><%= k.cluster_name||'Unclustered' %> · <%= k.intent||'mixed' %><% if(k.volume){%> · Vol <%= k.volume %><% } %></div>
-          </div>
-          <div style="font-size:.7rem;font-weight:700;color:var(--np-purple)">Prio <%= k.priority_score||50 %></div>
-          <div style="font-size:.7rem;color:var(--text-dim)">→</div>
-        </div>
-        <% }); %>
-      </div>
-    </section>
-
-    <!-- GENERATION TIPS -->
-    <section class="card">
-      <div class="card-head"><h2>✅ Content Rules</h2></div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <% var rules = [
-          {ok:true, text:'Opens with scenario/pain point, not a definition'},
-          {ok:true, text:'First element = comparison/summary table (featured snippet bait)'},
-          {ok:true, text:'Includes "2026" in title or first H2'},
-          {ok:true, text:'3-5 internal links to nativpost.com/blog/'},
-          {ok:true, text:'1 external link to credible third party'},
-          {ok:true, text:'Paystack angle included for Africa-market keywords'},
-          {ok:true, text:'No invented features or false pricing claims'},
-          {ok:true, text:'Anti-slop filter removes: leverage, synergy, disruptive, game-changing'},
-          {ok:true, text:'CTA ends with app.nativpost.com 7-day free trial'},
-          {ok:true, text:'FAQ section with self-contained answers (AI Overview bait)'},
-        ]; %>
-        <% rules.forEach(function(r) { %>
-        <div style="display:flex;align-items:flex-start;gap:8px;font-size:.78rem;color:var(--text-muted)">
-          <span style="color:var(--good);flex-shrink:0">✓</span>
-          <%= r.text %>
-        </div>
-        <% }); %>
-      </div>
-    </section>
+<div class="adaptify-workflow">
+  <div class="workflow-step">
+    <div class="step-num">1</div>
+    <div class="step-label">Setup sites &amp; competitors</div>
+  </div>
+  <div class="workflow-arrow">→</div>
+  <div class="workflow-step">
+    <div class="step-num">2</div>
+    <div class="step-label">Build 30-day plan <em>(free)</em></div>
+  </div>
+  <div class="workflow-arrow">→</div>
+  <div class="workflow-step">
+    <div class="step-num">3</div>
+    <div class="step-label">Generate drafts <em>(1 credit each)</em></div>
+  </div>
+  <div class="workflow-arrow">→</div>
+  <div class="workflow-step">
+    <div class="step-num">4</div>
+    <div class="step-label">Review &amp; approve</div>
+  </div>
+  <div class="workflow-arrow">→</div>
+  <div class="workflow-step">
+    <div class="step-num">5</div>
+    <div class="step-label">Publish</div>
   </div>
 </div>
 
+<div class="grid two">
+  <section class="card">
+    <h2>Generate one AI draft now</h2>
+    <p class="hint">Uses <strong>1 OpenAI credit</strong>. Generates a full article for a specific keyword immediately.</p>
+    <form class="stack" method="post" action="/content-studio/generate" onsubmit="return confirm('Generate 1 AI article draft? Uses 1 OpenAI credit.')">
+      <label>Site
+        <select name="site_id">
+          <option value="">Default site</option>
+          <% sites.forEach(function(s){ %><option value="<%= s.id %>"><%= s.name %></option><% }); %>
+        </select>
+      </label>
+      <label>Target keyword
+        <input name="keyword" id="kw-input" placeholder="palworld server hosting" required autocomplete="off">
+      </label>
+      <% if((supportedGames||[]).length){ %>
+      <div style="margin-top:-.25rem">
+        <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.4rem">Quick-pick from live games:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <% (supportedGames||[]).slice(0,16).forEach(function(g){ %>
+            <button type="button" class="mini" onclick="document.getElementById('kw-input').value='<%= g.toLowerCase() %> server hosting'"><%= g %></button>
+          <% }); %>
+          <button type="button" class="mini" onclick="document.getElementById('kw-input').value='best ai social media content'">best ai social media content</button>
+          <button type="button" class="mini" onclick="document.getElementById('kw-input').value='ai social media content with ddos protection'">DDoS protection</button>
+        </div>
+      </div>
+      <% } %>
+      <button class="btn primary">Generate 1 draft (1 credit)</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Build 30-day monthly plan</h2>
+    <p class="hint">Creates calendar topic slots only — <strong>no AI credits used</strong>. Topics drawn from keyword gaps, competitor pages, and site analysis. Generate individual drafts from the calendar below.</p>
+    <form class="stack" method="post" action="/content-studio/build-plan">
+      <label>Site
+        <select name="site_id">
+          <option value="">All / default sites</option>
+          <% sites.forEach(function(s){ %><option value="<%= s.id %>"><%= s.name %></option><% }); %>
+        </select>
+      </label>
+      <button class="btn">Build / Refresh 30-day plan (free)</button>
+    </form>
+  </section>
+</div>
+
+<div class="grid two">
+  <section class="card">
+    <h2>Generate 5 strategic drafts</h2>
+    <p class="hint">Picks the 5 highest-priority keyword gaps and generates full AI articles. Uses <strong>5 OpenAI credits</strong> and takes 60–90 seconds.</p>
+    <form method="post" action="/content-studio/generate-top" onsubmit="return confirm('Generate 5 AI drafts from top keyword gaps? Uses 5 OpenAI credits and takes 60-90 seconds.')">
+      <button class="btn">Generate 5 strategic drafts (5 credits)</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Quick links</h2>
+    <div class="actions" style="flex-direction:column;align-items:flex-start;gap:.5rem">
+      <a class="btn" href="/review">Review queue →</a>
+      <a class="btn" href="/publish">Publish queue →</a>
+      <a class="btn" href="/articles">All drafts →</a>
+      <a class="btn" href="/assets">Image library →</a>
+    </div>
+  </section>
+</div>
+
+<!-- MONTHLY CALENDAR -->
+<section class="plan-poster">
+  <div class="plan-poster-head">
+    <div>
+      <p class="eyebrow">Monthly SEO content plan</p>
+      <h2><%= _month.label %></h2>
+      <p>Planned posts come from supported NativPost games, competitor gaps, and missing commercial topics. Generate drafts per item, then approve and publish.</p>
+    </div>
+    <div class="actions">
+      <div class="plan-badge"><%= _calendar.length %> planned item<%= _calendar.length === 1 ? '' : 's' %></div>
+      <form method="post" action="/content-studio/approve-plan">
+        <button class="mini">Approve plan</button>
+      </form>
+      <form method="post" action="/content-studio/generate-month" onsubmit="return confirm('Generate AI drafts for all ' + <%= _pendingCount %> + ' ungenerated calendar items? Uses ' + '<%= _pendingLabel %>' + ' and may take several minutes. Proceed only if you intend to spend these credits.')">
+        <button class="mini" <%= _pendingCount === 0 ? 'disabled' : '' %>>
+          Generate month drafts (<%= _pendingLabel %>)
+        </button>
+      </form>
+      <form method="post" action="/content-studio/calendar/delete-all" onsubmit="return confirm('Delete the entire monthly plan? Existing article drafts are NOT deleted — only calendar entries.')">
+        <button class="mini danger">Delete full plan</button>
+      </form>
+    </div>
+  </div>
+
+  <% if(!_calendar.length){ %>
+    <div class="notice-warn">No monthly plan yet. Click <strong>Build / Refresh 30-day plan</strong> above — it is free and uses no AI credits.</div>
+  <% } %>
+
+  <div class="month-grid">
+    <% _month.weekdays.forEach(function(d){ %><div class="month-dow"><%= d %></div><% }); %>
+    <% _month.cells.forEach(function(cell){ %>
+      <% if(cell.empty){ %>
+        <div class="month-day empty"></div>
+      <% } else { %>
+        <div class="month-day">
+          <div class="day-num"><%= cell.day %></div>
+          <% (cell.items || []).forEach(function(c){ %>
+            <div class="planned-pill">
+              <strong><%= c.title %></strong>
+              <span><%= c.target_keyword || 'No keyword' %></span>
+              <% if(c.reason){ %><span><%= c.reason %></span><% } %>
+              <span><%= c.site_name || 'Default site' %> · <%= c.status %><%= c.article_status ? ' · ' + c.article_status : '' %></span>
+              <div class="actions">
+                <% if(c.article_id){ %>
+                  <a class="mini" href="/articles/<%= c.article_id %>/edit">Edit draft</a>
+                <% } else { %>
+                  <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft for this topic? Uses 1 OpenAI credit.')">
+                    <button class="mini">Generate (1 credit)</button>
+                  </form>
+                <% } %>
+                <form method="post" action="/content-studio/calendar/<%= c.id %>/delete" onsubmit="return confirm('Remove this planned item from the calendar?')">
+                  <button class="mini danger">Remove</button>
+                </form>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    <% }); %>
+  </div>
+</section>
+
+<!-- PLAN LIST -->
+<section class="card">
+  <div class="card-head"><h2>Plan list</h2><span class="badge"><%= _calendar.length %> items</span></div>
+  <% if(!_calendar.length){ %><p class="empty">No plan rows yet. Use Build / Refresh above.</p><% } %>
+  <% _calendar.forEach(function(c){ var d = c.scheduled_for ? new Date(c.scheduled_for) : null; %>
+    <div class="list-row">
+      <div>
+        <strong><%= d ? d.toLocaleDateString() : 'Unscheduled' %> — <%= c.title %></strong>
+        <span><%= c.target_keyword || 'No keyword' %> · <%= c.site_name || 'Default site' %> · <%= c.status %></span>
+        <% if(c.reason){ %><span><%= c.reason %></span><% } %>
+        <% if(c.article_status){ %><span>Article: <em><%= c.article_status %></em></span><% } %>
+      </div>
+      <div class="actions">
+        <% if(c.article_id){ %>
+          <a class="mini" href="/articles/<%= c.article_id %>/edit">Edit draft</a>
+        <% } else { %>
+          <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft? Uses 1 OpenAI credit.')">
+            <button class="mini">Generate (1 credit)</button>
+          </form>
+        <% } %>
+        <form method="post" action="/content-studio/calendar/<%= c.id %>/delete" onsubmit="return confirm('Remove this planned item?')">
+          <button class="mini danger">Remove</button>
+        </form>
+      </div>
+    </div>
+  <% }); %>
+</section>
+
+<!-- SUPPORTED GAMES -->
+<section class="card">
+  <div class="card-head"><h2>Detected NativPost supported games</h2>
+    <form method="post" action="/content-studio/refresh-supported-games"><button class="mini">Refresh from /games</button></form>
+  </div>
+  <p class="hint">The planner only creates posts for games with a real NativPost hosting page or games listed in SUPPORTED_GAMES. Wrong-game images are blocked at import.</p>
+  <% if(!_supportedGames.length){ %>
+    <p class="empty">No supported games detected yet. Add KNOWN_NativPost_SUPPORTED_GAMES in .env.local or scan your game pages.</p>
+  <% } else { %>
+    <p><%= _supportedGames.join(', ') %></p>
+  <% } %>
+</section>
+
+<!-- GAME EXPANSION OPPORTUNITIES -->
+<% if(_gameRecommendations.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Game/title expansion opportunities</h2></div>
+  <p class="hint">Competitors write about these games but NativPost has no active hosting page. Not added to the calendar until you add a real NativPost game page or list them in SUPPORTED_GAMES.</p>
+  <% _gameRecommendations.forEach(function(r){ %>
+    <div class="list-row">
+      <div>
+        <strong><%= r.title || ('Consider adding ' + r.game + ' server hosting') %></strong>
+        <span><%= r.site_name || 'Default site' %> · Opportunity <%= r.opportunity_score || 0 %> · <%= r.status || 'recommended' %></span>
+        <% if(r.reason){ %><span><%= r.reason %></span><% } %>
+        <% if(r.source_url){ %><a href="<%= r.source_url %>" target="_blank">Source competitor page ↗</a><% } %>
+      </div>
+    </div>
+  <% }); %>
+</section>
+<% } %>
+
+<!-- KEYWORD GAPS -->
+<section class="card">
+  <div class="card-head"><h2>Missing content opportunities</h2><a href="/keywords">All keywords →</a></div>
+  <% if(!gaps.length){ %><p class="empty">No gaps yet. Run own-site and competitor scans.</p><% } %>
+  <% gaps.forEach(function(k){ %>
+    <div class="list-row">
+      <div>
+        <strong><%= k.keyword %></strong>
+        <span><%= k.cluster_name || 'Unclustered' %> · Priority <%= k.priority_score || 0 %> · <%= k.intent || 'mixed' %></span>
+      </div>
+      <form method="post" action="/content-studio/generate-gap/<%= k.id %>" onsubmit="return confirm('Generate 1 AI draft? Uses 1 OpenAI credit.')">
+        <button class="mini">Generate (1 credit)</button>
+      </form>
+    </div>
+  <% }); %>
+</section>
+
+<!-- TRACKED KEYWORDS -->
+<section class="card">
+  <div class="card-head"><h2>Tracked keywords</h2><span class="badge"><%= keywords.length %> total</span></div>
+  <% keywords.slice(0,80).forEach(function(k){ %>
+    <div class="metric-row">
+      <strong><%= k.keyword %></strong>
+      <span><%= k.site_name || 'No site' %> · <%= k.cluster_name || '' %> · Priority <%= k.priority_score || 0 %></span>
+    </div>
+  <% }); %>
+</section>
 <%- include('layout-end') %>

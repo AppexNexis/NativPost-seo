@@ -1,90 +1,167 @@
 <%- include('layout-start') %>
-<section class="hero"><p class="eyebrow">Search</p><h1>Backlinks</h1><p>Track backlink opportunities for NativPost. Mark earned links to build your authority score.</p></section>
+<section class="hero">
+  <div>
+    <p class="eyebrow">Backlink opportunities</p>
+    <h1>Backlinks</h1>
+    <p>Domains your competitors are connected to, discovered via crawling. Work them as an outreach list — visit each domain, qualify it, then pitch for a link. Scores are calculated automatically based on domain relevance.</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/backlinks/score-all" onsubmit="return confirm('Re-score all backlink opportunities based on domain relevance? This updates authority scores.')">
+      <button class="btn">Score all opportunities</button>
+    </form>
+  </div>
+</section>
 
-<% if (typeof query !== 'undefined') { %>
-  <% if (query.added) { %><div class="alert good">✓ Backlink opportunity added.</div><% } %>
-  <% if (query.earned) { %><div class="alert good">✓ Marked as earned.</div><% } %>
+<%
+  var _all      = backlinks || [];
+  var _opps     = _all.filter(function(b){ return b.status==='opportunity'||b.status==='competitor-opportunity'; });
+  var _outreach = _all.filter(function(b){ return b.status==='outreach'; });
+  var _earned   = _all.filter(function(b){ return b.status==='earned'; });
+  var _prospect = _all.filter(function(b){ return b.status==='prospect'; });
+  var _rejected = _all.filter(function(b){ return b.status==='rejected'; });
+%>
+
+<div class="stats" style="grid-template-columns:repeat(5,1fr)">
+  <div><b><%= _opps.length %></b><span>Opportunities</span></div>
+  <div><b><%= _prospect.length %></b><span>Prospects</span></div>
+  <div><b><%= _outreach.length %></b><span>In outreach</span></div>
+  <div><b><%= _earned.length %></b><span>Earned</span></div>
+  <div><b><%= _rejected.length %></b><span>Rejected</span></div>
+</div>
+
+<div class="grid two">
+  <section class="card">
+    <h2>How the pipeline works</h2>
+    <div style="font-size:var(--fs-sm);line-height:1.7;color:var(--text-muted);">
+      <p style="margin-bottom:.5rem"><strong style="color:var(--color-text-primary);">1. Opportunities</strong> are discovered automatically when you crawl competitors. Every external domain they link to appears here with a relevance score.</p>
+      <p style="margin-bottom:.5rem"><strong style="color:var(--color-text-primary);">2. Prospects</strong> are generated from SERP results — sites that rank for your target keywords are prime link candidates.</p>
+      <p style="margin-bottom:.5rem"><strong style="color:var(--color-text-primary);">3. Outreach</strong> — move a domain here when you've contacted them. Add outreach notes to track your pitch.</p>
+      <p><strong style="color:var(--color-text-primary);">4. Earned</strong> — mark it earned once you have the link live.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Add manual opportunity</h2>
+    <form class="stack" method="post" action="/backlinks">
+      <label>Site<select name="site_id"><option value="">No site</option><% sites.forEach(function(s){ %><option value="<%= s.id %>"><%= s.name %></option><% }); %></select></label>
+      <label>Source domain<input name="source_domain" placeholder="example.com" required></label>
+      <label>Source URL<input name="source_url" placeholder="https://example.com/game-servers/"></label>
+      <label>Target URL<input name="target_url" placeholder="https://nativpost.com/game/..."></label>
+      <label>Anchor text<input name="anchor_text" placeholder="ai social media content"></label>
+      <label>Status
+        <select name="status">
+          <option value="opportunity">Opportunity</option>
+          <option value="outreach">Outreach</option>
+          <option value="earned">Earned</option>
+        </select>
+      </label>
+      <button class="btn primary">Add</button>
+    </form>
+  </section>
+</div>
+
+<!-- TOP SCORING OPPORTUNITIES -->
+<% var _topOpps = _opps.concat(_prospect).sort(function(a,b){ return Number(b.authority_score||b.domain_rating||0)-Number(a.authority_score||a.domain_rating||0); }).slice(0,30); %>
+<section class="card">
+  <div class="card-head">
+    <h2>Top opportunities by relevance score</h2>
+    <span style="font-size:var(--fs-sm);color:var(--text-muted);"><%= _opps.length + _prospect.length %> total</span>
+  </div>
+  <% if(!_topOpps.length){ %>
+    <p class="empty">No opportunities yet. Crawl competitors under Competitors to discover domains they link to.</p>
+  <% } else { %>
+    <table style="width:100%;border-collapse:collapse;font-size:var(--fs-sm);">
+      <thead>
+        <tr style="border-bottom:1px solid var(--line);text-align:left;">
+          <th style="padding:.35rem .5rem;color:var(--text-muted);font-weight:600;">Domain</th>
+          <th style="padding:.35rem .5rem;color:var(--text-muted);font-weight:600;">Score</th>
+          <th style="padding:.35rem .5rem;color:var(--text-muted);font-weight:600;">Type</th>
+          <th style="padding:.35rem .5rem;color:var(--text-muted);font-weight:600;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      <% _topOpps.forEach(function(b){ %>
+        <tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:.32rem .5rem;">
+            <a href="https://<%= b.source_domain %>" target="_blank" style="font-weight:500;"><%= b.source_domain %></a>
+            <% if(b.source_url){ %><div style="font-size:var(--fs-xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;"><%= b.source_url.replace(/^https?:\/\//,'').slice(0,60) %></div><% } %>
+          </td>
+          <td style="padding:.32rem .5rem;">
+            <span style="font-weight:600;color:<%= Number(b.authority_score||0)>=60?'var(--igh-green)':Number(b.authority_score||0)>=30?'var(--warn)':'var(--text-muted)' %>">
+              <%= Math.round(Number(b.authority_score||b.domain_rating||0)) %>
+            </span>
+          </td>
+          <td style="padding:.32rem .5rem;">
+            <span style="font-size:var(--fs-xs);padding:2px 7px;border-radius:var(--r-sm);background:<%= b.status==='prospect'?'rgba(0, 230, 118, 0.12)':'var(--line)' %>;color:<%= b.status==='prospect'?'var(--igh-green)':'var(--text-muted)' %>;">
+              <%= b.status==='competitor-opportunity'?'competitor':b.status %>
+            </span>
+          </td>
+          <td style="padding:.32rem .5rem;">
+            <form method="post" action="/backlinks/<%= b.id %>/status" style="display:inline;">
+              <select name="status" style="font-size:var(--fs-xs);padding:2px 5px;border-radius:6px;margin-right:4px;">
+                <option value="opportunity" <%= b.status==='opportunity'||b.status==='competitor-opportunity'?'selected':'' %>>Opportunity</option>
+                <option value="prospect" <%= b.status==='prospect'?'selected':'' %>>Prospect</option>
+                <option value="outreach" <%= b.status==='outreach'?'selected':'' %>>Outreach</option>
+                <option value="earned" <%= b.status==='earned'?'selected':'' %>>Earned</option>
+                <option value="rejected" <%= b.status==='rejected'?'selected':'' %>>Rejected</option>
+              </select>
+              <button class="mini" type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<!-- ACTIVE OUTREACH -->
+<% if(_outreach.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Active outreach</h2><span style="font-size:var(--fs-sm);color:var(--text-muted);"><%= _outreach.length %> in progress</span></div>
+  <% _outreach.forEach(function(b){ %>
+    <div style="padding:.65rem 0;border-bottom:1px solid var(--line);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:.4rem;">
+        <div>
+          <a href="https://<%= b.source_domain %>" target="_blank" style="font-weight:600;font-size:var(--fs-md);"><%= b.source_domain %></a>
+          <% if(b.last_contacted_at){ %>
+            <span style="font-size:var(--fs-xs);color:var(--text-muted);margin-left:8px;">Last contact: <%= new Date(b.last_contacted_at).toLocaleDateString() %></span>
+          <% } %>
+        </div>
+        <form method="post" action="/backlinks/<%= b.id %>/status" style="flex-shrink:0;">
+          <select name="status" style="font-size:var(--fs-xs);padding:2px 5px;border-radius:6px;margin-right:4px;">
+            <option value="outreach" selected>Outreach</option>
+            <option value="earned">Earned</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="mini" type="submit">Update</button>
+        </form>
+      </div>
+      <% if(b.outreach_notes){ %>
+        <div style="font-size:var(--fs-sm);color:var(--text-muted);background:var(--line);border-radius:8px;padding:6px 10px;margin-bottom:.4rem;white-space:pre-wrap;"><%= b.outreach_notes %></div>
+      <% } %>
+      <form method="post" action="/backlinks/<%= b.id %>/notes" style="display:flex;gap:6px;align-items:flex-end;">
+        <textarea name="outreach_notes" rows="2" style="flex:1;font-size:var(--fs-sm);border-radius:8px;padding:6px 8px;resize:vertical;" placeholder="Add outreach notes — who you contacted, when, what you offered..."><%= b.outreach_notes||'' %></textarea>
+        <button class="mini" type="submit">Save notes</button>
+      </form>
+    </div>
+  <% }); %>
+</section>
 <% } %>
 
-<div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:var(--sp-4)">
-  <div><b><%= links.length %></b><span>Total opportunities</span></div>
-  <div><b><%= earned %></b><span>Earned backlinks</span></div>
-  <div><b><%= links.length - earned %></b><span>Still to pursue</span></div>
-</div>
-
-<div class="grid two" style="align-items:start">
-  <section class="card">
-    <div class="card-head"><h2>Backlink Opportunities</h2></div>
-    <% if (!links.length) { %>
-      <p class="empty">No backlinks tracked yet. Add opportunities you want to pursue.</p>
-    <% } %>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Source</th><th>Anchor</th><th>DA</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>
-          <% links.forEach(function(l) { %>
-          <tr>
-            <td>
-              <a href="<%= l.source_url %>" target="_blank" rel="noopener" style="color:var(--np-purple);text-decoration:none;font-size:var(--fs-sm)"><%= l.source_domain||l.source_url %></a>
-              <% if (l.notes) { %><div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px"><%= l.notes %></div><% } %>
-            </td>
-            <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= l.anchor_text||'—' %></td>
-            <td><span class="badge <%= Number(l.domain_authority||0)>=50?'good':Number(l.domain_authority||0)>=30?'warn':'' %>"><%= l.domain_authority||'?' %></span></td>
-            <td><span class="badge <%= l.earned?'good':'' %>"><%= l.earned?'Earned':'Opportunity' %></span></td>
-            <td>
-              <% if (!l.earned) { %>
-              <form method="post" action="/backlinks/<%= l.id %>/mark-earned">
-                <button class="mini primary">Mark earned</button>
-              </form>
-              <% } %>
-            </td>
-          </tr>
-          <% }); %>
-        </tbody>
-      </table>
+<!-- EARNED BACKLINKS -->
+<% if(_earned.length){ %>
+<section class="card">
+  <div class="card-head"><h2>Earned backlinks</h2><span style="color:var(--igh-green);font-size:var(--fs-sm);font-weight:600;"><%= _earned.length %> earned</span></div>
+  <% _earned.forEach(function(b){ %>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm);">
+      <div>
+        <a href="https://<%= b.source_domain %>" target="_blank" style="font-weight:500;"><%= b.source_domain %></a>
+        <% if(b.anchor_text){ %><span style="color:var(--text-muted);margin-left:6px;font-size:var(--fs-xs);">"<%= b.anchor_text %>"</span><% } %>
+      </div>
+      <span style="color:var(--igh-green);font-size:var(--fs-sm);font-weight:600;">earned</span>
     </div>
-  </section>
-
-  <section class="card">
-    <div class="card-head"><h2>Add Backlink Opportunity</h2></div>
-    <form method="post" action="/backlinks/add">
-      <div class="form-group">
-        <label>Source URL *</label>
-        <input type="url" name="source_url" placeholder="https://example.com/article-about-social-media-tools" required>
-      </div>
-      <div class="form-group">
-        <label>Anchor text</label>
-        <input type="text" name="anchor_text" placeholder="NativPost brand voice AI">
-      </div>
-      <div class="form-group">
-        <label>Domain Authority (0–100)</label>
-        <input type="number" name="domain_authority" min="0" max="100" placeholder="e.g. 45">
-      </div>
-      <div class="form-group">
-        <label>Notes (outreach status, contact, etc.)</label>
-        <textarea name="notes" rows="3" placeholder="e.g. Emailed editor on May 1, awaiting reply..."></textarea>
-      </div>
-      <button type="submit" class="primary" style="width:100%">Add Opportunity</button>
-    </form>
-
-    <div style="border-top:1px solid var(--line-soft);margin-top:var(--sp-4);padding-top:var(--sp-4)">
-      <h3 style="font-size:.88rem;font-weight:600;color:var(--text-heading);margin-bottom:var(--sp-3)">💡 High-value link targets for NativPost</h3>
-      <% var suggestions = [
-        {domain:'producthunt.com',note:'Product Hunt launch — high DA, social media tool category'},
-        {domain:'indiehackers.com',note:'IH community posts — great for SaaS founders audience'},
-        {domain:'g2.com',note:'G2 reviews + compare pages — high commercial intent'},
-        {domain:'techcrunch.com',note:'Press coverage — Africa tech angle with Paystack'},
-        {domain:'socialmediaexaminer.com',note:'Social media tool roundups — editorial backlinks'},
-        {domain:'buffer.com/resources',note:'Buffer blog guest posts (if accepted)'},
-      ]; %>
-      <% suggestions.forEach(function(s) { %>
-      <div style="padding:8px 0;border-top:1px solid var(--line-soft)">
-        <div style="font-size:.8rem;font-weight:600;color:var(--np-purple)"><%= s.domain %></div>
-        <div style="font-size:.72rem;color:var(--text-muted)"><%= s.note %></div>
-      </div>
-      <% }); %>
-    </div>
-  </section>
-</div>
-
+  <% }); %>
+</section>
+<% } %>
 <%- include('layout-end') %>
