@@ -14,8 +14,8 @@
 </section>
 
 <% if(typeof summary !== 'undefined' && summary){ %>
-<div style="background:rgba(34,255,68,.06);border:1px solid rgba(34,255,68,.15);border-radius:10px;padding:12px 18px;margin-bottom:1.5rem;font-size:.85rem;color:var(--text-muted)">
-  <strong style="color:var(--igh-green)">Today's analysis:</strong> <%= summary %>
+<div style="background:rgba(134,79,254,.06);border:1px solid rgba(134,79,254,.15);border-radius:10px;padding:12px 18px;margin-bottom:1.5rem;font-size:.85rem;color:var(--text-muted)">
+  <strong style="color:var(--np-purple)">Today's analysis:</strong> <%= summary %>
   <% if(generatedAt){ %> &nbsp;·&nbsp; Generated at <%= new Date(generatedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) %><% } %>
 </div>
 <% } %>
@@ -29,7 +29,7 @@
 <div style="display:flex;flex-direction:column;gap:16px">
   <% brief.forEach(function(rec, i){ %>
   <%
-    var catColor = rec.category === 'ranking-gap' ? '#22ff44' :
+    var catColor = rec.category === 'ranking-gap' ? '#864FFE' :
                    rec.category === 'game-coverage' ? '#4aff66' :
                    rec.category === 'competitor-gap' ? '#ffb020' :
                    rec.category === 'topical-depth' ? '#3db4ff' : '#a5b0b8';
@@ -39,13 +39,13 @@
                    rec.category === 'topical-depth' ? '📚 Topical Depth' : '🔑 Keyword';
   %>
   <div style="background:var(--bg-2,#0d1117);border:1px solid var(--line,#1e242c);border-radius:12px;padding:20px 22px;display:flex;gap:20px;align-items:flex-start;transition:border-color .15s"
-       onmouseover="this.style.borderColor='rgba(34,255,68,.25)'" onmouseout="this.style.borderColor='var(--line,#1e242c)'">
-    <div style="flex-shrink:0;width:36px;height:36px;border-radius:8px;background:rgba(34,255,68,.1);border:1px solid rgba(34,255,68,.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--igh-green);font-size:14px">
+       onmouseover="this.style.borderColor='rgba(134,79,254,.25)'" onmouseout="this.style.borderColor='var(--line,#1e242c)'">
+    <div style="flex-shrink:0;width:36px;height:36px;border-radius:8px;background:rgba(134,79,254,.1);border:1px solid rgba(134,79,254,.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--np-purple);font-size:14px">
       <%= i+1 %>
     </div>
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 10px;border-radius:20px;background:rgba(34,255,68,.08);color:<%= catColor %>;border:1px solid <%= catColor %>44"><%= catLabel %></span>
+        <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 10px;border-radius:20px;background:rgba(134,79,254,.08);color:<%= catColor %>;border:1px solid <%= catColor %>44"><%= catLabel %></span>
         <span style="font-size:.72rem;color:var(--text-muted)">Score: <%= rec.score %></span>
       </div>
       <h3 style="font-size:1.05rem;font-weight:700;color:var(--text,#e6ecee);margin-bottom:8px;word-break:break-word"><%= rec.keyword %></h3>
@@ -58,7 +58,7 @@
       </div>
       <% } %>
       <form method="post" action="/daily-brief/generate/<%= i %>">
-        <button class="btn primary" style="font-size:.8rem;padding:7px 16px" onclick="return confirm('Generate article? Uses 1 OpenAI credit.')">
+        <button class="btn primary" style="font-size:.8rem;padding:7px 16px" onclick="return confirm('Generate article? Uses 1 AI credit.')">
           Generate Article →
         </button>
       </form>

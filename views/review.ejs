@@ -9,7 +9,7 @@
     <form method="post" action="/review/approve-ready">
       <button class="btn primary">Approve all above threshold (<%= minQualityScore %>)</button>
     </form>
-    <form method="post" action="/articles/regenerate-low-quality" onsubmit="return confirm('Reject all drafts below quality threshold and regenerate? Uses 1 OpenAI credit per article.')">
+    <form method="post" action="/articles/regenerate-low-quality" onsubmit="return confirm('Reject all drafts below quality threshold and regenerate? Uses 1 AI credit per article.')">
       <button class="btn">Regenerate below threshold</button>
     </form>
     <form method="post" action="/articles/delete-drafts" onsubmit="return confirm('Delete ALL draft and review articles? Published and queued articles are not affected.')">
@@ -40,7 +40,7 @@
       var _q = Number(a.quality_score || 0);
       var _pass = _q >= minQualityScore;
     %>
-    <div class="article-row" style="border-left: 3px solid <%= _pass ? 'var(--good,var(--igh-green))' : 'var(--bad,var(--bad))' %>; padding-left: 12px;">
+    <div class="article-row" style="border-left: 3px solid <%= _pass ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>; padding-left: 12px;">
       <% if(a.featured_image_url){ %>
         <img src="<%= a.featured_image_url %>" alt="" onerror="this.style.display='none'">
       <% } else { %>
@@ -52,7 +52,7 @@
           <%= a.site_name || 'No site' %> &middot;
           <%= a.primary_keyword || 'No keyword' %> &middot;
           Status: <b><%= a.status %></b> &middot;
-          Quality: <b style="color:<%= _pass ? 'var(--good,var(--igh-green))' : 'var(--bad,var(--bad))' %>"><%= _q %></b>/<%= minQualityScore %>
+          Quality: <b style="color:<%= _pass ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>"><%= _q %></b>/<%= minQualityScore %>
           <%= _pass ? ' ✓ ready' : ' ✗ needs work' %>
         </span>
         <% if(a.review_notes){ %>
@@ -72,7 +72,7 @@
             <button class="mini primary" name="status" value="approved">Approve ✓</button>
           <% } %>
         </form>
-        <form method="post" action="/articles/<%= a.id %>/reject-regenerate" onsubmit="return confirm('Reject and regenerate this article? Uses 1 OpenAI credit.')">
+        <form method="post" action="/articles/<%= a.id %>/reject-regenerate" onsubmit="return confirm('Reject and regenerate this article? Uses 1 AI credit.')">
           <button class="mini">Reject + regen</button>
         </form>
         <form method="post" action="/articles/<%= a.id %>/delete" onsubmit="return confirm('Delete this draft permanently?')">

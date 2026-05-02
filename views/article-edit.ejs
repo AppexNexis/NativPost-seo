@@ -5,7 +5,7 @@
     <h1><%= article ? article.title||'Untitled' : 'New SEO Article' %></h1>
     <% if(article){ %>
       <p>
-        Quality: <strong style="color:<%= Number(article.quality_score||0)>=minQualityScore?'var(--good,var(--igh-green))':'var(--bad,var(--bad))' %>"><%= article.quality_score||0 %>/<%= minQualityScore %></strong>
+        Quality: <strong style="color:<%= Number(article.quality_score||0)>=minQualityScore?'var(--good,var(--np-purple))':'var(--bad,var(--bad))' %>"><%= article.quality_score||0 %>/<%= minQualityScore %></strong>
         · Status: <strong><%= article.status %></strong>
         · <%= article.primary_keyword||'No keyword' %>
       </p>
@@ -91,7 +91,7 @@
       <button class="btn" type="submit" name="status" value="review">Send to Review</button>
       <button class="btn" type="submit" name="status" value="approved">Approve</button>
       <button class="btn" type="submit" name="status" value="queued">Queue</button>
-      <form method="post" action="/articles/<%= article.id %>/reject-regenerate" onsubmit="return confirm('Reject this draft and generate a replacement? Uses 1 OpenAI credit. The current draft will be deleted.')"><button class="btn danger" type="submit">Reject + regenerate</button></form>
+      <form method="post" action="/articles/<%= article.id %>/reject-regenerate" onsubmit="return confirm('Reject this draft and generate a replacement? Uses 1 AI credit. The current draft will be deleted.')"><button class="btn danger" type="submit">Reject + regenerate</button></form>
     <% } %>
   </div>
 </form>
@@ -103,13 +103,13 @@
   <section class="card">
     <div class="card-head">
       <h2>Quality score</h2>
-      <div class="score-circle" style="width:44px;height:44px;font-size:var(--fs-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(135deg,var(--igh-green-dim),var(--igh-green))':'linear-gradient(135deg,var(--bad),var(--bad))' %>">
+      <div class="score-circle" style="width:44px;height:44px;font-size:var(--fs-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(135deg,var(--igh-green-dim),var(--np-purple))':'linear-gradient(135deg,var(--bad),var(--bad))' %>">
         <%= article.quality_score||0 %>
       </div>
     </div>
     <div style="margin-bottom:.75rem">
       <div style="background:var(--line);border-radius:var(--r-sm);height:8px;overflow:hidden">
-        <div style="height:100%;border-radius:var(--r-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(90deg,var(--igh-green-dim),var(--igh-green))':'linear-gradient(90deg,var(--bad),var(--bad))' %>;width:<%= Math.min(100,Number(article.quality_score||0)) %>%"></div>
+        <div style="height:100%;border-radius:var(--r-sm);background:<%= Number(article.quality_score||0)>=minQualityScore?'linear-gradient(90deg,var(--igh-green-dim),var(--np-purple))':'linear-gradient(90deg,var(--bad),var(--bad))' %>;width:<%= Math.min(100,Number(article.quality_score||0)) %>%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--text-muted);margin-top:3px">
         <span>0</span>
@@ -154,7 +154,7 @@
     %>
     <% checks.forEach(function(c){ %>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font-size:var(--fs-sm)">
-        <span style="color:<%= c.ok?'var(--good,var(--igh-green))':'var(--text-muted)' %>"><%= c.ok?'✓':'○' %> <%= c.label %></span>
+        <span style="color:<%= c.ok?'var(--good,var(--np-purple))':'var(--text-muted)' %>"><%= c.ok?'✓':'○' %> <%= c.label %></span>
         <span style="color:var(--text-muted);font-size:var(--fs-xs)"><%= c.val %></span>
       </div>
     <% }); %>

@@ -87,12 +87,12 @@
             <% if(b.source_url){ %><div style="font-size:var(--fs-xs);color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;"><%= b.source_url.replace(/^https?:\/\//,'').slice(0,60) %></div><% } %>
           </td>
           <td style="padding:.32rem .5rem;">
-            <span style="font-weight:600;color:<%= Number(b.authority_score||0)>=60?'var(--igh-green)':Number(b.authority_score||0)>=30?'var(--warn)':'var(--text-muted)' %>">
+            <span style="font-weight:600;color:<%= Number(b.authority_score||0)>=60?'var(--np-purple)':Number(b.authority_score||0)>=30?'var(--warn)':'var(--text-muted)' %>">
               <%= Math.round(Number(b.authority_score||b.domain_rating||0)) %>
             </span>
           </td>
           <td style="padding:.32rem .5rem;">
-            <span style="font-size:var(--fs-xs);padding:2px 7px;border-radius:var(--r-sm);background:<%= b.status==='prospect'?'rgba(0, 230, 118, 0.12)':'var(--line)' %>;color:<%= b.status==='prospect'?'var(--igh-green)':'var(--text-muted)' %>;">
+            <span style="font-size:var(--fs-xs);padding:2px 7px;border-radius:var(--r-sm);background:<%= b.status==='prospect'?'rgba(0, 230, 118, 0.12)':'var(--line)' %>;color:<%= b.status==='prospect'?'var(--np-purple)':'var(--text-muted)' %>;">
               <%= b.status==='competitor-opportunity'?'competitor':b.status %>
             </span>
           </td>
@@ -152,14 +152,14 @@
 <!-- EARNED BACKLINKS -->
 <% if(_earned.length){ %>
 <section class="card">
-  <div class="card-head"><h2>Earned backlinks</h2><span style="color:var(--igh-green);font-size:var(--fs-sm);font-weight:600;"><%= _earned.length %> earned</span></div>
+  <div class="card-head"><h2>Earned backlinks</h2><span style="color:var(--np-purple);font-size:var(--fs-sm);font-weight:600;"><%= _earned.length %> earned</span></div>
   <% _earned.forEach(function(b){ %>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm);">
       <div>
         <a href="https://<%= b.source_domain %>" target="_blank" style="font-weight:500;"><%= b.source_domain %></a>
         <% if(b.anchor_text){ %><span style="color:var(--text-muted);margin-left:6px;font-size:var(--fs-xs);">"<%= b.anchor_text %>"</span><% } %>
       </div>
-      <span style="color:var(--igh-green);font-size:var(--fs-sm);font-weight:600;">earned</span>
+      <span style="color:var(--np-purple);font-size:var(--fs-sm);font-weight:600;">earned</span>
     </div>
   <% }); %>
 </section>

@@ -1,9 +1,9 @@
 <%- include('layout-start') %>
 <% if(typeof query !== 'undefined' && query && query.generating){ %>
-<div style="background:rgba(34,255,68,.08);border:1px solid rgba(34,255,68,.25);border-radius:10px;padding:14px 20px;margin-bottom:1rem;display:flex;align-items:center;gap:12px">
-  <div style="width:18px;height:18px;border:2px solid var(--igh-green);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
+<div style="background:rgba(134,79,254,.08);border:1px solid rgba(134,79,254,.25);border-radius:10px;padding:14px 20px;margin-bottom:1rem;display:flex;align-items:center;gap:12px">
+  <div style="width:18px;height:18px;border:2px solid var(--np-purple);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
   <div>
-    <strong style="color:var(--igh-green)">Generating article...</strong>
+    <strong style="color:var(--np-purple)">Generating article...</strong>
     <span style="color:var(--text-muted);font-size:.85rem"> &nbsp;Topic: "<%= query.generating %>" — this takes 60-90 seconds. The draft will appear below automatically.</span>
   </div>
   <script>setTimeout(function(){ location.reload(); }, 15000);</script>

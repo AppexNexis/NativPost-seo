@@ -21,7 +21,7 @@
   <div class="card-head"><h2>System health</h2></div>
   <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-top:.5rem">
     <div style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=_syncStale?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)'%>">
-      <strong style="display:block;font-size:1rem;color:<%=_syncStale?'var(--bad)':'var(--igh-green)'%>">
+      <strong style="display:block;font-size:1rem;color:<%=_syncStale?'var(--bad)':'var(--np-purple)'%>">
         <%= _lastSync ? _lastSync.toLocaleDateString() : 'Never' %>
       </strong>
       <span style="font-size:.72rem;color:var(--text-muted)">Last GSC sync<% if(_syncAge!==null){ %> · <%= _syncAge %>d ago<% } %></span>
@@ -31,11 +31,11 @@
       <span style="font-size:.72rem;color:var(--text-muted)">Ranking rows in DB</span>
     </div>
     <div style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=_dfsPct>80?'rgba(239,68,68,.3)':_dfsPct>50?'rgba(245,158,11,.3)':'var(--line)'%>">
-      <strong style="display:block;font-size:1rem;color:<%=_dfsPct>80?'var(--bad)':_dfsPct>50?'var(--warn)':'var(--igh-green)'%>"><%= _dfsUsed %> / <%= _dfsCap %></strong>
+      <strong style="display:block;font-size:1rem;color:<%=_dfsPct>80?'var(--bad)':_dfsPct>50?'var(--warn)':'var(--np-purple)'%>"><%= _dfsUsed %> / <%= _dfsCap %></strong>
       <span style="font-size:.72rem;color:var(--text-muted)">DataForSEO calls today</span>
     </div>
     <div style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=gscConnected?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'%>">
-      <strong style="display:block;font-size:1rem;color:<%=gscConnected?'var(--igh-green)':'var(--bad)'%>"><%= gscConnected ? '✓ Connected' : '✗ Disconnected' %></strong>
+      <strong style="display:block;font-size:1rem;color:<%=gscConnected?'var(--np-purple)':'var(--bad)'%>"><%= gscConnected ? '✓ Connected' : '✗ Disconnected' %></strong>
       <span style="font-size:.72rem;color:var(--text-muted)">Google / GSC</span>
     </div>
   </div>
@@ -63,7 +63,7 @@
 <section class="card">
   <div class="card-head">
     <h2>Google Search Console &amp; GA4</h2>
-    <span class="badge" style="<%= gscConnected ? 'background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:var(--igh-green)' : 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--bad)' %>">
+    <span class="badge" style="<%= gscConnected ? 'background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:var(--np-purple)' : 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--bad)' %>">
       <%= gscConnected ? '✓ Connected' : '✗ Not connected' %>
     </span>
   </div>
@@ -132,24 +132,24 @@ GOOGLE_OAUTH_REDIRECT_URI=http://YOUR_AMP_HOST:7783/api/auth/google/callback</pr
   <div class="metric-row"><strong>Port</strong><span><%= env.port %></span></div>
   <div class="metric-row"><strong>Publish mode</strong><span><%= env.publishMode %></span></div>
   <div class="metric-row"><strong>Contentful publishing</strong>
-    <span style="color:<%= env.contentfulActive ? 'var(--good,var(--igh-green))' : 'var(--text-muted)' %>">
+    <span style="color:<%= env.contentfulActive ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>">
       <%= env.contentfulActive ? '✓ Active' : '✗ Inactive — set PUBLISH_MODE=contentful in .env.local' %>
     </span>
   </div>
   <div class="metric-row"><strong>Contentful content type</strong><span><%= env.contentfulType || 'Not set' %></span></div>
   <div class="metric-row"><strong>OpenAI</strong>
-    <span style="color:<%= env.hasOpenAI ? 'var(--good,var(--igh-green))' : 'var(--bad,var(--bad))' %>">
-      <%= env.hasOpenAI ? '✓ Connected' : '✗ Missing OPENAI_API_KEY' %>
+    <span style="color:<%= env.hasAI ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>">
+      <%= env.hasAI ? '✓ Connected' : '✗ Missing ANTHROPIC_API_KEY (primary) or OPENAI_API_KEY (fallback)' %>
     </span>
   </div>
   <div class="metric-row"><strong>Google / GSC / GA4</strong>
-    <span style="color:<%= gscConnected ? 'var(--good,var(--igh-green))' : 'var(--text-muted)' %>">
+    <span style="color:<%= gscConnected ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>">
       <%= env.googleStatus %>
     </span>
   </div>
   <div class="metric-row"><strong>Crawl page limit</strong><span><%= env.crawlLimit %> pages per scan</span></div>
   <div class="metric-row"><strong>Internal crawl override</strong>
-    <span style="color:<%= env.crawlBaseUrl ? 'var(--igh-green)' : 'var(--text-muted)' %>">
+    <span style="color:<%= env.crawlBaseUrl ? 'var(--np-purple)' : 'var(--text-muted)' %>">
       <%= env.crawlBaseUrl || 'Not set — crawling public domain directly' %>
     </span>
   </div>

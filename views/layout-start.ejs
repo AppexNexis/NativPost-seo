@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NativPost SEO Command Center</title>
+  <title>NativPost SEO — Command Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
@@ -13,13 +13,13 @@
   .sidebar {
     width: 256px; flex-shrink: 0; position: fixed; inset: 0 auto 0 0;
     background: linear-gradient(180deg, #080a0d 0%, #070810 100%);
-    border-right: 1px solid rgba(34,255,68,.1);
+    border-right: 1px solid rgba(134,79,254,.15);
     display: flex; flex-direction: column; z-index: 10;
     overflow-y: auto; overflow-x: hidden;
   }
   .sidebar::before {
     content: ''; position: fixed; left: 0; top: 0; width: 256px; height: 3px;
-    background: linear-gradient(90deg, transparent 0%, var(--igh-green) 40%, var(--igh-green-hot) 60%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--np-purple) 40%, var(--np-cyan) 60%, transparent 100%);
     z-index: 11; pointer-events: none;
   }
   .main { margin-left: 256px; width: calc(100% - 256px); padding: var(--sp-6) var(--sp-7); max-width: 1600px; }
@@ -28,31 +28,29 @@
   .brand {
     display: flex; align-items: center; gap: 12px;
     padding: 22px 20px 18px;
-    border-bottom: 1px solid rgba(34,255,68,.08);
+    border-bottom: 1px solid rgba(134,79,254,.12);
     position: relative; flex-shrink: 0;
   }
   .brand::after {
     content: ''; position: absolute; bottom: -1px; left: 20px; right: 20px; height: 1px;
-    background: linear-gradient(90deg, var(--igh-green) 0%, transparent 100%);
+    background: linear-gradient(90deg, var(--np-purple) 0%, transparent 100%);
     opacity: 0.4;
   }
   .logo {
-    width: 38px; height: 42px; flex-shrink: 0;
-    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-    background: linear-gradient(135deg, var(--igh-green) 0%, var(--igh-green-dim) 100%);
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 50%;
+    background: #1A1A1C;
     display: grid; place-items: center;
-    font-weight: 900; font-size: 11px; color: #000;
-    letter-spacing: -0.04em; position: relative;
-    box-shadow: 0 0 18px rgba(34,255,68,.35), 0 0 40px rgba(34,255,68,.12);
+    box-shadow: 0 0 18px rgba(134,79,254,.35), 0 0 40px rgba(134,79,254,.12);
     animation: logo-pulse 4s ease-in-out infinite;
   }
   @keyframes logo-pulse {
-    0%, 100% { box-shadow: 0 0 18px rgba(34,255,68,.35), 0 0 40px rgba(34,255,68,.12); }
-    50% { box-shadow: 0 0 28px rgba(34,255,68,.55), 0 0 60px rgba(34,255,68,.2); }
+    0%, 100% { box-shadow: 0 0 18px rgba(134,79,254,.35), 0 0 40px rgba(134,79,254,.12); }
+    50% { box-shadow: 0 0 28px rgba(134,79,254,.55), 0 0 60px rgba(134,79,254,.2); }
   }
   .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
   .brand-text strong { color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .brand-text span { color: var(--igh-green); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; margin-top: 2px; opacity: .85; }
+  .brand-text span { color: var(--np-purple); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; margin-top: 2px; opacity: .85; }
 
   /* Nav */
   nav { display: flex; flex-direction: column; padding: 8px 12px; flex: 1; gap: 1px; }
@@ -63,11 +61,11 @@
   }
   .nav-section-line {
     flex: 1; height: 1px;
-    background: linear-gradient(90deg, rgba(34,255,68,.25) 0%, rgba(34,255,68,.06) 100%);
+    background: linear-gradient(90deg, rgba(134,79,254,.3) 0%, rgba(134,79,254,.08) 100%);
   }
   .nav-section-label {
     font-size: 9px; font-weight: 800; letter-spacing: 0.2em;
-    text-transform: uppercase; color: var(--igh-green); opacity: .7;
+    text-transform: uppercase; color: var(--np-purple); opacity: .7;
     white-space: nowrap; flex-shrink: 0;
   }
   .nav-section:first-child { margin-top: 6px; }
@@ -92,24 +90,24 @@
   }
   nav a:hover .nav-icon { opacity: .9; }
   nav a.active {
-    color: var(--igh-green);
-    background: linear-gradient(135deg, rgba(34,255,68,.12) 0%, rgba(34,255,68,.06) 100%);
-    border-color: rgba(34,255,68,.2);
+    color: var(--np-purple);
+    background: linear-gradient(135deg, rgba(134,79,254,.15) 0%, rgba(134,79,254,.08) 100%);
+    border-color: rgba(134,79,254,.25);
     font-weight: 600;
-    box-shadow: inset 0 0 12px rgba(34,255,68,.04), 0 1px 4px rgba(0,0,0,.3);
+    box-shadow: inset 0 0 12px rgba(134,79,254,.06), 0 1px 4px rgba(0,0,0,.3);
   }
   nav a.active .nav-icon { opacity: 1; }
   nav a.active::before {
     content: ''; position: absolute; left: -1px; top: 20%; bottom: 20%;
     width: 2px; border-radius: 0 2px 2px 0;
-    background: var(--igh-green);
-    box-shadow: 0 0 8px var(--igh-green);
+    background: var(--np-purple);
+    box-shadow: 0 0 8px var(--np-purple);
   }
 
   /* Sidebar footer */
   .sidebar-footer {
     margin-top: auto; padding: 14px 12px;
-    border-top: 1px solid rgba(34,255,68,.08); flex-shrink: 0;
+    border-top: 1px solid rgba(134,79,254,.12); flex-shrink: 0;
     display: flex; flex-direction: column; gap: 10px;
   }
   .sidebtn {
@@ -121,9 +119,9 @@
     letter-spacing: 0.02em;
   }
   .sidebtn:hover {
-    border-color: rgba(34,255,68,.4); color: var(--igh-green);
-    background: rgba(34,255,68,.05);
-    box-shadow: 0 0 12px rgba(34,255,68,.1);
+    border-color: rgba(134,79,254,.5); color: var(--np-purple);
+    background: rgba(134,79,254,.08);
+    box-shadow: 0 0 12px rgba(134,79,254,.15);
   }
   .sidebtn small { display: block; font-size: 10px; opacity: .5; font-weight: 400; margin-top: 2px; }
 
@@ -144,9 +142,18 @@
 <div class="app">
 <aside class="sidebar">
   <div class="brand">
-    <div class="logo">NP</div>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 13C14 12.4477 14.4477 12 15 12H17C17.5523 12 18 12.4477 18 13V31C18 31.5523 17.5523 32 17 32H15C14.4477 32 14 31.5523 14 31V13Z" fill="#F5F5F7"/>
+        <path d="M16 30L28 14" stroke="#F5F5F7" stroke-width="4" stroke-linecap="round"/>
+        <path d="M26 13C26 12.4477 26.4477 12 27 12H29C29.5523 12 30 12.4477 30 13V31C30 31.5523 29.5523 32 29 32H27C26.4477 32 26 31.5523 26 31V13Z" fill="#F5F5F7"/>
+        <path d="M28 11L30.5 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M30.5 8.5L30.5 11" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M30.5 8.5L28 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="brand-text">
-      <strong>Infected</strong>
+      <strong>NativPost</strong>
       <span>SEO Command</span>
     </div>
   </div>

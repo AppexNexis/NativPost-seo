@@ -190,8 +190,8 @@ async function ensureAuthTables() {
     const salt = crypto.randomBytes(32).toString('hex');
     const hash = await hashPassword('NativPost2026!', salt);
     await q('INSERT INTO auth_users (username,email,password_hash,salt,role) VALUES (?,?,?,?,?)',
-      ['admin', 'garrett@nativpost.com', hash, salt, 'admin']).catch(()=>{});
-    console.log('[Auth] Default admin user Garrett created');
+      ['admin', 'admin@nativpost.com', hash, salt, 'admin']).catch(()=>{});
+    console.log('[Auth] Default admin user created');
   }
 }
 
@@ -387,7 +387,7 @@ async function fetchSteamScreenshots(appId, game='', limit=6) {
   try {
     const resp = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=screenshots`, {
       timeout: 15000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; IGHSEOBot/1.0)' }
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NativPostSEOBot/1.0)' }
     });
     const data = resp.data?.[appId];
     if (!data?.success) return [];
@@ -406,14 +406,14 @@ async function fetchSteamScreenshots(appId, game='', limit=6) {
   }
 }
 
-const DEFAULT_IGH_SUPPORTED_GAMES = new Set(String(process.env.SUPPORTED_GAMES_EXACT || process.env.MANUAL_SUPPORTED_GAMES || '').split(',').map(x => x.trim()).filter(Boolean).map(x => detectGame(x) || normalizeGameName(x)));
+const DEFAULT_NP_SUPPORTED_GAMES = new Set(String(process.env.SUPPORTED_GAMES_EXACT || process.env.MANUAL_SUPPORTED_GAMES || '').split(',').map(x => x.trim()).filter(Boolean).map(x => detectGame(x) || normalizeGameName(x)));
 const USE_LEGACY_SUPPORTED_GAMES_ENV = String(process.env.USE_LEGACY_SUPPORTED_GAMES_ENV || '').toLowerCase() === 'true';
 const BUSINESS_FACTS = process.env.NATIVPOST_BUSINESS_FACTS || 'NativPost offers 2-day free trials so customers can try servers before buying. Do not claim 30-day money-back guarantees, refund guarantees, or refunds. Messaging should emphasize confidence in infrastructure, fast deployment, NVMe SSDs, DDoS protection, practical support, and clear setup guidance.';
-const IGH_MIN_RAM_GB = Number(process.env.NATIVPOST_MIN_RAM_GB || 4);
-const IGH_BASE_PLAN_PRICE = process.env.NATIVPOST_BASE_PLAN_PRICE || '$11/month';
-const IGH_TRIAL_DAYS = Number(process.env.NATIVPOST_TRIAL_DAYS || 2);
-const IGH_REFUND_POLICY = process.env.NATIVPOST_REFUND_POLICY || 'IGH does not advertise refunds or money-back guarantees. IGH uses a 2-day free trial so customers can test before buying.';
-const IGH_PACKAGE_RULES = process.env.NATIVPOST_PACKAGE_RULES || `Do not claim IGH offers 1GB, 2GB, or 3GB plans. IGH public baseline is ${IGH_MIN_RAM_GB}GB RAM with 1 vCPU at ${IGH_BASE_PLAN_PRICE}. If exact package details are not known, say to start with the current IGH package that fits player count and mod load instead of inventing tiers.`;
+const NP_MIN_PRICE = Number(process.env.NATIVPOST_MIN_PRICE || 19);
+const NP_BASE_PLAN_PRICE = process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)';
+const NP_TRIAL_DAYS = Number(process.env.NATIVPOST_TRIAL_DAYS || 7);
+const NP_REFUND_POLICY = process.env.NATIVPOST_REFUND_POLICY || 'NativPost offers a 7-day free trial with 3 posts max (text only). There is no money-back guarantee. Do not claim refunds.';
+const NP_PACKAGE_RULES = process.env.NATIVPOST_PACKAGE_RULES || 'Starter $19/mo (15 posts, 3 platforms) / Growth $39/mo (40 posts, 6 platforms, video) / Pro $79/mo (80 posts, unlimited platforms, human review) / Agency $149/mo (unlimited posts, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only).';
 const GAME_WORDS = GAME_ALIASES.map(g => g.key);
 function gameDisplay(game='') { const g=GAME_ALIASES.find(x=>x.key===String(game).toLowerCase()); return g?.label || String(game||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
 function gameKeywordName(game='') { const key=String(game||'').toLowerCase(); if (key==='ark') return 'ark survival ascended'; return gameDisplay(game).toLowerCase().replace(/\s*\/.*$/,'').trim(); }
@@ -484,7 +484,7 @@ async function discoverSupportedGamesFromGamesPage(siteUrl='') {
   } catch(e) { console.log('[GameDetect] /games page fetch failed:', e.message); }
   return supported;
 }
-function explicitSupportedGamesFromEnv() { const out = new Set(DEFAULT_IGH_SUPPORTED_GAMES); if (USE_LEGACY_SUPPORTED_GAMES_ENV) { for (const x of String(process.env.KNOWN_IGH_SUPPORTED_GAMES || process.env.SUPPORTED_GAMES || '').split(',')) { const v=x.trim(); if(v) out.add(detectGame(v) || normalizeGameName(v)); } } return out; }
+function explicitSupportedGamesFromEnv() { const out = new Set(DEFAULT_NP_SUPPORTED_GAMES); if (USE_LEGACY_SUPPORTED_GAMES_ENV) { for (const x of String(process.env.KNOWN_IGH_SUPPORTED_GAMES || process.env.SUPPORTED_GAMES || '').split(',')) { const v=x.trim(); if(v) out.add(detectGame(v) || normalizeGameName(v)); } } return out; }
 function ownGamePageSignal(page={}) { const url=String(page.page_url||'').toLowerCase(); const title=String(page.page_title||'').toLowerCase(); const meta=String(page.meta_description||'').toLowerCase(); return /\/game\//.test(url) || /server-hosting/.test(url) || /server hosting/.test(title+' '+meta); }
 
 
@@ -512,28 +512,28 @@ function dbSafeParams(params=[]) {
 function offerFactsText() {
   return [
     BUSINESS_FACTS,
-    `Trial: IGH offers ${IGH_TRIAL_DAYS}-day free trials so customers can try before buying.`,
-    `Pricing/resource baseline: ${IGH_PACKAGE_RULES}`,
-    `Refund policy: ${IGH_REFUND_POLICY}`,
-    'Accuracy rule: never invent package sizes, refund terms, guarantees, discounts, hardware specs, or service promises that are not in the business facts or scanned IGH pages.'
+    `Trial: NativPost offers a ${NP_TRIAL_DAYS}-day free trial with 3 posts maximum (text only). Do not claim unlimited posts, free forever plan, or 30-day trial.`,
+    `NativPost plan pricing: ${NP_PACKAGE_RULES}`,
+    `Refund/trial policy: ${NP_REFUND_POLICY}`,
+    'Accuracy rule: never invent plan features, refund terms, pricing, or capabilities not listed in the NativPost business facts above.'
   ].join('\n');
 }
 function forbiddenOfferClaims(text='') {
   const t=String(text||'').toLowerCase();
   const issues=[];
-  if (/\b(1|2|3)\s*gb\b/.test(t) || /\b(1|2|3)\s*gigabyte/.test(t)) issues.push(`mentions a RAM package below IGH minimum ${IGH_MIN_RAM_GB}GB`);
+  if (/\b(1|2|3)\s*gb\b/.test(t) || /\b(1|2|3)\s*gigabyte/.test(t)) issues.push(`mentions a RAM package below IGH minimum ${NP_MIN_PRICE}GB`);
   if (/30\s*[- ]?day\s+(money\s*back|refund|guarantee)/.test(t) || /money\s*back\s*guarantee/.test(t)) issues.push('mentions money-back/refund guarantee');
   if (/\brefunds?\b/.test(t) && !/does not (advertise |offer )?refund/.test(t)) issues.push('mentions refunds in a way that may be inaccurate');
   return issues;
 }
 function repairOfferClaims(text='') {
   let out=String(text||'');
-  out = out.replace(/\b(1|2|3)\s*GB\s+RAM\b/gi, `${IGH_MIN_RAM_GB}GB RAM`);
-  out = out.replace(/\b(1|2|3)\s*GB\b/gi, `${IGH_MIN_RAM_GB}GB`);
-  out = out.replace(/\b(1|2|3)\s*gigabytes?\b/gi, `${IGH_MIN_RAM_GB}GB`);
-  out = out.replace(/30\s*[- ]?day\s+money\s*[- ]?back\s+guarantee/gi, `${IGH_TRIAL_DAYS}-day free trial`);
-  out = out.replace(/30\s*[- ]?day\s+refund\s+guarantee/gi, `${IGH_TRIAL_DAYS}-day free trial`);
-  out = out.replace(/money\s*[- ]?back\s+guarantee/gi, `${IGH_TRIAL_DAYS}-day free trial`);
+  out = out.replace(/\b(1|2|3)\s*GB\s+RAM\b/gi, `${NP_MIN_PRICE}GB RAM`);
+  out = out.replace(/\b(1|2|3)\s*GB\b/gi, `${NP_MIN_PRICE}GB`);
+  out = out.replace(/\b(1|2|3)\s*gigabytes?\b/gi, `${NP_MIN_PRICE}GB`);
+  out = out.replace(/30\s*[- ]?day\s+money\s*[- ]?back\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
+  out = out.replace(/30\s*[- ]?day\s+refund\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
+  out = out.replace(/money\s*[- ]?back\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
   return out;
 }
 function offerReviewNote(text='') {
@@ -544,7 +544,7 @@ function offerReviewNote(text='') {
 async function scannedOfferFacts(siteId=null) {
   try {
     const rows = await q("SELECT page_url,page_title,meta_description,h1_text,word_count FROM site_pages WHERE (? IS NULL OR site_id<=>?) AND (page_url LIKE '%/game/%' OR page_url LIKE '%/games%' OR page_url LIKE '%windrose%' OR page_url LIKE '%palworld%' OR page_url LIKE '%minecraft%' OR page_url LIKE '%hosting%' OR page_url LIKE '%cart%' OR page_url LIKE '%pricing%' OR page_url LIKE '%store%') ORDER BY word_count DESC LIMIT 30", [siteId, siteId]);
-    return rows.map(r => `${r.page_title||'IGH page'} | ${r.page_url} | ${r.meta_description||''}`).join('\n').slice(0,6000);
+    return rows.map(r => `${r.page_title||'NativPost page'} | ${r.page_url} | ${r.meta_description||''}`).join('\n').slice(0,6000);
   } catch { return ''; }
 }
 
@@ -628,7 +628,7 @@ function bodyForPublishing(article){
 function slugify(input = '') { return String(input).toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 180) || `article-${Date.now()}`; }
 function safeArticleTitle(value, fallback='Untitled SEO Article') {
   let cleaned = String(value||'').replace(/\s+/g,' ').trim();
-  // Strip competitor brand names from titles — they must never appear in IGH article titles
+  // Strip competitor brand names from titles — they must never appear in NativPost article titles
   const competitorBrands = ['game host bros','gamehostbros','nitrado','gportal','g-portal',
     'shockbyte','bisecthosting','bisect hosting','hosthavoc','apexhosting','apex hosting',
     'scalacube','nodecraft','sparkedhost','sparked host','pingperfect','fragnet','gtxgaming'];
@@ -1116,7 +1116,7 @@ function isBadKeyword(keyword='') {
 function cleanKeyword(keyword='') {
   let k = String(keyword||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
   if (isBadKeyword(k)) return '';
-  // Accept any keyword related to hosting, servers, games, or IGH brand terms
+  // Accept any keyword related to social media, AI content, brand voice, or NativPost
   if (!/(hosting|server|servers|game|gaming|palworld|minecraft|ark|rust|valheim|enshrouded|vrising|v rising|hytale|everwind|windrose|terraria|dayz|conan|zomboid|satisfactory|factorio|icarus|infected|dedicated|managed|cheap|best|fast|ddos|nvme|mod|setup|guide|install|support|pricing|deploy|performance)/i.test(k)) return '';
   return k.slice(0,120);
 }
@@ -1140,7 +1140,9 @@ function articleTitleFor(keyword='') {
   return `${nice}: Fast, Reliable Hosting for Serious Players`;
 }
 async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[], competitorTerms=[], imageHints=[], offerFacts='', serp=null, extended=false}) {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  if (!hasAnthropic && !hasOpenAI) return null;
   const target = cleanKeyword(keyword) || keyword || 'game server hosting';
   const serpAvgWords  = Number(serp?.avg_words || 0);
   const wordTarget    = Math.max(1600, serpAvgWords >= 800 ? serpAvgWords + 200 : 1600);
@@ -1165,18 +1167,18 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     ].join('\n') : '',
 
     // BLOCK 2: Article brief
-    `You are writing for NativPost (IGH), a real game server hosting company. Create a finished SEO article meant to beat competitor pages. CRITICAL TITLE RULE: NEVER include competitor brand names (Game Host Bros, Nitrado, GPortal, Shockbyte, BisectHosting, etc.) in the article title or slug. The title must be about the keyword and IGH only — e.g. "Minecraft Server Hosting | NativPost" not "Minecraft Server Hosting - Game Host Bros Alternative".`,
+    `You are writing for NativPost (nativpost.com), an AI-powered social media content platform. Create a finished SEO article meant to beat competitor pages and rank on Google. CRITICAL TITLE RULE: NEVER include competitor brand names (Ocoya, Buffer, Predis, Hootsuite, Jasper, Later) in the article title or slug unless it is a direct comparison article. The title must lead with the keyword and NativPost's angle.`,
     '',
     `Business: ${site?.name || 'NativPost'}`,
     `Primary keyword: ${target}`,
     `Site URL: ${site?.url || 'https://nativpost.com'}`,
     '',
-    'Mandatory IGH business facts:',
+    'Mandatory NativPost business facts:',
     offerFactsText(),
     '',
 
     // BLOCK 3: Live game context and offer page evidence (excludes the game facts already shown above)
-    offerFacts ? 'IGH offer context and live game availability:\n' + offerFacts.replace(/VERIFIED FACTS FOR[\s\S]+?ACCURACY RULE[^\n]+\n?/,'').trim() : '',
+    offerFacts ? 'NativPost offer context:\n' + offerFacts.trim() : '',
     '',
 
     `Existing internal pages to link naturally: ${ownPages.map(p=>`${p.page_title||'Page'} - ${p.page_url}`).slice(0,10).join(' | ')}`,
@@ -1195,9 +1197,9 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `WRITING QUALITY RULES — READ FIRST:`,
     `- Write in flowing, confident prose. Avoid bullet-point walls. For lists WITHIN sections, use the inline bold term format: "**Term:** explanation sentence." — NOT bullet points. Reserve actual bullet/numbered lists only for step-by-step instructions.`,
     `- Do NOT pad with empty phrases like "In today's gaming world", "As gaming continues to evolve", or "unlock the ultimate experience". Write like an expert, not a marketing brochure.`,
-    `- Use specific facts, specific numbers, specific software tool names, specific game names, specific IGH advantages. Vague filler fails the quality gate.`,
+    `- Use specific facts and numbers: anti-slop filter scores 0-1, rejects below 0.7; 3 variants generated in parallel via asyncio.gather(); topic memory prevents repetition; Paystack accepted in Africa. Vague filler fails the quality gate.`,
     `- Vary sentence length. Mix short punchy sentences with longer explanatory ones. Write for a real human who is deciding whether to spend money on server hosting.`,
-    `- HEADLINE FORMAT: Never use "[Keyword] | IGH" as the title. Use a story hook or data hook. Examples: "Stop Lagging: How to Buy a Minecraft Java Server in 2026" or "Why 79% of Game Servers Get DDoS Attacked (And How to Stay Online)" or "Self-Hosting vs. Managed: The Real Cost of [Game] Server Hosting in 2026". The title should make someone want to click it.`,
+    `- HEADLINE FORMAT: Never use "[Keyword] | NativPost" as the title. Use a story hook or data hook. Examples: "Stop Sounding Like a Bot: How NativPost Builds a Real Brand Voice" or "Why 73% of AI Social Media Content Gets Ignored (And How to Fix It)" or "Ocoya vs NativPost in 2026: Which One Actually Learns Your Brand?". The title should make someone want to click.`,
     `- OPENING PARAGRAPH: Do NOT open with a definition or quick answer. Open with a SCENARIO or DILEMMA the reader is facing. Example: "When you first decide to take your world online, you face a fork in the road..." or "A single disgruntled player with a $5 booter service can knock your entire server offline in seconds." Hook them with tension, then resolve it.`,
     `- QUICK ANSWER TABLE: The FIRST element after the opening paragraph must be a markdown comparison table that immediately answers the core buying question. This gets featured snippets. For hosting: Plan | RAM | Players | Price. For guides: Method | Best For | Cost.`,
     `- TECHNICAL SPECIFICITY: Name specific tools, protocols, and commands throughout. For Minecraft: PaperMC, Fabric, Forge, server.properties, simulation-distance, /whitelist, Chunky plugin, CoreProtect, spark profiler, TPS. For other games: name their networking protocol, engine, relevant tools. For all: UDP, DPI, Anycast, NVMe read speeds, Ryzen 9 single-core performance. This specificity signals expertise.`,
@@ -1205,50 +1207,50 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `- PRICING TABLE LINKS: In ALL pricing/plan tables, the Price column must use real markdown hyperlinks, never plain text. Format: [View Pricing](https://nativpost.com/game/GAME-server-hosting). Never write "See Current Pricing" or "Visit site" as plain text.`,
     `- INTERNAL LINKS REQUIREMENT: You MUST include exactly 4-6 internal links to other NativPost blog posts placed naturally mid-article within paragraphs. Not at the end. Reference them by descriptive anchor text. Example: "as we cover in our [complete guide to DDoS protection for game servers](https://nativpost.com/blog/ddos-protection-for-game-servers)". Stopping at 2 internal links will fail the quality gate.`,
     `- EXTERNAL LINK REQUIREMENT: You MUST include exactly 1 external link to the game's official Steam page (format: https://store.steampowered.com/app/APPID/) or the developer's official website. Place it in the "What Makes [Game] Different" section. This is mandatory — missing it fails the quality gate.`,
-    `- NAMED HARDWARE: Always mention "Ryzen 9" CPUs and "NVMe SSDs" by name when discussing IGH infrastructure. Explain WHY Ryzen 9 matters (high single-core clock speed). Explain WHY NVMe matters (chunk loading speed, no lag spikes during teleport/elytra). Specific > generic.`,
-    `- GLOBAL LOCATIONS: When mentioning IGH server locations, name them: "North America, Europe, UK, Asia, Australia, and India". This targets geo-based searches and builds trust.`,
-    `- FREE TRIAL LANGUAGE: Always say "48-hour free trial" not "2-day free trial". This is the exact phrasing in all live IGH content.`,
+    `- NAMED FEATURES: Always mention the anti-slop filter, content modes (Normal/Concise/Controversial), tone sliders (1-10), topic memory, and Paystack by name. Explain WHY each matters. Specific > generic.`,
+    `- AFRICA ANGLE: When the keyword has African market intent (Nigeria, Kenya, Ghana, South Africa), prominently mention Paystack support and that NativPost is built for African businesses. This is a real differentiator no competitor offers.`,
+    `- TRIAL LANGUAGE: Always say "7-day free trial" — never "30-day trial", "free forever", or "money-back guarantee". The trial includes 3 posts maximum, text only.`,
     `- CTA FORMAT: Conclusion should be 2-3 sentences summarizing the value, then one direct action sentence: "Start your 7-day free trial at app.nativpost.com 48-hour free trial and have your [game] server online in minutes at nativpost.com."`,
     ``,
     `Requirements:`,
-    `- AI SEARCH OPTIMIZATION (critical for 2025+): Structure content so AI systems (Google AI Overviews, Perplexity, ChatGPT) can cite IGH directly. Do this by: (1) Open the article with a 2-3 sentence "Quick Answer" paragraph that directly states what IGH offers for this game — LLMs extract this as a snippet. (2) Use specific factual statements with exact numbers (e.g. "IGH offers Palworld server hosting starting at $11/month with NVMe SSD storage and a 2-day free trial") — vague claims don't get cited. (3) Every FAQ answer must be self-contained and answer the question in the first sentence. (4) Include a clear "Why Choose NativPost" section with specific differentiators. AI systems reward specificity and authority signals.`,
-    `- BRAND NAME RULE (critical for SEO): Include "NativPost" or "IGH" naturally in the article title, at least one H2 heading, the intro paragraph, and the conclusion/CTA. This is how top competitors like Game Host Bros dominate brand-associated searches — their name appears in every article title and throughout the content. Your title format should follow: "[Keyword] | NativPost" or "Best [Keyword] — NativPost" or similar. The brand name must appear at minimum 4-6 times in the body naturally.`,
+    `- AI SEARCH OPTIMIZATION (critical for 2025+): Structure content so AI systems (Google AI Overviews, Perplexity) can cite NativPost directly. (1) Open with a 2-3 sentence Quick Answer stating what NativPost does and its starting price — LLMs extract this as a snippet. (2) Use specific factual statements with exact numbers (e.g. "NativPost's anti-slop filter scores every post 0-1 and auto-rejects below 0.7") — vague claims don't get cited. (3) Every FAQ answer must be self-contained and answer the question in the first sentence. (4) Include a clear "Why NativPost" section with specific differentiators. AI systems reward specificity.`,
+    `- BRAND NAME RULE: Include "NativPost" naturally in the article title, at least one H2 heading, the intro paragraph, and the conclusion/CTA. Brand name must appear minimum 4-6 times in the body. CTA must always link to app.nativpost.com with "Start your 7-day free trial" language.`,
     `- Body must be a complete, high-converting article targeting ${wordTarget}–${wordTarget+400} words. COUNT WORDS AS YOU WRITE.`,
-    `- Search intent is ${serpIntent}. ${isGameArticle ? 'This is a game hosting article — the buyer wants to host ' + detectedGameInKw + '. Answer: how, how much RAM, how much does it cost, why IGH specifically.' : 'This is a brand/company article — the searcher wants to know what IGH is and whether to trust them. Answer: what IGH offers, what games, why they are reliable, how to start.'}`,
+    `- Search intent is ${serpIntent}. Answer the reader's core question immediately: what NativPost does, how it differs from Ocoya/Buffer/Jasper, what it costs, how to start the 7-day trial.`,
     isGameArticle ? `- GAME ARTICLE STRUCTURE (mandatory):
   1. H1 with keyword — use curiosity gap or data hook when possible. Include "2026" in title or first H2.
-  2. FIRST ELEMENT after H1: a markdown comparison table answering the core buying question. Columns: IGH Plan | RAM | Players Supported | Price. This must come before any prose — it's what gets featured snippets.
-  3. Intro paragraph (2-3 sentences): what does it cost/take to host [game] on IGH, answered immediately. Include "as of 2026".
+  2. FIRST ELEMENT after H1: a markdown comparison/summary table answering the core question (e.g. Tool | Best For | Price | Brand Voice Depth). This must come before any prose — it targets featured snippets.
+  3. Intro paragraph (2-3 sentences): what NativPost does and why it solves the reader's exact problem. Include "as of 2026".
   4. ## What Makes [Game] Different to Host — 2-3 paragraphs: the game's engine, networking protocol (UDP/TCP/RakNet/Source), why it needs dedicated servers, what happens without proper hosting. External link to Steam/official site here.
   5. ## [Game] Server Requirements in 2026 — detailed breakdown using ONLY verified facts. Cover RAM per player count, OS, SteamCMD App ID, why NVMe matters vs HDD for this game specifically.
-  6. ## IGH Hosting Plans for [Game] — exact plan tiers matching RAM needs. Name specific plans, state which fits 2/4/8/16 players. Use scraped package data.
-  7. ## Why Choose NativPost for [Game] in 2026 — DDoS protection (name specific attack types: UDP floods, amplification), NVMe SSD performance numbers, server locations (North America, Europe, Asia), 48-hour free trial. Place 1-2 internal links to related IGH blog posts here naturally.
-  8. ## How to Set Up Your [Game] Server on IGH — numbered steps, minimum 6, from sign-up to first player connecting.
-  9. Comparison table: Player Count | RAM Required | Recommended IGH Plan | Monthly Price.
+  6. ## NativPost Plans & Pricing — Starter $19, Growth $39, Pro $79, Agency $149. Explain what each plan unlocks. Link to app.nativpost.com/subscribe.
+  7. ## Why NativPost in 2026 — anti-slop filter (0-1 scoring, auto-rejects below 0.7), brand voice config (tone sliders 1-10, forbidden words, per-platform voice), 3 variants in parallel, topic memory, Paystack for Africa. Place 1-2 internal links to related NativPost blog posts naturally.
+  8. ## How to Get Started with NativPost — numbered steps: sign up → set up brand profile → connect social accounts → generate first content → approve and publish.
+  9. Comparison table: Platform | NativPost Feature | How It Helps.
   10. ## FAQ — minimum 5 Q&A pairs as ### H3 questions. First sentence of each answer must directly answer the question. Use PAA data from SERP.
   11. Conclusion: 2-3 sentences + "Start your 7-day free trial at app.nativpost.com 48-hour free trial and have your [game] server online in minutes" + direct link.` : `- BRAND/COMPANY ARTICLE STRUCTURE (mandatory):
   1. H1 with keyword in title
   2. FIRST ELEMENT: markdown comparison table answering the core question before any prose
-  3. Intro paragraph: what is IGH in 2-3 confident sentences. Include "as of 2026".
+  3. Intro paragraph: what is NativPost in 2-3 confident sentences. Include "as of 2026".
   4. ## What is NativPost — 3+ paragraphs. Who they are, what makes them different from generic hosts, their infrastructure focus. Do NOT mention a single game as the focus — mention several.
   5. ## Performance and Infrastructure in 2026 — NVMe SSDs (specific read speeds vs HDD), DDoS protection (name attack types: UDP floods, volumetric, L7), server locations (North America, Europe, Asia). Technical depth signals expertise.
-  6. ## Games Available for Hosting — prose intro then list of confirmed live games each with markdown link to IGH page and one sentence description.
+  6. ## Platforms NativPost Supports — Instagram, Facebook, LinkedIn, Twitter/X, TikTok, Pinterest, YouTube, Threads. Per-platform voice configuration.
   7. ## Pricing and Plans — plan structure, 4GB/$11 baseline, how plans scale, what the 48-hour free trial includes.
   8. ## How to Get Started — numbered steps from signing up to server running. At least 5 steps.
-  9. Feature comparison table: IGH vs what serious game server hosting requires.
+  9. Feature comparison table: NativPost vs competitors (Ocoya, Buffer, Jasper) on key dimensions.
   10. ## FAQ — minimum 5 Q&A pairs as ### H3 questions with self-contained answers.
   11. Final CTA: direct and specific. Include "48-hour free trial".`,
     `- The body MUST be ${wordTarget}–${wordTarget+400} words. This is non-negotiable. If you finish the structure and are under ${wordTarget} words, expand EVERY section by adding more specific sentences — do not add new filler sections.`,
     `- GEO/AI answer optimization: write facts as declarative citable sentences. Entity-clear phrasing. No vague pronouns.`,
-    `- Include at least 2 internal markdown links to specific IGH pages (game pages, /games, /support, /blog).`,
+    `- Include 3-5 internal markdown links to NativPost blog posts or pages (nativpost.com/blog/, app.nativpost.com). Place naturally in context.`,
     isGameArticle
       ? `- REQUIRED: 1 external link to the game's official Steam page or developer website. Place in the What is [Game] section. Without this the article fails quality gate.`
       : `- REQUIRED: 1 external link to a relevant authoritative source about game server hosting, esports, or gaming infrastructure. Do NOT link to a specific game's Steam page.`,
     `- Do not use fake stats. Do not promise guaranteed #1 rankings.`,
-    `- Do not mention refunds, money-back guarantees, or 30-day guarantees. IGH offers ${IGH_TRIAL_DAYS}-day free trials instead.`,
-    `- Do not claim IGH offers 1GB, 2GB, or 3GB server packages. IGH starts at ${IGH_MIN_RAM_GB}GB RAM unless scanned page evidence says otherwise.`,
+    `- Do not mention refunds, money-back guarantees, or 30-day guarantees. NativPost offers a ${NP_TRIAL_DAYS}-day free trial (3 posts max, text only).`,
+    `- Do not claim NativPost offers unlimited posts on Starter or a free forever plan. Starter is 15 posts/mo at $19/mo with a $5 setup fee.`,
     `- For server RAM sections: use ONLY the RAM figures from the VERIFIED GAME FACTS above. Do not invent tiers.`,
-        `- NATIVPOST PLAN DATA: Use the live package facts scraped from the IGH game page (provided in the offer context above) for ALL pricing and RAM tier claims. If live package data shows specific prices, use those EXACT figures. If no live data found, say "see nativpost.com for current pricing" rather than guessing. ${IGH_PACKAGE_RULES}`,
+        `- NATIVPOST PLAN DATA: Use the live package facts scraped from the IGH game page (provided in the offer context above) for ALL pricing and RAM tier claims. If live package data shows specific prices, use those EXACT figures. If no live data found, say "see nativpost.com for current pricing" rather than guessing. ${NP_PACKAGE_RULES}`,
     `- LINK FORMAT: All pricing, CTA, and 'View Pricing' links MUST use full absolute URLs (e.g. https://nativpost.com/game/palworld-server-hosting). Never use relative URLs like /game/... Format as markdown: [View Pricing](https://nativpost.com/game/palworld-server-hosting).`,
     `- NEVER invent IGH features not confirmed in the offer facts. Do NOT mention: static IP addresses, tick rate controls, "IGH dashboard" by name, server migration tools, DDoS "levels", or any control panel software brand. Only mention: NVMe SSDs, DDoS protection, fast deployment, 2-day free trial, 24/7 support.`,
     isGameArticle
@@ -1257,7 +1259,23 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `- Do not write generic filler. Make it specific to the keyword intent, player pain points, and IGH's actual confirmed offer.`,
     `- Meta description must be under 160 characters. Clearly answer searcher intent with specific entities and trustworthy detail.`,
   ].filter(s => s !== '').join('\n');
-const body = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: prompt, max_output_tokens: 12000 };
+// Use Anthropic Claude as primary, OpenAI as fallback
+  if (hasAnthropic) {
+    try {
+      const r = await axios.post('https://api.anthropic.com/v1/messages', {
+        model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5',
+        max_tokens: 12000,
+        messages: [{ role: 'user', content: prompt }]
+      }, { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, timeout: 180000 });
+      const text = r.data?.content?.[0]?.text || '';
+      if (text) return { rawText: text, extended: false };
+    } catch(e) {
+      console.error('[Anthropic] Article generation failed, falling back to OpenAI:', e.message);
+      if (!hasOpenAI) throw e;
+    }
+  }
+  if (!hasOpenAI) return null;
+  const body = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: prompt, max_output_tokens: 12000 };
   try {
     const r = await axios.post('https://api.openai.com/v1/responses', body, { headers: { Authorization:`Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type':'application/json' }, timeout: 120000 });
     let text = r.data.output_text || '';
@@ -1371,7 +1389,7 @@ async function getUserTheme(userId) {
   if (!userId) return 'igh-green';
   try {
     const row = await one('SELECT theme FROM user_preferences WHERE user_id=?', [userId]);
-    const t = row?.theme || 'igh-green';
+    const t = row?.theme || 'np-purple';
     return VALID_THEMES.includes(t) ? t : 'igh-green';
   } catch { return 'igh-green'; }
 }
@@ -1397,7 +1415,7 @@ function injectUserTheme(req, res, next) {
   })();
 }
 
-function render(res, view, data={}) { const baseMonth={label:'Current Month',weekdays:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],cells:[]}; res.render(view, { i:/./, currentPath:'', message:null, openaiConnected:!!process.env.OPENAI_API_KEY, sites:[], pages:[], competitors:[], assets:[], keywords:[], articles:[], reports:[], metrics:[], backlinks:[], gaps:[], calendar:[], month:baseMonth, supportedGames:[], gameRecommendations:[], ownRanked:[], compRanked:[], stats:{}, env:{}, audit:{}, status:'', articleHtml:'', article:null, appTimezone:APP_TIMEZONE, autoPublishIntervalMinutes:AUTO_PUBLISH_INTERVAL_MINUTES, autoPublishDailyLimit:AUTO_PUBLISH_DAILY_LIMIT, minQualityScore:MIN_QUALITY_SCORE, autoPublishEnabled:AUTO_PUBLISH_ENABLED, formatAppDateTime, schedulePublishLabel, publishedLabel, userTheme: res.locals?.userTheme || 'igh-green', currentUser: res.locals?.currentUser || null, ...data, currentPath: data.currentPath || '', message: data.message || null }); }
+function render(res, view, data={}) { const baseMonth={label:'Current Month',weekdays:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],cells:[]}; res.render(view, { i:/./, currentPath:'', message:null, aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:[], pages:[], competitors:[], assets:[], keywords:[], articles:[], reports:[], metrics:[], backlinks:[], gaps:[], calendar:[], month:baseMonth, supportedGames:[], gameRecommendations:[], ownRanked:[], compRanked:[], stats:{}, env:{}, audit:{}, status:'', articleHtml:'', article:null, appTimezone:APP_TIMEZONE, autoPublishIntervalMinutes:AUTO_PUBLISH_INTERVAL_MINUTES, autoPublishDailyLimit:AUTO_PUBLISH_DAILY_LIMIT, minQualityScore:MIN_QUALITY_SCORE, autoPublishEnabled:AUTO_PUBLISH_ENABLED, formatAppDateTime, schedulePublishLabel, publishedLabel, userTheme: res.locals?.userTheme || 'np-purple', currentUser: res.locals?.currentUser || null, ...data, currentPath: data.currentPath || '', message: data.message || null }); }
 
 async function ensureSchema() {
   const statements = [
@@ -2329,7 +2347,7 @@ async function fetchDataForSEOBalance() {
 // Single place to refresh all API balance caches. Called from a route and from
 // a periodic background refresher so the Reports page is always instant.
 async function refreshApiBalances(serviceFilter=null) {
-  const services = serviceFilter ? [serviceFilter] : ['dataforseo', 'contentful', 'openai', 'google'];
+  const services = serviceFilter ? [serviceFilter] : ['dataforseo', 'contentful', 'anthropic', 'openai', 'google'];
   const results = {};
   for (const svc of services) {
     try {
@@ -2360,6 +2378,15 @@ async function refreshApiBalances(serviceFilter=null) {
           ['contentful', 'n/a', 'ok', JSON.stringify(details)]
         );
         results.contentful = { status: 'ok', details };
+      } else if (svc === 'anthropic') {
+        if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+        const r = await axios.get('https://api.anthropic.com/v1/models', {
+          headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, timeout: 15000
+        });
+        const details = { note: 'Anthropic Claude API connected. Check console.anthropic.com/settings/billing for usage.' };
+        await execSafe('INSERT INTO api_balances (service,balance_usd,credits_remaining,status,detail_json) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE balance_usd=VALUES(balance_usd),credits_remaining=VALUES(credits_remaining),status=VALUES(status),detail_json=VALUES(detail_json),checked_at=NOW()',
+          ['anthropic', 'n/a', 'ok', JSON.stringify(details)]);
+        results.anthropic = { status: 'ok', note: details.note };
       } else if (svc === 'openai') {
         // OpenAI has no public prepaid-balance endpoint. We verify the key works
         // via a zero-cost model list call. Balance itself is marked 'unavailable'.
@@ -2959,12 +2986,12 @@ function buildArticleSchema(article={}) {
   const isLiveHostingArticle = detectedGame && /host|server|rental|dedicated/i.test(`${article.title||''} ${article.primary_keyword||''}`);
   const excludedGames = ['everwind','ark']; // games IGH cannot host per env guardrails
   if (isLiveHostingArticle && !excludedGames.includes(detectedGame)) {
-    const basePrice = String(process.env.NATIVPOST_BASE_PLAN_PRICE || '$11/month').replace(/[^0-9.]/g,'') || '11';
+    const basePrice = String(process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)').replace(/[^0-9.]/g,'') || '11';
     graph.push({
       '@context':'https://schema.org', '@type':'Product',
       '@id': `${url}#product`,
       name: `${gameLabel} Server Hosting`,
-      description: `Dedicated ${gameLabel} server hosting from NativPost with NVMe SSD storage, DDoS protection, and instant deployment. ${String(process.env.NATIVPOST_TRIAL_DAYS || 2)}-day free trial.`,
+      description: `Dedicated ${gameLabel} server hosting from NativPost with NVMe SSD storage, DDoS protection, and instant deployment. ${String(process.env.NATIVPOST_TRIAL_DAYS || 7)}-day free trial.`,
       image: image ? [image] : undefined,
       brand: { '@type':'Brand', name:'NativPost' },
       category: 'Game Server Hosting',
@@ -3618,8 +3645,8 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${ai.review_notes || ''}`;
   } else {
     // OpenAI failed or not connected — throw a clear error instead of saving garbage fallback content
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key is not set in .env.local. Add OPENAI_API_KEY to generate real articles.');
+    if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary) or OPENAI_API_KEY (fallback) to ecosystem.config.js.');
     }
     throw new Error('OpenAI returned no content for "' + rawKeyword + '". Check your API key, model name, and usage limits. Try again — transient failures are common.');
   }
@@ -5240,7 +5267,7 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
     { kw: 'low lag game server hosting', reason: 'Performance-intent keyword', score: 102 },
     { kw: 'managed game server hosting', reason: 'Service-type differentiator keyword', score: 98 },
     { kw: 'nvme game server hosting', reason: 'Infrastructure differentiator keyword', score: 95 },
-    { kw: 'infected game hosting', reason: 'Brand keyword — for searchers looking for IGH specifically', score: 85 },
+    { kw: 'nativpost', reason: 'Brand keyword — for searchers looking for NativPost specifically', score: 85 },
     { kw: 'how to choose a game server host', reason: 'Buyer education — top of funnel', score: 80 },
     { kw: 'game server hosting pricing guide', reason: 'Pricing research keyword', score: 78 },
   ];
@@ -5391,7 +5418,7 @@ app.get('/content-studio', async (req,res,next)=>{ try {
   const supportedGames = await supportedGamesForSite(null);
   const rawGameRecommendations = await q("SELECT gr.*,s.name site_name FROM game_recommendations gr LEFT JOIN sites s ON s.id=gr.site_id WHERE gr.status='recommended' ORDER BY gr.opportunity_score DESC, gr.id DESC LIMIT 200");
   const gameRecommendations = rawGameRecommendations.filter(r => !supportedGames.has(detectGame(r.game || r.title || r.reason || ''))).slice(0,60);
-  render(res,'content-studio',{ currentPath:'/content-studio', openaiConnected:!!process.env.OPENAI_API_KEY, sites:await siteOptions(), assets:await assetOptions(), calendar, month, supportedGames:[...supportedGames].map(gameDisplay).sort(), keywords:await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors:await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps:await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC LIMIT 50`) });
+  render(res,'content-studio',{ currentPath:'/content-studio', aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:await siteOptions(), assets:await assetOptions(), calendar, month, supportedGames:[...supportedGames].map(gameDisplay).sort(), keywords:await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors:await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps:await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND LOWER(k.keyword) NOT IN ('nitrado','gportal','und','mieten','gameserver','spieleserver') ORDER BY k.priority_score DESC LIMIT 50`) });
 } catch(e){ next(e); } });
 app.post('/content-studio/refresh-supported-games', async (req,res,next)=>{ try {
   const sites = await q("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id");
@@ -5701,14 +5728,14 @@ app.get('/settings', async (req,res,next)=>{ try {
     dfsCallsToday: _dfsDailyCallCount,
     dfsDailyCap: DFS_DAILY_CALL_CAP,
     env:{
-      hasOpenAI:!!process.env.OPENAI_API_KEY, hasGoogle:googleCredentialsStatus().configured,
+      hasAI:!!(process.env.ANTHROPIC_API_KEY||process.env.OPENAI_API_KEY), hasOpenAI:!!process.env.OPENAI_API_KEY, hasAnthropic:!!process.env.ANTHROPIC_API_KEY, hasGoogle:googleCredentialsStatus().configured,
       googleStatus: gscConnected ? 'Connected — refresh token stored' : googleCredentialsStatus().label,
       googleServiceAccount:googleCredentialsStatus().serviceAccount, googleOAuth:googleCredentialsStatus().oauth,
       hasContentful:contentfulReady(), contentfulActive:publishModeAllowsContentful(),
       contentfulType:contentfulContentType(), publishMode:process.env.PUBLISH_MODE||'manual',
       crawlLimit:process.env.CRAWL_PAGE_LIMIT||35, crawlBaseUrl: CRAWL_BASE_URL || '', port:PORT,
-      minRam:IGH_MIN_RAM_GB, basePrice:IGH_BASE_PLAN_PRICE, trialDays:IGH_TRIAL_DAYS,
-      packageRules:IGH_PACKAGE_RULES, refundPolicy:IGH_REFUND_POLICY
+      minRam:NP_MIN_PRICE, basePrice:NP_BASE_PLAN_PRICE, trialDays:NP_TRIAL_DAYS,
+      packageRules:NP_PACKAGE_RULES, refundPolicy:NP_REFUND_POLICY
     }
   });
 } catch(e){ next(e); } });
@@ -6182,7 +6209,7 @@ app.get('/admin/api-balances', requireAdmin, async (req,res,next) => {
     res.render('api-balances', {
       currentPath: '/admin/api-balances',
       balances, msg,
-      userTheme: res.locals.userTheme || 'igh-green',
+      userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
   } catch(e) { next(e); }
@@ -6213,7 +6240,7 @@ app.get('/keywords', requireAdmin, async (req,res,next) => {
       currentPath: '/keywords',
       radar: rows, counts, filterStatus: status,
       msg: req.query.msg || '',
-      userTheme: res.locals.userTheme || 'igh-green',
+      userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
   } catch(e) { next(e); }
@@ -6260,7 +6287,7 @@ app.get('/backlinks/prospects', async (req,res,next) => {
       prospects,
       dfsMode: String(process.env.DFS_BACKLINKS_MODE || 'live'),
       msg: req.query.msg || '',
-      userTheme: res.locals.userTheme || 'igh-green',
+      userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
   } catch(e) { next(e); }

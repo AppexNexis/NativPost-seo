@@ -17,14 +17,14 @@
   <div>
     <p class="eyebrow">AI SEO command center</p>
     <h1>Content Studio</h1>
-    <p>Build a 30-day SEO publishing plan, generate AI article drafts from the calendar, review and approve, then publish. OpenAI: <strong><%= openaiConnected ? 'Connected ✓' : 'Not connected' %></strong>.</p>
+    <p>Build a 30-day SEO publishing plan, generate AI article drafts from the calendar, review and approve, then publish. OpenAI: <strong><%= aiConnected ? 'Connected ✓' : 'Not connected' %></strong>.</p>
   </div>
 </section>
 
-<% if(!openaiConnected){ %>
-  <div class="notice-warn"><strong>OpenAI not connected.</strong> Drafts can be created as placeholders, but AI-written articles require OPENAI_API_KEY in .env.local.</div>
+<% if(!aiConnected){ %>
+  <div class="notice-warn"><strong>AI Engine not connected.</strong> Drafts can be created as placeholders, but AI-written articles require ANTHROPIC_API_KEY in ecosystem.config.js.</div>
 <% } else { %>
-  <div class="notice-good"><strong>OpenAI connected.</strong> Build a 30-day plan first (free), then generate individual drafts from calendar items. Each draft uses 1 OpenAI credit.</div>
+  <div class="notice-good"><strong>OpenAI connected.</strong> Build a 30-day plan first (free), then generate individual drafts from calendar items. Each draft uses 1 AI credit.</div>
 <% } %>
 
 <div class="adaptify-workflow">
@@ -57,8 +57,8 @@
 <div class="grid two">
   <section class="card">
     <h2>Generate one AI draft now</h2>
-    <p class="hint">Uses <strong>1 OpenAI credit</strong>. Generates a full article for a specific keyword immediately.</p>
-    <form class="stack" method="post" action="/content-studio/generate" onsubmit="return confirm('Generate 1 AI article draft? Uses 1 OpenAI credit.')">
+    <p class="hint">Uses <strong>1 AI credit</strong>. Generates a full article for a specific keyword immediately.</p>
+    <form class="stack" method="post" action="/content-studio/generate" onsubmit="return confirm('Generate 1 AI article draft? Uses 1 AI credit.')">
       <label>Site
         <select name="site_id">
           <option value="">Default site</option>
@@ -66,7 +66,7 @@
         </select>
       </label>
       <label>Target keyword
-        <input name="keyword" id="kw-input" placeholder="palworld server hosting" required autocomplete="off">
+        <input name="keyword" id="kw-input" placeholder="ai social media content generator" required autocomplete="off">
       </label>
       <% if((supportedGames||[]).length){ %>
       <div style="margin-top:-.25rem">
@@ -102,8 +102,8 @@
 <div class="grid two">
   <section class="card">
     <h2>Generate 5 strategic drafts</h2>
-    <p class="hint">Picks the 5 highest-priority keyword gaps and generates full AI articles. Uses <strong>5 OpenAI credits</strong> and takes 60–90 seconds.</p>
-    <form method="post" action="/content-studio/generate-top" onsubmit="return confirm('Generate 5 AI drafts from top keyword gaps? Uses 5 OpenAI credits and takes 60-90 seconds.')">
+    <p class="hint">Picks the 5 highest-priority keyword gaps and generates full AI articles. Uses <strong>5 AI credits</strong> and takes 60–90 seconds.</p>
+    <form method="post" action="/content-studio/generate-top" onsubmit="return confirm('Generate 5 AI drafts from top keyword gaps? Uses 5 AI credits and takes 60-90 seconds.')">
       <button class="btn">Generate 5 strategic drafts (5 credits)</button>
     </form>
   </section>
@@ -125,7 +125,7 @@
     <div>
       <p class="eyebrow">Monthly SEO content plan</p>
       <h2><%= _month.label %></h2>
-      <p>Planned posts come from supported NativPost games, competitor gaps, and missing commercial topics. Generate drafts per item, then approve and publish.</p>
+      <p>Planned posts come from supported NativPost content, competitor gaps, and missing commercial topics. Generate drafts per item, then approve and publish.</p>
     </div>
     <div class="actions">
       <div class="plan-badge"><%= _calendar.length %> planned item<%= _calendar.length === 1 ? '' : 's' %></div>
@@ -165,7 +165,7 @@
                 <% if(c.article_id){ %>
                   <a class="mini" href="/articles/<%= c.article_id %>/edit">Edit draft</a>
                 <% } else { %>
-                  <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft for this topic? Uses 1 OpenAI credit.')">
+                  <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft for this topic? Uses 1 AI credit.')">
                     <button class="mini">Generate (1 credit)</button>
                   </form>
                 <% } %>
@@ -197,7 +197,7 @@
         <% if(c.article_id){ %>
           <a class="mini" href="/articles/<%= c.article_id %>/edit">Edit draft</a>
         <% } else { %>
-          <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft? Uses 1 OpenAI credit.')">
+          <form method="post" action="/content-studio/calendar/<%= c.id %>/generate" onsubmit="return confirm('Generate 1 AI draft? Uses 1 AI credit.')">
             <button class="mini">Generate (1 credit)</button>
           </form>
         <% } %>
@@ -250,7 +250,7 @@
         <strong><%= k.keyword %></strong>
         <span><%= k.cluster_name || 'Unclustered' %> · Priority <%= k.priority_score || 0 %> · <%= k.intent || 'mixed' %></span>
       </div>
-      <form method="post" action="/content-studio/generate-gap/<%= k.id %>" onsubmit="return confirm('Generate 1 AI draft? Uses 1 OpenAI credit.')">
+      <form method="post" action="/content-studio/generate-gap/<%= k.id %>" onsubmit="return confirm('Generate 1 AI draft? Uses 1 AI credit.')">
         <button class="mini">Generate (1 credit)</button>
       </form>
     </div>

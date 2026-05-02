@@ -59,7 +59,7 @@
         <option value="">No site filter</option>
         <% sites.forEach(s=>{ %><option value="<%= s.id %>" <%= String(siteId)===String(s.id)?'selected':'' %>><%= s.name %></option><% }) %>
       </select>
-      <input name="keyword" placeholder="palworld server hosting" required>
+      <input name="keyword" placeholder="ai social media content generator" required>
       <button class="btn primary">Fetch SERP now</button>
     </form>
     <p style="font-size:var(--fs-sm);color:var(--color-text-secondary);margin-top:.5rem;">Forces a fresh fetch. Use sparingly — results are cached for 14 days.</p>
@@ -72,7 +72,7 @@
         <option value="">No site filter</option>
         <% sites.forEach(s=>{ %><option value="<%= s.id %>" <%= String(siteId)===String(s.id)?'selected':'' %>><%= s.name %></option><% }) %>
       </select>
-      <textarea name="keywords" rows="5" placeholder="palworld server hosting&#10;minecraft server hosting&#10;ark survival ascended server&#10;enshrouded dedicated server" style="width:100%;font-size:var(--fs-sm);padding:.5rem;border:1px solid var(--color-border-secondary);border-radius:4px;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:monospace;"></textarea>
+      <textarea name="keywords" rows="5" placeholder="ai social media content generator&#10;minecraft server hosting&#10;ark survival ascended server&#10;enshrouded dedicated server" style="width:100%;font-size:var(--fs-sm);padding:.5rem;border:1px solid var(--color-border-secondary);border-radius:4px;resize:vertical;background:var(--color-background-secondary);color:var(--color-text-primary);font-family:monospace;"></textarea>
       <button class="btn primary">Batch fetch (max 20)</button>
     </form>
     <p style="font-size:var(--fs-sm);color:var(--color-text-secondary);margin-top:.5rem;">One keyword per line. Runs sequentially to keep API costs low.</p>

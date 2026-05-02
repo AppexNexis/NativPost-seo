@@ -839,12 +839,3 @@ body.auth-page {
 .theme-desc { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: var(--sp-3); line-height: 1.5; }
 .theme-option button { width: 100%; }
 
-/* ── NativPost Purple Theme ─────────────────────────────────────────────── */
-[data-theme="np-purple"] {
-  --igh-green:     #864FFE;
-  --igh-green-dim: #6B3FD4;
-  --igh-green-hot: #22CFCF;
-  --accent:        #864FFE;
-  --accent-dim:    rgba(134,79,254,.15);
-  --accent-glow:   rgba(134,79,254,.35);
-}

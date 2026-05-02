@@ -19,7 +19,7 @@
 <section class="card" style="margin-bottom:1rem">
   <div class="card-head">
     <h2><%= f.game_key.charAt(0).toUpperCase()+f.game_key.slice(1) %></h2>
-    <span style="font-size:var(--fs-sm);padding:2px 10px;border-radius:var(--r-sm);background:<%= f.dedicated_server_available?'rgba(34,197,94,.15)':'rgba(239,68,68,.12)' %>;color:<%= f.dedicated_server_available?'var(--igh-green)':'var(--bad)' %>">
+    <span style="font-size:var(--fs-sm);padding:2px 10px;border-radius:var(--r-sm);background:<%= f.dedicated_server_available?'rgba(34,197,94,.15)':'rgba(239,68,68,.12)' %>;color:<%= f.dedicated_server_available?'var(--np-purple)':'var(--bad)' %>">
       <%= f.dedicated_server_available ? '✓ Dedicated servers available' : '✗ No dedicated servers yet' %>
     </span>
   </div>
