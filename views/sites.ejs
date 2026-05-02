@@ -1,0 +1,26 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Search</p><h1>Own Site</h1><p>Crawl nativpost.com to index pages for context-aware article generation and health scoring.</p></section>
+<% if (typeof query !== 'undefined') { %>
+  <% if (query.crawled) { %><div class="alert good">✓ Crawl complete — <%= query.crawled %> pages indexed.</div><% } %>
+<% } %>
+<div style="display:flex;flex-direction:column;gap:var(--sp-4)">
+  <% sites.forEach(function(s) { %>
+  <section class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap">
+      <div>
+        <h2 style="font-size:1.1rem;font-weight:700;color:var(--text-heading)"><%= s.name %></h2>
+        <a href="<%= s.url %>" target="_blank" rel="noopener" style="color:var(--np-purple);font-size:var(--fs-sm)"><%= s.url %></a>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge good"><%= s.page_count %> pages crawled</span>
+          <span class="badge <%= s.active?'good':'' %>"><%= s.active?'Active':'Inactive' %></span>
+        </div>
+      </div>
+      <form method="post" action="/sites/crawl/<%= s.id %>">
+        <button class="primary">🕷 Crawl Now</button>
+      </form>
+    </div>
+    <div class="hint" style="margin-top:var(--sp-3)">Crawling indexes up to 80 pages: homepage, /blog, /features, /pricing, /about, and linked pages. Results are used to build context for AI article generation so the tool references real NativPost pages.</div>
+  </section>
+  <% }); %>
+</div>
+<%- include('layout-end') %>

@@ -1,0 +1,60 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Search</p><h1>SERP Intelligence</h1><p>Look up any keyword to see who ranks — identify where NativPost is missing and where competitors dominate.</p></section>
+
+<div class="grid two" style="align-items:start">
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>🔍 Keyword Lookup</h2></div>
+      <form method="get" action="/serp">
+        <div class="form-group">
+          <label>Keyword to look up</label>
+          <input type="text" name="keyword" value="<%= keyword %>" placeholder="e.g. ai social media content generator" required>
+        </div>
+        <button type="submit" class="primary" style="width:100%">Search SERP →</button>
+        <div class="hint" style="margin-top:6px;text-align:center">Uses DataForSEO if configured, falls back to DuckDuckGo · Results cached <%= 14 %> days</div>
+      </form>
+    </section>
+
+    <% if (results.length) { %>
+    <section class="card">
+      <div class="card-head"><h2>Results for "<%= keyword %>"</h2></div>
+      <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+        <% results.forEach(function(r) { %>
+        <div style="padding:10px;background:var(--bg-2);border-radius:6px;border:1px solid <%= r.isNativPost?'rgba(134,79,254,.3)':r.competitor?'rgba(255,79,106,.2)':'var(--line)' %>">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-weight:800;font-size:.75rem;color:var(--text-dim);width:20px;flex-shrink:0">#<%= r.position %></span>
+            <% if (r.isNativPost) { %><span class="badge good">NativPost ✓</span><% } %>
+            <% if (r.competitor) { %><span class="badge bad"><%= r.competitor.label %></span><% } %>
+          </div>
+          <div style="font-size:.84rem;font-weight:600;color:var(--text-heading);margin-left:28px"><a href="<%= r.url %>" target="_blank" rel="noopener" style="color:var(--text-heading);text-decoration:none"><%= r.title %></a></div>
+          <div style="font-size:.72rem;color:var(--np-purple);margin-left:28px;margin-top:2px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= r.url %></div>
+          <% if (r.snippet) { %><div style="font-size:.75rem;color:var(--text-muted);margin-left:28px;margin-top:4px"><%= r.snippet.slice(0,160) %></div><% } %>
+        </div>
+        <% }); %>
+      </div>
+      <% var npFound = results.find(function(r){return r.isNativPost;}); %>
+      <% if (!npFound) { %>
+      <div class="alert warn" style="margin-top:var(--sp-3)">⚠️ NativPost not found in these results. <a href="/content-studio?keyword=<%= encodeURIComponent(keyword) %>" style="color:var(--warn)">Generate an article for this keyword →</a></div>
+      <% } %>
+    </section>
+    <% } %>
+  </div>
+
+  <section class="card">
+    <div class="card-head"><h2>Recent Lookups</h2></div>
+    <% if (!recent.length) { %>
+      <p class="empty">No SERP lookups yet. Search a keyword above.</p>
+    <% } %>
+    <% recent.forEach(function(r) { %>
+    <div class="metric-row">
+      <div>
+        <strong><a href="/serp?keyword=<%= encodeURIComponent(r.keyword) %>" style="color:var(--text-heading);text-decoration:none"><%= r.keyword %></a></strong>
+        <span><%= r.fetched_at ? new Date(r.fetched_at).toLocaleDateString() : '' %></span>
+      </div>
+      <a href="/serp?keyword=<%= encodeURIComponent(r.keyword) %>" class="mini btn">View</a>
+    </div>
+    <% }); %>
+  </section>
+</div>
+
+<%- include('layout-end') %>

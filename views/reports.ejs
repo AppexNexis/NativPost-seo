@@ -1,0 +1,79 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Overview</p><h1>Reports</h1><p>SEO performance overview — keyword coverage, content pipeline, and competitor gap analysis.</p></section>
+
+<div class="grid three" style="margin-bottom:var(--sp-4)">
+  <section class="card">
+    <div class="card-head"><h2>Content Pipeline</h2></div>
+    <% var statuses = ['draft','pending_review','approved','published','rejected']; %>
+    <% statuses.forEach(function(s) { var cnt = artMap[s]||0; var cls = s==='published'?'good':s==='approved'?'purple':s==='rejected'?'bad':s==='pending_review'?'warn':''; %>
+    <div class="metric-row">
+      <strong><%= s.replace(/_/g,' ') %></strong>
+      <span class="badge <%= cls %>"><%= cnt %></span>
+    </div>
+    <% }); %>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Top Competitor Gaps</h2></div>
+    <p class="hint" style="margin-bottom:var(--sp-3)">Keywords competitors rank for that NativPost doesn't — high-priority content targets.</p>
+    <% if (!serpGaps.length) { %>
+      <p class="empty">No gaps found yet. Run SERP lookups on tracked keywords.</p>
+    <% } %>
+    <% serpGaps.slice(0,6).forEach(function(g) { %>
+    <div class="metric-row">
+      <div>
+        <strong style="font-size:var(--fs-sm)"><%= g.keyword %></strong>
+        <span><%= g.comp_name %> at #<%= g.competitor_position %> · NativPost at #<%= g.nativpost_position >= 999 ? '—' : g.nativpost_position %></span>
+      </div>
+      <form method="get" action="/content-studio">
+        <input type="hidden" name="keyword" value="<%= g.keyword %>">
+        <button class="mini primary">Generate</button>
+      </form>
+    </div>
+    <% }); %>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Keyword Cluster Coverage</h2></div>
+    <% kwCoverage.forEach(function(c) {
+      var pct = c.total > 0 ? Math.round(c.covered/c.total*100) : 0;
+      var cls = pct >= 80 ? 'good' : pct >= 40 ? 'warn' : 'bad';
+    %>
+    <div style="margin-bottom:var(--sp-3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:var(--fs-sm);color:var(--text)"><%= c.cluster_name||c.cluster_key||'Unclustered' %></span>
+        <span class="badge <%= cls %>"><%= c.covered %>/<%= c.total %></span>
+      </div>
+      <div class="health-bar-wrap"><div class="health-bar" style="width:<%= Math.max(2,pct) %>%"></div></div>
+    </div>
+    <% }); %>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>Top Published Articles</h2><a href="/articles?status=published">All published →</a></div>
+  <% if (!topPublished.length) { %>
+    <p class="empty">No published articles yet. Generate → Review → Approve → Publish.</p>
+  <% } %>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Title</th><th>Keyword</th><th>Quality</th><th>Words</th><th>Published</th></tr></thead>
+      <tbody>
+        <% topPublished.forEach(function(a) {
+          var q = Number(a.quality_score||0);
+          var qClass = q >= 90 ? 'good' : q >= 70 ? 'warn' : 'bad';
+        %>
+        <tr>
+          <td style="font-size:var(--fs-sm);font-weight:600;color:var(--text-heading)"><%= a.title %></td>
+          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.primary_keyword||'—' %></td>
+          <td><span class="badge <%= qClass %>"><%= q %></span></td>
+          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= Number(a.word_count||0).toLocaleString() %></td>
+          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.published_at ? new Date(a.published_at).toLocaleDateString() : '—' %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('layout-end') %>

@@ -1,0 +1,66 @@
+<%- include('layout-start') %>
+
+<section class="hero">
+  <p class="eyebrow"><a href="/articles/<%= article.id %>" style="color:var(--np-purple);text-decoration:none">← Back to preview</a></p>
+  <h1>Edit Article</h1>
+  <p>Edit and refine the generated article before approving it for publishing.</p>
+</section>
+
+<form method="post" action="/articles/<%= article.id %>/save">
+  <div class="grid two" style="align-items:start">
+    <div>
+      <section class="card" style="margin-bottom:var(--sp-4)">
+        <div class="card-head"><h2>SEO Fields</h2></div>
+        <div class="form-group">
+          <label>Title (H1)</label>
+          <input type="text" name="title" value="<%= article.title||'' %>" required>
+        </div>
+        <div class="form-group">
+          <label>URL slug</label>
+          <input type="text" name="slug" value="<%= article.slug||'' %>" placeholder="e.g. ai-social-media-content-generator">
+          <div class="hint">nativpost.com/blog/<em>your-slug</em></div>
+        </div>
+        <div class="form-group">
+          <label>Meta description <span style="color:var(--text-dim)">(max 160 chars)</span></label>
+          <textarea name="meta_description" rows="3" maxlength="160"><%= article.meta_description||'' %></textarea>
+        </div>
+        <div class="form-group">
+          <label>Excerpt (2-sentence summary)</label>
+          <textarea name="excerpt" rows="3"><%= article.excerpt||'' %></textarea>
+        </div>
+        <div class="form-group">
+          <label>Featured image URL</label>
+          <input type="url" name="featured_image_url" value="<%= article.featured_image_url||'' %>" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Featured image alt text</label>
+          <input type="text" name="featured_image_alt" value="<%= article.featured_image_alt||'' %>">
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>Workflow Status</h2></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="draft" <%= article.status==='draft'?'selected':'' %>>Draft</option>
+            <option value="pending_review" <%= article.status==='pending_review'?'selected':'' %>>Pending Review</option>
+            <option value="approved" <%= article.status==='approved'?'selected':'' %>>Approved (queue for publish)</option>
+            <option value="published" <%= article.status==='published'?'selected':'' %>>Published</option>
+            <option value="rejected" <%= article.status==='rejected'?'selected':'' %>>Rejected</option>
+          </select>
+        </div>
+        <button type="submit" class="primary" style="width:100%">Save Changes</button>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head"><h2>Article Body (Markdown)</h2></div>
+      <div class="form-group">
+        <textarea name="body" rows="40" style="font-family:var(--mono);font-size:.8rem"><%= article.body||'' %></textarea>
+        <div class="hint"><%= Number(article.word_count||0).toLocaleString() %> words · Write in Markdown — headings, **bold**, *italic*, [links](url), tables supported</div>
+      </div>
+    </section>
+  </div>
+</form>
+
+<%- include('layout-end') %>

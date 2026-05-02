@@ -1,0 +1,26 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Overview</p><h1>Daily Brief</h1><p>Today's top SEO priorities for NativPost — auto-generated based on keyword gaps, competitor activity, and content quality.</p></section>
+<p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-4)">Brief for: <strong style="color:var(--text)"><%= today %></strong></p>
+<% if (!brief.length) { %>
+  <div class="alert warn">No brief generated yet. It auto-generates 60 seconds after startup, then daily.</div>
+<% } %>
+<div style="display:flex;flex-direction:column;gap:10px">
+  <% brief.forEach(function(item, i) {
+    var catClass = item.category === 'coverage-gap' ? 'coverage-gap' : item.category === 'competitor-gap' ? 'competitor-gap' : item.category === 'quality-flag' ? 'quality-flag' : 'general';
+    var catLabel = item.category === 'coverage-gap' ? '📝 Coverage Gap' : item.category === 'competitor-gap' ? '⚔️ Competitor Gap' : item.category === 'quality-flag' ? '⚠️ Quality Flag' : '💡 Opportunity';
+  %>
+  <div class="brief-item" style="padding:16px">
+    <div class="brief-num" style="width:32px;height:32px;font-size:.9rem"><%= i+1 %></div>
+    <div class="brief-body">
+      <div class="brief-cat <%= catClass %>" style="font-size:.75rem;margin-bottom:4px"><%= catLabel %></div>
+      <div class="brief-kw" style="font-size:1rem;margin-bottom:4px"><%= item.keyword %></div>
+      <% if (item.reason) { %><div style="font-size:var(--fs-xs);color:var(--text-muted)"><%= item.reason %></div><% } %>
+    </div>
+    <form method="get" action="/content-studio">
+      <input type="hidden" name="keyword" value="<%= item.keyword %>">
+      <button class="primary">Generate article →</button>
+    </form>
+  </div>
+  <% }); %>
+</div>
+<%- include('layout-end') %>

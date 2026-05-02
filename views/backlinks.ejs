@@ -1,0 +1,90 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Search</p><h1>Backlinks</h1><p>Track backlink opportunities for NativPost. Mark earned links to build your authority score.</p></section>
+
+<% if (typeof query !== 'undefined') { %>
+  <% if (query.added) { %><div class="alert good">✓ Backlink opportunity added.</div><% } %>
+  <% if (query.earned) { %><div class="alert good">✓ Marked as earned.</div><% } %>
+<% } %>
+
+<div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:var(--sp-4)">
+  <div><b><%= links.length %></b><span>Total opportunities</span></div>
+  <div><b><%= earned %></b><span>Earned backlinks</span></div>
+  <div><b><%= links.length - earned %></b><span>Still to pursue</span></div>
+</div>
+
+<div class="grid two" style="align-items:start">
+  <section class="card">
+    <div class="card-head"><h2>Backlink Opportunities</h2></div>
+    <% if (!links.length) { %>
+      <p class="empty">No backlinks tracked yet. Add opportunities you want to pursue.</p>
+    <% } %>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Source</th><th>Anchor</th><th>DA</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          <% links.forEach(function(l) { %>
+          <tr>
+            <td>
+              <a href="<%= l.source_url %>" target="_blank" rel="noopener" style="color:var(--np-purple);text-decoration:none;font-size:var(--fs-sm)"><%= l.source_domain||l.source_url %></a>
+              <% if (l.notes) { %><div style="font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px"><%= l.notes %></div><% } %>
+            </td>
+            <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= l.anchor_text||'—' %></td>
+            <td><span class="badge <%= Number(l.domain_authority||0)>=50?'good':Number(l.domain_authority||0)>=30?'warn':'' %>"><%= l.domain_authority||'?' %></span></td>
+            <td><span class="badge <%= l.earned?'good':'' %>"><%= l.earned?'Earned':'Opportunity' %></span></td>
+            <td>
+              <% if (!l.earned) { %>
+              <form method="post" action="/backlinks/<%= l.id %>/mark-earned">
+                <button class="mini primary">Mark earned</button>
+              </form>
+              <% } %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Add Backlink Opportunity</h2></div>
+    <form method="post" action="/backlinks/add">
+      <div class="form-group">
+        <label>Source URL *</label>
+        <input type="url" name="source_url" placeholder="https://example.com/article-about-social-media-tools" required>
+      </div>
+      <div class="form-group">
+        <label>Anchor text</label>
+        <input type="text" name="anchor_text" placeholder="NativPost brand voice AI">
+      </div>
+      <div class="form-group">
+        <label>Domain Authority (0–100)</label>
+        <input type="number" name="domain_authority" min="0" max="100" placeholder="e.g. 45">
+      </div>
+      <div class="form-group">
+        <label>Notes (outreach status, contact, etc.)</label>
+        <textarea name="notes" rows="3" placeholder="e.g. Emailed editor on May 1, awaiting reply..."></textarea>
+      </div>
+      <button type="submit" class="primary" style="width:100%">Add Opportunity</button>
+    </form>
+
+    <div style="border-top:1px solid var(--line-soft);margin-top:var(--sp-4);padding-top:var(--sp-4)">
+      <h3 style="font-size:.88rem;font-weight:600;color:var(--text-heading);margin-bottom:var(--sp-3)">💡 High-value link targets for NativPost</h3>
+      <% var suggestions = [
+        {domain:'producthunt.com',note:'Product Hunt launch — high DA, social media tool category'},
+        {domain:'indiehackers.com',note:'IH community posts — great for SaaS founders audience'},
+        {domain:'g2.com',note:'G2 reviews + compare pages — high commercial intent'},
+        {domain:'techcrunch.com',note:'Press coverage — Africa tech angle with Paystack'},
+        {domain:'socialmediaexaminer.com',note:'Social media tool roundups — editorial backlinks'},
+        {domain:'buffer.com/resources',note:'Buffer blog guest posts (if accepted)'},
+      ]; %>
+      <% suggestions.forEach(function(s) { %>
+      <div style="padding:8px 0;border-top:1px solid var(--line-soft)">
+        <div style="font-size:.8rem;font-weight:600;color:var(--np-purple)"><%= s.domain %></div>
+        <div style="font-size:.72rem;color:var(--text-muted)"><%= s.note %></div>
+      </div>
+      <% }); %>
+    </div>
+  </section>
+</div>
+
+<%- include('layout-end') %>

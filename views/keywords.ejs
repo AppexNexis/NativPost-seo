@@ -1,0 +1,116 @@
+<%- include('layout-start') %>
+
+<section class="hero">
+  <p class="eyebrow">Search</p>
+  <h1>Keywords</h1>
+  <p>All tracked keywords organized by cluster. Keywords without articles are your top content opportunities.</p>
+</section>
+
+<% if (typeof query !== 'undefined') { %>
+  <% if (query.added) { %><div class="alert good">✓ Keyword added.</div><% } %>
+  <% if (query.serp_done) { %><div class="alert good">✓ SERP lookup complete. Competitor gaps updated.</div><% } %>
+<% } %>
+
+<div class="grid two" style="align-items:start">
+  <div>
+    <!-- FILTER BY CLUSTER -->
+    <div class="pill-row" style="margin-bottom:var(--sp-4)">
+      <a href="/keywords" class="pill <%= !selectedCluster ? 'active' : '' %>">All</a>
+      <% clusters.forEach(function(c) { %>
+      <a href="/keywords?cluster=<%= c.key %>" class="pill <%= selectedCluster===c.key ? 'active' : '' %>"><%= c.label %></a>
+      <% }); %>
+    </div>
+
+    <section class="card">
+      <div class="card-head"><h2>Keywords (<%= rows.length %>)</h2></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Keyword</th>
+              <th>Cluster</th>
+              <th>Intent</th>
+              <th>Volume</th>
+              <th>Priority</th>
+              <th>Article?</th>
+              <th>SERP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(function(k) { %>
+            <tr>
+              <td style="font-size:var(--fs-sm);color:var(--text)"><%= k.keyword %></td>
+              <td><span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= k.cluster_name||'—' %></span></td>
+              <td><span class="badge <%= k.intent==='commercial'?'purple':'' %>"><%= k.intent||'mixed' %></span></td>
+              <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= k.volume||'—' %></td>
+              <td><span class="badge <%= Number(k.priority_score||0)>=70?'good':'' %>"><%= k.priority_score||50 %></span></td>
+              <td>
+                <% if (k.has_article) { %>
+                  <span class="badge good">✓</span>
+                <% } else { %>
+                  <form method="get" action="/content-studio" style="display:inline">
+                    <input type="hidden" name="keyword" value="<%= k.keyword %>">
+                    <button class="mini primary">Generate</button>
+                  </form>
+                <% } %>
+              </td>
+              <td>
+                <form method="post" action="/keywords/serp/<%= k.id %>">
+                  <button class="mini">Lookup</button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ADD KEYWORD -->
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>Add Keyword</h2></div>
+      <form method="post" action="/keywords/add">
+        <div class="form-group">
+          <label>Keyword *</label>
+          <input type="text" name="keyword" placeholder="e.g. brand voice ai tool" required>
+        </div>
+        <div class="form-group">
+          <label>Cluster</label>
+          <select name="cluster_key">
+            <% clusters.forEach(function(c) { %>
+            <option value="<%= c.key %>"><%= c.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Intent</label>
+          <select name="intent">
+            <option value="informational">Informational</option>
+            <option value="commercial" selected>Commercial</option>
+            <option value="navigational">Navigational</option>
+            <option value="transactional">Transactional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Monthly search volume (if known)</label>
+          <input type="number" name="volume" min="0" placeholder="e.g. 1200">
+        </div>
+        <button type="submit" class="primary" style="width:100%">Add Keyword</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Keyword Clusters</h2></div>
+      <% clusters.forEach(function(c) { %>
+      <div style="padding:8px 0;border-top:1px solid var(--line-soft)">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text-heading)"><%= c.label %></div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px"><%= c.keywords.slice(0,3).join(', ') %>…</div>
+      </div>
+      <% }); %>
+    </section>
+  </div>
+</div>
+
+<%- include('layout-end') %>

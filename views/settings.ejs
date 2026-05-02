@@ -1,0 +1,81 @@
+<%- include('layout-start') %>
+<section class="hero"><p class="eyebrow">Configuration</p><h1>Settings</h1><p>Configure API keys, publishing rules, and quality thresholds.</p></section>
+
+<div class="grid two" style="align-items:start">
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>🤖 AI API Status</h2></div>
+      <div class="metric-row">
+        <strong>Anthropic (Claude) API</strong>
+        <span class="badge <%= config.anthropicKeySet ? 'good' : 'bad' %>"><%= config.anthropicKeySet ? '✓ Key set' : '✗ Missing' %></span>
+      </div>
+      <div class="metric-row">
+        <strong>OpenAI API (fallback)</strong>
+        <span class="badge <%= config.openaiKeySet ? 'good' : '' %>"><%= config.openaiKeySet ? '✓ Key set' : 'Not set (optional)' %></span>
+      </div>
+      <div class="hint" style="margin-top:var(--sp-3)">Set <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">ANTHROPIC_API_KEY</code> in your <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">.env.local</code> file. Claude is the primary engine — OpenAI is fallback only.</div>
+    </section>
+
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>📡 DataForSEO Status</h2></div>
+      <div class="metric-row"><strong>DFS Enabled</strong><span class="badge <%= config.dfsEnabled?'good':'warn' %>"><%= config.dfsEnabled ? '✓ Active' : 'Disabled (using DuckDuckGo)' %></span></div>
+      <div class="metric-row"><strong>Daily calls used / cap</strong><span class="badge"><%= config.dfsDailyUsed %> / <%= config.dfsDailyCap %></span></div>
+      <div class="hint" style="margin-top:var(--sp-3)">Set <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">DATAFORSEO_LOGIN</code> and <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">DATAFORSEO_PASSWORD</code> for real SERP data. Without it, DuckDuckGo is used (less reliable but free).</div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>🚀 Auto-Publisher</h2></div>
+      <div class="metric-row"><strong>Status</strong><span class="badge <%= config.autoPublishEnabled?'good':'' %>"><%= config.autoPublishEnabled ? '✓ Enabled' : 'Disabled' %></span></div>
+      <div class="metric-row"><strong>Check interval</strong><span style="font-size:var(--fs-sm);color:var(--text-muted)">Every <%= config.autoPublishIntervalMinutes %> minutes</span></div>
+      <div class="metric-row"><strong>Daily publish limit</strong><span style="font-size:var(--fs-sm);color:var(--text-muted)"><%= config.autoPublishDailyLimit %> article(s)/day</span></div>
+      <div class="metric-row"><strong>Min quality score</strong><span class="badge"><%= config.minQualityScore %>/100</span></div>
+      <div class="hint" style="margin-top:var(--sp-3)">Set these in <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">.env.local</code>: AUTO_PUBLISH_ENABLED, AUTO_PUBLISH_INTERVAL_MINUTES, AUTO_PUBLISH_DAILY_LIMIT, MIN_QUALITY_SCORE</div>
+    </section>
+  </div>
+
+  <div>
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>📋 .env.local Template</h2></div>
+      <pre style="background:var(--bg-0);border:1px solid var(--line);border-radius:8px;padding:16px;font-family:var(--mono);font-size:.72rem;color:var(--text-muted);overflow-x:auto;line-height:1.7"># NativPost SEO Tool Configuration
+PORT=7784
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your-db-password
+DB_NAME=nativpost_seo
+
+# AI — Required: at least one
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...          # optional fallback
+
+# Session — CHANGE THIS
+SESSION_SECRET=generate-with-openssl-rand-hex-32
+
+# NativPost URLs
+NATIVPOST_SITE_URL=https://nativpost.com
+NATIVPOST_APP_URL=https://app.nativpost.com
+
+# DataForSEO — optional (falls back to DuckDuckGo)
+DATAFORSEO_LOGIN=your@email.com
+DATAFORSEO_PASSWORD=your-password
+DATAFORSEO_DAILY_CALL_CAP=20
+
+# Content generation
+MIN_QUALITY_SCORE=90
+AUTO_PUBLISH_ENABLED=false
+AUTO_PUBLISH_DAILY_LIMIT=1
+AUTO_PUBLISH_INTERVAL_MINUTES=10
+
+# Timezone
+APP_TIMEZONE=America/New_York</pre>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>📦 Required npm Packages</h2></div>
+      <pre style="background:var(--bg-0);border:1px solid var(--line);border-radius:8px;padding:16px;font-family:var(--mono);font-size:.72rem;color:var(--text-muted);overflow-x:auto;line-height:1.7">npm install express ejs axios mysql2 multer dotenv</pre>
+      <div class="hint" style="margin-top:var(--sp-3)">Then: <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">node index.js</code> or use PM2: <code style="font-family:var(--mono);font-size:.75rem;background:var(--bg-2);padding:1px 5px;border-radius:3px">pm2 start index.js --name nativpost-seo</code></div>
+    </section>
+  </div>
+</div>
+
+<%- include('layout-end') %>

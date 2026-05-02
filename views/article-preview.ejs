@@ -1,0 +1,100 @@
+<%- include('layout-start') %>
+
+<% var q = Number(article.quality_score||0); var qClass = q >= minQualityScore ? 'good' : q >= 70 ? 'warn' : 'bad'; %>
+<% if (typeof query !== 'undefined' && query.generated) { %>
+<div class="alert good">✓ Article generated! Review it below, then approve or edit.</div>
+<% } %>
+<% if (typeof query !== 'undefined' && query.saved) { %>
+<div class="alert good">✓ Changes saved.</div>
+<% } %>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-4);margin-bottom:var(--sp-4);flex-wrap:wrap">
+  <div>
+    <p style="font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:4px"><a href="/articles" style="color:var(--np-purple);text-decoration:none">← Articles</a></p>
+    <h1 style="font-size:1.35rem;font-weight:700;color:var(--text-heading);max-width:700px"><%= article.title || '(Untitled)' %></h1>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+      <span class="badge <%= qClass %>">Quality <%= q %>/<%= minQualityScore %></span>
+      <span class="badge <%= article.status==='published'?'good':article.status==='approved'?'purple':article.status==='rejected'?'bad':article.status==='pending_review'?'warn':'' %>"><%= article.status %></span>
+      <span class="badge"><%= Number(article.word_count||0).toLocaleString() %> words</span>
+      <% if (article.primary_keyword) { %><span class="badge purple"><%= article.primary_keyword %></span><% } %>
+    </div>
+  </div>
+  <div class="actions" style="flex-wrap:wrap;gap:8px">
+    <a class="btn" href="/articles/<%= article.id %>/edit">✏️ Edit</a>
+    <% if (article.status === 'pending_review') { %>
+    <form method="post" action="/articles/<%= article.id %>/approve" style="display:inline">
+      <button class="btn primary">✓ Approve</button>
+    </form>
+    <form method="post" action="/articles/<%= article.id %>/reject" style="display:inline">
+      <button class="btn danger">✗ Reject</button>
+    </form>
+    <% } %>
+    <% if (article.status === 'draft' || article.status === 'rejected') { %>
+    <form method="post" action="/articles/<%= article.id %>/approve" style="display:inline">
+      <button class="btn primary">→ Move to Review</button>
+    </form>
+    <% } %>
+    <form method="post" action="/articles/<%= article.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this article permanently?')">
+      <button class="btn danger">🗑 Delete</button>
+    </form>
+  </div>
+</div>
+
+<div class="grid two" style="align-items:start">
+  <div>
+    <!-- ARTICLE META -->
+    <section class="card" style="margin-bottom:var(--sp-4)">
+      <div class="card-head"><h2>SEO Meta</h2></div>
+      <div class="form-group">
+        <label>Meta description</label>
+        <div style="padding:10px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line);font-size:var(--fs-sm);color:var(--text)"><%= article.meta_description || '(none)' %></div>
+        <div class="hint" style="margin-top:4px"><%= (article.meta_description||'').length %>/160 chars</div>
+      </div>
+      <div class="form-group">
+        <label>Slug / URL</label>
+        <div style="padding:8px 10px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line);font-size:var(--fs-xs);color:var(--np-purple);font-family:var(--mono)">nativpost.com/blog/<%= article.slug || article.id %></div>
+      </div>
+      <% if (article.excerpt) { %>
+      <div class="form-group">
+        <label>Excerpt</label>
+        <div style="padding:10px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line);font-size:var(--fs-sm);color:var(--text)"><%= article.excerpt %></div>
+      </div>
+      <% } %>
+    </section>
+
+    <!-- QUALITY BREAKDOWN -->
+    <section class="card">
+      <div class="card-head"><h2>Quality Score</h2></div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:var(--sp-4)">
+        <div class="score-circle" style="width:60px;height:60px;font-size:1.1rem"><%= q %></div>
+        <div>
+          <div style="font-size:.88rem;font-weight:600;color:<%= q>=minQualityScore?'var(--good)':q>=70?'var(--warn)':'var(--bad)' %>"><%= q >= minQualityScore ? '✓ Passes quality gate' : q >= 70 ? '⚠ Below threshold — review carefully' : '✗ Needs rewrite' %></div>
+          <div class="hint">Minimum: <%= minQualityScore %>/100 to auto-advance to Pending Review</div>
+        </div>
+      </div>
+      <% var checks = [
+        {label:'Word count ≥ 1,200', pass: Number(article.word_count||0) >= 1200},
+        {label:'Has meta description', pass: !!(article.meta_description)},
+        {label:'Has slug', pass: !!(article.slug)},
+        {label:'Has excerpt', pass: !!(article.excerpt)},
+        {label:'Quality score ≥ ' + minQualityScore, pass: q >= minQualityScore},
+      ]; %>
+      <% checks.forEach(function(c) { %>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--line-soft);font-size:var(--fs-sm)">
+        <span style="color:<%= c.pass ? 'var(--good)' : 'var(--bad)' %>"><%= c.pass ? '✓' : '✗' %></span>
+        <span style="color:<%= c.pass ? 'var(--text)' : 'var(--text-muted)' %>"><%= c.label %></span>
+      </div>
+      <% }); %>
+    </section>
+  </div>
+
+  <!-- ARTICLE BODY PREVIEW -->
+  <section class="card">
+    <div class="card-head"><h2>Article Preview</h2></div>
+    <div class="article-body">
+      <%- bodyHtml %>
+    </div>
+  </section>
+</div>
+
+<%- include('layout-end') %>

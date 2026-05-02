@@ -1,0 +1,76 @@
+<%- include('layout-start') %>
+
+<section class="hero">
+  <p class="eyebrow">Content</p>
+  <h1>Articles</h1>
+  <p>All generated SEO articles for NativPost. Review, edit, approve, and publish.</p>
+</section>
+
+<% if (typeof query !== 'undefined') { %>
+  <% if (query.approved) { %><div class="alert good">✓ Article approved and queued for publishing.</div><% } %>
+  <% if (query.rejected) { %><div class="alert warn">Article rejected.</div><% } %>
+  <% if (query.deleted) { %><div class="alert warn">Article deleted.</div><% } %>
+<% } %>
+
+<div class="tabs">
+  <a href="/articles" class="tab <%= !filterStatus ? 'active' : '' %>">All</a>
+  <a href="/articles?status=draft" class="tab <%= filterStatus==='draft' ? 'active' : '' %>">Drafts</a>
+  <a href="/articles?status=pending_review" class="tab <%= filterStatus==='pending_review' ? 'active' : '' %>">Pending Review</a>
+  <a href="/articles?status=approved" class="tab <%= filterStatus==='approved' ? 'active' : '' %>">Approved</a>
+  <a href="/articles?status=published" class="tab <%= filterStatus==='published' ? 'active' : '' %>">Published</a>
+  <a href="/articles?status=rejected" class="tab <%= filterStatus==='rejected' ? 'active' : '' %>">Rejected</a>
+</div>
+
+<section class="card">
+  <% if (!rows.length) { %>
+    <p class="empty">No articles yet. <a href="/content-studio" style="color:var(--np-purple)">Generate your first article →</a></p>
+  <% } %>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Title / Keyword</th>
+          <th>Cluster</th>
+          <th>Status</th>
+          <th>Quality</th>
+          <th>Words</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function(a) {
+          var q = Number(a.quality_score||0);
+          var qClass = q >= minQualityScore ? 'good' : q >= 70 ? 'warn' : 'bad';
+          var statusClass = a.status === 'published' ? 'good' : a.status === 'approved' ? 'purple' : a.status === 'rejected' ? 'bad' : a.status === 'pending_review' ? 'warn' : '';
+        %>
+        <tr>
+          <td>
+            <a href="/articles/<%= a.id %>" style="color:var(--text-heading);text-decoration:none;font-weight:600;display:block;margin-bottom:2px"><%= a.title || '(Untitled)' %></a>
+            <span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.primary_keyword||'No keyword' %></span>
+          </td>
+          <td><span style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.cluster_name||'—' %></span></td>
+          <td><span class="badge <%= statusClass %>"><%= a.status %></span></td>
+          <td><span class="badge <%= qClass %>"><%= q %>/<%= minQualityScore %></span></td>
+          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= Number(a.word_count||0).toLocaleString() %></td>
+          <td style="font-size:var(--fs-xs);color:var(--text-muted)"><%= a.updated_at ? new Date(a.updated_at).toLocaleDateString() : '—' %></td>
+          <td>
+            <div class="actions">
+              <a class="mini btn" href="/articles/<%= a.id %>">View</a>
+              <a class="mini btn" href="/articles/<%= a.id %>/edit">Edit</a>
+              <% if (a.status === 'pending_review') { %>
+              <form method="post" action="/articles/<%= a.id %>/approve" style="display:inline">
+                <button class="mini primary">Approve</button>
+              </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('layout-end') %>
