@@ -135,9 +135,7 @@ async function ensureAuthTables() {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
   // Seed known game facts
-  const knownFacts = [
   // NativPost: game_facts seeding skipped. NativPost is not a game hosting service.
-  }
   await execSafe(`CREATE TABLE IF NOT EXISTS live_games (
     id INT AUTO_INCREMENT PRIMARY KEY,
     game_key VARCHAR(120) NOT NULL UNIQUE,
