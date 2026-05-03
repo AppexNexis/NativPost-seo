@@ -68,15 +68,15 @@ const AUTO_PUBLISH_DAILY_LIMIT = Math.max(1, Number(process.env.AUTO_PUBLISH_DAI
 const MIN_QUALITY_SCORE = Math.max(1, Number(process.env.ADAPTIFY_MIN_QUALITY_SCORE || process.env.MIN_QUALITY_SCORE || 92));
 
 // ── DataForSEO ─────────────────────────────────────────────────────────────────
-const DFS_ENABLED     = String(process.env.DATAFORSEO_ENABLED || 'true').toLowerCase() !== 'false'
-                     && !!(process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD);
-const DFS_LOGIN       = process.env.DATAFORSEO_LOGIN     || '';
-const DFS_PASSWORD    = process.env.DATAFORSEO_PASSWORD  || '';
-const DFS_LOCATION    = Number(process.env.DATAFORSEO_LOCATION_CODE  || 2840);
-const DFS_LANGUAGE    = process.env.DATAFORSEO_LANGUAGE_CODE          || 'en';
-const DFS_DEVICE      = process.env.DATAFORSEO_DEVICE                 || 'desktop';
+const DFS_ENABLED = String(process.env.DATAFORSEO_ENABLED || 'true').toLowerCase() !== 'false'
+  && !!(process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD);
+const DFS_LOGIN = process.env.DATAFORSEO_LOGIN || '';
+const DFS_PASSWORD = process.env.DATAFORSEO_PASSWORD || '';
+const DFS_LOCATION = Number(process.env.DATAFORSEO_LOCATION_CODE || 2840);
+const DFS_LANGUAGE = process.env.DATAFORSEO_LANGUAGE_CODE || 'en';
+const DFS_DEVICE = process.env.DATAFORSEO_DEVICE || 'desktop';
 const DFS_MAX_RESULTS = Math.min(20, Math.max(5, Number(process.env.DATAFORSEO_MAX_RESULTS || 10)));
-const DFS_CACHE_DAYS  = Math.max(1,  Number(process.env.DATAFORSEO_CACHE_DAYS  || 14));
+const DFS_CACHE_DAYS = Math.max(1, Number(process.env.DATAFORSEO_CACHE_DAYS || 14));
 // ──────────────────────────────────────────────────────────────────────────────
 
 // ── DataForSEO cost protection ──────────────────────────────────────────────
@@ -86,7 +86,7 @@ const DFS_DAILY_CALL_CAP = Math.max(1, Number(process.env.DATAFORSEO_DAILY_CALL_
 let _dfsDailyCallCount = 0;
 let _dfsDayKey = '';
 function dfsCallAllowed() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0, 10);
   if (_dfsDayKey !== today) { _dfsDayKey = today; _dfsDailyCallCount = 0; }
   if (_dfsDailyCallCount >= DFS_DAILY_CALL_CAP) {
     console.warn(`[DFS] Daily call cap (${DFS_DAILY_CALL_CAP}) reached. Falling back to DuckDuckGo or cache. Reset tomorrow.`);
@@ -171,12 +171,12 @@ async function ensureAuthTables() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   // Seed default admin if no users exist
-  const userCount = await one('SELECT COUNT(*) cnt FROM auth_users').catch(()=>({cnt:0}));
+  const userCount = await one('SELECT COUNT(*) cnt FROM auth_users').catch(() => ({ cnt: 0 }));
   if (!userCount || Number(userCount.cnt) === 0) {
     const salt = crypto.randomBytes(32).toString('hex');
     const hash = await hashPassword('NativPost2026!', salt);
     await q('INSERT INTO auth_users (username,email,password_hash,salt,role) VALUES (?,?,?,?,?)',
-      ['admin', 'admin@nativpost.com', hash, salt, 'admin']).catch(()=>{});
+      ['admin', 'admin@nativpost.com', hash, salt, 'admin']).catch(() => { });
     console.log('[Auth] Default admin user created');
   }
 }
@@ -213,7 +213,7 @@ async function getSessionUser(req) {
   try {
     const session = await one('SELECT s.*, u.id user_id, u.username, u.email, u.role FROM auth_sessions s JOIN auth_users u ON u.id=s.user_id WHERE s.id=? AND s.expires_at > NOW()', [sid]);
     return session || null;
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 
 // Auth middleware - protects all routes except /login and /auth/*
@@ -270,32 +270,32 @@ const pool = mysql.createPool({
 // STOPWORDS: generic filler words only. DO NOT add SEO-relevant words like game/hosting/server/support/pricing.
 const STOPWORDS = new Set('the and for with from your this that into about what when where why how over under near more have has was were use using our you can not are but all any get just like blog panel node amp play xbox ps5 windows linux content article rank seo title meta review publish queue dashboard keyword keywords competitor competitors backlinks page click learn also their there they them will would could should only very been much make makes than then each out off see seen initial website inventory being sorted everything ready soon available includes choosing need needs upgrade upgraded upgrading started getting looking great good better perfect ideal built-for designed optimized-for powered-by backed-by trusted-by loved used-by joined played-by running allows allowing provides providing offers offering supports supporting enables enabling ensures ensuring delivers delivering'.split(' '));
 const GAME_ALIASES = [
-  { key:'palworld', label:'Palworld', patterns:['palworld'] },
-  { key:'minecraft', label:'Minecraft', patterns:['minecraft','minecraft java','minecraft bedrock'] },
-  { key:'ark', label:'ARK / ARK Survival Ascended', patterns:['ark','ark survival ascended','asa','ark sa'] },
-  { key:'rust', label:'Rust', patterns:['rust'] },
-  { key:'valheim', label:'Valheim', patterns:['valheim'] },
-  { key:'enshrouded', label:'Enshrouded', patterns:['enshrouded'] },
-  { key:'everwind', label:'Everwind', patterns:['everwind'] },
-  { key:'windrose', label:'Windrose', patterns:['windrose'] },
-  { key:'icarus', label:'Icarus', patterns:['icarus'] },
-  { key:'hytale', label:'Hytale', patterns:['hytale'] },
-  { key:'terraria', label:'Terraria', patterns:['terraria'] },
-  { key:'v rising', label:'V Rising', patterns:['v rising','vrising','v-rising'] },
-  { key:'project zomboid', label:'Project Zomboid', patterns:['project zomboid','zomboid'] },
-  { key:'dayz', label:'DayZ', patterns:['dayz','day z'] },
-  { key:'satisfactory', label:'Satisfactory', patterns:['satisfactory'] },
-  { key:'factorio', label:'Factorio', patterns:['factorio'] },
-  { key:'conan', label:'Conan Exiles', patterns:['conan','conan exiles'] },
-  { key:'7 days to die', label:'7 Days to Die', patterns:['7 days to die','7dtd','seven days to die','seven-days-to-die'] },
-  { key:'voyagers of nera', label:'Voyagers of Nera', patterns:['voyagers of nera','voyagers-of-nera','voyagers nera'] },
-  { key:'space engineers', label:'Space Engineers', patterns:['space engineers'] },
-  { key:'eco', label:'Eco', patterns:['eco global survival','eco server'] },
-  { key:'ground branch', label:'Ground Branch', patterns:['ground branch'] },
-  { key:'sons of the forest', label:'Sons of the Forest', patterns:['sons of the forest','sons of forest'] },
-  { key:'the forest', label:'The Forest', patterns:['the forest server'] },
-  { key:'green hell', label:'Green Hell', patterns:['green hell'] },
-  { key:'core keeper', label:'Core Keeper', patterns:['core keeper'] },
+  { key: 'palworld', label: 'Palworld', patterns: ['palworld'] },
+  { key: 'minecraft', label: 'Minecraft', patterns: ['minecraft', 'minecraft java', 'minecraft bedrock'] },
+  { key: 'ark', label: 'ARK / ARK Survival Ascended', patterns: ['ark', 'ark survival ascended', 'asa', 'ark sa'] },
+  { key: 'rust', label: 'Rust', patterns: ['rust'] },
+  { key: 'valheim', label: 'Valheim', patterns: ['valheim'] },
+  { key: 'enshrouded', label: 'Enshrouded', patterns: ['enshrouded'] },
+  { key: 'everwind', label: 'Everwind', patterns: ['everwind'] },
+  { key: 'windrose', label: 'Windrose', patterns: ['windrose'] },
+  { key: 'icarus', label: 'Icarus', patterns: ['icarus'] },
+  { key: 'hytale', label: 'Hytale', patterns: ['hytale'] },
+  { key: 'terraria', label: 'Terraria', patterns: ['terraria'] },
+  { key: 'v rising', label: 'V Rising', patterns: ['v rising', 'vrising', 'v-rising'] },
+  { key: 'project zomboid', label: 'Project Zomboid', patterns: ['project zomboid', 'zomboid'] },
+  { key: 'dayz', label: 'DayZ', patterns: ['dayz', 'day z'] },
+  { key: 'satisfactory', label: 'Satisfactory', patterns: ['satisfactory'] },
+  { key: 'factorio', label: 'Factorio', patterns: ['factorio'] },
+  { key: 'conan', label: 'Conan Exiles', patterns: ['conan', 'conan exiles'] },
+  { key: '7 days to die', label: '7 Days to Die', patterns: ['7 days to die', '7dtd', 'seven days to die', 'seven-days-to-die'] },
+  { key: 'voyagers of nera', label: 'Voyagers of Nera', patterns: ['voyagers of nera', 'voyagers-of-nera', 'voyagers nera'] },
+  { key: 'space engineers', label: 'Space Engineers', patterns: ['space engineers'] },
+  { key: 'eco', label: 'Eco', patterns: ['eco global survival', 'eco server'] },
+  { key: 'ground branch', label: 'Ground Branch', patterns: ['ground branch'] },
+  { key: 'sons of the forest', label: 'Sons of the Forest', patterns: ['sons of the forest', 'sons of forest'] },
+  { key: 'the forest', label: 'The Forest', patterns: ['the forest server'] },
+  { key: 'green hell', label: 'Green Hell', patterns: ['green hell'] },
+  { key: 'core keeper', label: 'Core Keeper', patterns: ['core keeper'] },
 ];
 const PRESS_KIT_SEEDS = {
   palworld: ['https://www.igdb.com/games/palworld/presskit', 'https://www.pocketpair.jp/en/games-en/palworld-en/', 'https://store.steampowered.com/app/1623730/Palworld/', 'https://steamdb.info/app/1623730/screenshots/'],
@@ -368,7 +368,7 @@ const STEAM_APP_IDS = {
 };
 
 // Fetch real screenshots from Steam API (no JS required, returns JSON)
-async function fetchSteamScreenshots(appId, game='', limit=6) {
+async function fetchSteamScreenshots(appId, game = '', limit = 6) {
   if (!appId) return [];
   try {
     const resp = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=screenshots`, {
@@ -386,7 +386,7 @@ async function fetchSteamScreenshots(appId, game='', limit=6) {
       sourceTitle: `${gameDisplay(game)} on Steam`,
       score: 90
     }));
-  } catch(e) {
+  } catch (e) {
     console.log(`Steam API for ${game} (${appId}):`, e.message);
     return [];
   }
@@ -394,40 +394,40 @@ async function fetchSteamScreenshots(appId, game='', limit=6) {
 
 const DEFAULT_NP_SUPPORTED_GAMES = new Set(String(process.env.SUPPORTED_GAMES_EXACT || process.env.MANUAL_SUPPORTED_GAMES || '').split(',').map(x => x.trim()).filter(Boolean).map(x => detectGame(x) || normalizeGameName(x)));
 const USE_LEGACY_SUPPORTED_GAMES_ENV = String(process.env.USE_LEGACY_SUPPORTED_GAMES_ENV || '').toLowerCase() === 'true';
-const BUSINESS_FACTS = process.env.NATIVPOST_BUSINESS_FACTS || 'NativPost is an AI social media content platform. Brands define their voice once and NativPost generates posts across 9 platforms. Plans: Starter $19/mo (15 posts, 3 platforms), Growth $39/mo (40 posts, 6 platforms, video), Pro $79/mo (80 posts, unlimited platforms), Agency $149/mo (unlimited, 5 brand profiles). $5 setup fee on all plans. 7-day free trial (3 posts max, text only). Paystack for Africa. Anti-slop filter scores 0-1, auto-rejects below 0.7. Content modes: Normal, Concise, Controversial. Platforms: Instagram, Facebook, LinkedIn, Twitter/X, TikTok, Pinterest, YouTube, Threads, LinkedIn Pages. Video: Slideshow, Text Motion Card, Voiceover Slideshow, UGC Ad, Data Story. NEVER claim: free forever plan, unlimited posts on Starter, 30-day trial, money-back guarantee.';const NP_MIN_PRICE = Number(process.env.NATIVPOST_MIN_PRICE || 19);
+const BUSINESS_FACTS = process.env.NATIVPOST_BUSINESS_FACTS || 'NativPost is an AI social media content platform. Brands define their voice once and NativPost generates posts across 9 platforms. Plans: Starter $19/mo (15 posts, 3 platforms), Growth $39/mo (40 posts, 6 platforms, video), Pro $79/mo (80 posts, unlimited platforms), Agency $149/mo (unlimited, 5 brand profiles). $5 setup fee on all plans. 7-day free trial (3 posts max, text only). Paystack for Africa. Anti-slop filter scores 0-1, auto-rejects below 0.7. Content modes: Normal, Concise, Controversial. Platforms: Instagram, Facebook, LinkedIn, Twitter/X, TikTok, Pinterest, YouTube, Threads, LinkedIn Pages. Video: Slideshow, Text Motion Card, Voiceover Slideshow, UGC Ad, Data Story. NEVER claim: free forever plan, unlimited posts on Starter, 30-day trial, money-back guarantee.'; const NP_MIN_PRICE = Number(process.env.NATIVPOST_MIN_PRICE || 19);
 const NP_BASE_PLAN_PRICE = process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)';
 const NP_TRIAL_DAYS = Number(process.env.NATIVPOST_TRIAL_DAYS || 7);
 const NP_REFUND_POLICY = process.env.NATIVPOST_REFUND_POLICY || 'NativPost offers a 7-day free trial with 3 posts max (text only). There is no money-back guarantee. Do not claim refunds.';
 const NP_PACKAGE_RULES = process.env.NATIVPOST_PACKAGE_RULES || 'Starter $19/mo (15 posts, 3 platforms) / Growth $39/mo (40 posts, 6 platforms, video) / Pro $79/mo (80 posts, unlimited platforms, human review) / Agency $149/mo (unlimited posts, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only).';
 const GAME_WORDS = GAME_ALIASES.map(g => g.key);
-function gameDisplay(game='') { const g=GAME_ALIASES.find(x=>x.key===String(game).toLowerCase()); return g?.label || String(game||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
-function gameKeywordName(game='') { const key=String(game||'').toLowerCase(); if (key==='ark') return 'ark survival ascended'; return gameDisplay(game).toLowerCase().replace(/\s*\/.*$/,'').trim(); }
-function normalizeGameName(value='') { return String(value||'').toLowerCase().replace(/server hosting|dedicated server|\bgame\b/g,' ').replace(/[^a-z0-9\s-]/g,' ').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim(); } // NativPost: keeps 'social media', 'content' etc
-function gameFromGameUrl(url='') { try { const u = new URL(normalizeUrl(url)); const m = u.pathname.toLowerCase().match(/\/game\/([^/?#]+)/); if (!m) return ''; let slug = m[1].replace(/-server-hosting.*$/,'').replace(/-hosting.*$/,'').replace(/-/g,' ').trim(); return detectGame(slug) || normalizeGameName(slug); } catch { return ''; } }
-function looksLikeOwnGameUrl(url='') {
+function gameDisplay(game = '') { const g = GAME_ALIASES.find(x => x.key === String(game).toLowerCase()); return g?.label || String(game || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '); }
+function gameKeywordName(game = '') { const key = String(game || '').toLowerCase(); if (key === 'ark') return 'ark survival ascended'; return gameDisplay(game).toLowerCase().replace(/\s*\/.*$/, '').trim(); }
+function normalizeGameName(value = '') { return String(value || '').toLowerCase().replace(/server hosting|dedicated server|\bgame\b/g, ' ').replace(/[^a-z0-9\s-]/g, ' ').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim(); } // NativPost: keeps 'social media', 'content' etc
+function gameFromGameUrl(url = '') { try { const u = new URL(normalizeUrl(url)); const m = u.pathname.toLowerCase().match(/\/game\/([^/?#]+)/); if (!m) return ''; let slug = m[1].replace(/-server-hosting.*$/, '').replace(/-hosting.*$/, '').replace(/-/g, ' ').trim(); return detectGame(slug) || normalizeGameName(slug); } catch { return ''; } }
+function looksLikeOwnGameUrl(url = '') {
   try {
     const u = new URL(normalizeUrl(url));
     const p = u.pathname.toLowerCase();
     // Accept /game/[anything] OR /games/[anything] with any trailing path
     if (/\/games?\/[^/]+/.test(p)) return true;
     // Also accept product/slug patterns that contain known game names
-    const gameInUrl = GAME_ALIASES.some(g => g.patterns.some(pat => p.includes(pat.toLowerCase().replace(/\s+/g,'-')) || p.includes(pat.toLowerCase().replace(/\s+/g,'_'))));
+    const gameInUrl = GAME_ALIASES.some(g => g.patterns.some(pat => p.includes(pat.toLowerCase().replace(/\s+/g, '-')) || p.includes(pat.toLowerCase().replace(/\s+/g, '_'))));
     if (gameInUrl && /hosting|server/.test(p)) return true;
     return false;
   } catch { return false; }
 }
-function pageLooksLikeAvailableGameHosting(html='', url='') {
-  const t = String(html||'').toLowerCase().replace(/\s+/g,' ');
-  const u = String(url||'').toLowerCase();
+function pageLooksLikeAvailableGameHosting(html = '', url = '') {
+  const t = String(html || '').toLowerCase().replace(/\s+/g, ' ');
+  const u = String(url || '').toLowerCase();
   // Must be a game-related page
-  const isGamePage = /\/games?\//.test(u) || GAME_ALIASES.some(g => g.patterns.some(p => u.includes(p.toLowerCase().replace(/\s+/g,'-'))));
+  const isGamePage = /\/games?\//.test(u) || GAME_ALIASES.some(g => g.patterns.some(p => u.includes(p.toLowerCase().replace(/\s+/g, '-'))));
   if (!isGamePage) return false;
   // Hard block: page explicitly says not available
   if (/coming soon|not available|unavailable|unsupported|not currently offered/.test(t)) return false;
   // Positive signal: buy/deploy/order language
   return /free trial|start now|get started|starting at|\$\d+|buy now|select plan|choose plan|per month|\/mo\b|subscribe|sign up/.test(t);
 }
-async function discoverSupportedGamesFromGamesPage(siteUrl='') {
+async function discoverSupportedGamesFromGamesPage(siteUrl = '') {
   const supported = new Set();
   try {
     const base = originOf(siteUrl || 'https://nativpost.com');
@@ -442,7 +442,7 @@ async function discoverSupportedGamesFromGamesPage(siteUrl='') {
       try {
         const pg = await fetchUrl(link, 10000);
         if (pageLooksLikeAvailableGameHosting(pg.html, link)) supported.add(g);
-      } catch(e) {
+      } catch (e) {
         // If we can't fetch the individual page but the link looks valid, trust it
         if (g) supported.add(g);
       }
@@ -466,11 +466,11 @@ async function discoverSupportedGamesFromGamesPage(siteUrl='') {
         }
       }
     }
-  } catch(e) { console.log('[GameDetect] /games page fetch failed:', e.message); }
+  } catch (e) { console.log('[GameDetect] /games page fetch failed:', e.message); }
   return supported;
 }
-function explicitSupportedGamesFromEnv() { const out = new Set(DEFAULT_NP_SUPPORTED_GAMES); if (USE_LEGACY_SUPPORTED_GAMES_ENV) { for (const x of String(process.env.KNOWN_NP_SUPPORTED_GAMES || process.env.SUPPORTED_GAMES || '').split(',')) { const v=x.trim(); if(v) out.add(detectGame(v) || normalizeGameName(v)); } } return out; }
-function ownGamePageSignal(page={}) { return false; } // NativPost: no game pages to signal
+function explicitSupportedGamesFromEnv() { const out = new Set(DEFAULT_NP_SUPPORTED_GAMES); if (USE_LEGACY_SUPPORTED_GAMES_ENV) { for (const x of String(process.env.KNOWN_NP_SUPPORTED_GAMES || process.env.SUPPORTED_GAMES || '').split(',')) { const v = x.trim(); if (v) out.add(detectGame(v) || normalizeGameName(v)); } } return out; }
+function ownGamePageSignal(page = {}) { return false; } // NativPost: no game pages to signal
 
 
 function dbSafeText(value) {
@@ -485,7 +485,7 @@ function dbSafeText(value) {
     .replace(/[ \t]+/g, ' ')
     .trim();
 }
-function dbSafeParams(params=[]) {
+function dbSafeParams(params = []) {
   return params.map(v => {
     if (typeof v === 'string') return dbSafeText(v);
     if (Array.isArray(v)) return dbSafeParams(v);
@@ -503,96 +503,96 @@ function offerFactsText() {
     'Accuracy rule: never invent plan features, refund terms, pricing, or capabilities not listed in the NativPost business facts above.'
   ].join('\n');
 }
-function forbiddenOfferClaims(text='') {
-  const t=String(text||'').toLowerCase();
-  const issues=[];
+function forbiddenOfferClaims(text = '') {
+  const t = String(text || '').toLowerCase();
+  const issues = [];
   // NativPost: no RAM package validation needed
   if (/30\s*[- ]?day\s+(money\s*back|refund|guarantee)/.test(t) || /money\s*back\s*guarantee/.test(t)) issues.push('mentions money-back/refund guarantee');
   if (/\brefunds?\b/.test(t) && !/does not (advertise |offer )?refund/.test(t)) issues.push('mentions refunds in a way that may be inaccurate');
   return issues;
 }
-function repairOfferClaims(text='') {
-  let out=String(text||'');
+function repairOfferClaims(text = '') {
+  let out = String(text || '');
   // NativPost: no RAM replacement rules needed
   out = out.replace(/30\s*[- ]?day\s+money\s*[- ]?back\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
   out = out.replace(/30\s*[- ]?day\s+refund\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
   out = out.replace(/money\s*[- ]?back\s+guarantee/gi, `${NP_TRIAL_DAYS}-day free trial`);
   return out;
 }
-function offerReviewNote(text='') {
-  const issues=forbiddenOfferClaims(text);
+function offerReviewNote(text = '') {
+  const issues = forbiddenOfferClaims(text);
   if (!issues.length) return '';
   return `Offer accuracy repaired/needs review: ${issues.join('; ')}. Current offer facts: ${offerFactsText()}`;
 }
-async function scannedOfferFacts(siteId=null) {
+async function scannedOfferFacts(siteId = null) {
   try {
     const rows = await q("SELECT page_url,page_title,meta_description,h1_text,word_count FROM site_pages WHERE (? IS NULL OR site_id<=>?) AND (page_url LIKE '%/pricing%' OR page_url LIKE '%/features%' OR page_url LIKE '%/blog%' OR page_url LIKE '%/about%' OR page_url LIKE '%/plans%' OR word_count > 200) ORDER BY word_count DESC LIMIT 30", [siteId, siteId]);
-    return rows.map(r => `${r.page_title||'NativPost page'} | ${r.page_url} | ${r.meta_description||''}`).join('\n').slice(0,6000);
+    return rows.map(r => `${r.page_title || 'NativPost page'} | ${r.page_url} | ${r.meta_description || ''}`).join('\n').slice(0, 6000);
   } catch { return ''; }
 }
 
-function today() { return new Date().toISOString().slice(0,10); }
-function truncate(s='', n=255){ s=String(s||''); return s.length>n ? s.slice(0,n-1) : s; }
+function today() { return new Date().toISOString().slice(0, 10); }
+function truncate(s = '', n = 255) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) : s; }
 
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-function inlineMarkdown(s){
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function inlineMarkdown(s) {
   let out = escapeHtml(s);
-  out = out.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
-  out = out.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a target="_blank" rel="noopener" href="$2">$1</a>');
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a target="_blank" rel="noopener" href="$2">$1</a>');
   return out;
 }
-function markdownToHtml(md){
-  const lines = String(md||'').replace(/\r\n/g,'\n').split('\n');
-  let html='', inList=false, inOl=false, inTable=false, tableRows=[], para=[];
-  const flushPara=()=>{ if(para.length){ html += '<p>'+inlineMarkdown(para.join(' '))+'</p>\n'; para=[]; } };
-  const closeLists=()=>{ if(inList){ html+='</ul>\n'; inList=false; } if(inOl){ html+='</ol>\n'; inOl=false; } };
-  const flushTable=()=>{
-    if(!tableRows.length) return;
-    let t='<table class="md-table">\n';
-    tableRows.forEach((row,i)=>{
-      const cells = row.split('|').map(c=>c.trim()).filter((_,ci,a)=>ci>0&&ci<a.length-1);
-      const isHeader = i===0;
-      const isSep = cells.every(c=>/^[-:]+$/.test(c));
-      if(isSep){ return; }
+function markdownToHtml(md) {
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
+  let html = '', inList = false, inOl = false, inTable = false, tableRows = [], para = [];
+  const flushPara = () => { if (para.length) { html += '<p>' + inlineMarkdown(para.join(' ')) + '</p>\n'; para = []; } };
+  const closeLists = () => { if (inList) { html += '</ul>\n'; inList = false; } if (inOl) { html += '</ol>\n'; inOl = false; } };
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    let t = '<table class="md-table">\n';
+    tableRows.forEach((row, i) => {
+      const cells = row.split('|').map(c => c.trim()).filter((_, ci, a) => ci > 0 && ci < a.length - 1);
+      const isHeader = i === 0;
+      const isSep = cells.every(c => /^[-:]+$/.test(c));
+      if (isSep) { return; }
       const tag = isHeader ? 'th' : 'td';
-      t += '<tr>'+cells.map(c=>'<'+tag+'>'+inlineMarkdown(c)+'</'+tag+'>').join('')+'</tr>\n';
+      t += '<tr>' + cells.map(c => '<' + tag + '>' + inlineMarkdown(c) + '</' + tag + '>').join('') + '</tr>\n';
     });
     t += '</table>\n';
     html += t;
     tableRows = [];
     inTable = false;
   };
-  for(const raw of lines){
+  for (const raw of lines) {
     const line = raw.trim();
     // Table detection
-    if(line.startsWith('|') && line.endsWith('|')){
+    if (line.startsWith('|') && line.endsWith('|')) {
       flushPara(); closeLists();
-      inTable=true; tableRows.push(line); continue;
+      inTable = true; tableRows.push(line); continue;
     }
-    if(inTable){ flushTable(); }
-    if(!line){ flushPara(); closeLists(); continue; }
-    const h=line.match(/^(#{1,6})\s+(.+)$/);
-    if(h){ flushPara(); closeLists(); const level=Math.min(6,h[1].length); html += '<h'+level+'>'+inlineMarkdown(h[2])+'</h'+level+'>\n'; continue; }
-    const ul=line.match(/^[-*]\s+(.+)$/);
-    if(ul){ flushPara(); if(inOl){ html+='</ol>\n'; inOl=false; } if(!inList){ html+='<ul>\n'; inList=true; } html += '<li>'+inlineMarkdown(ul[1])+'</li>\n'; continue; }
-    const ol=line.match(/^\d+[.)]\s+(.+)$/);
-    if(ol){ flushPara(); if(inList){ html+='</ul>\n'; inList=false; } if(!inOl){ html+='<ol>\n'; inOl=true; } html += '<li>'+inlineMarkdown(ol[1])+'</li>\n'; continue; }
+    if (inTable) { flushTable(); }
+    if (!line) { flushPara(); closeLists(); continue; }
+    const h = line.match(/^(#{1,6})\s+(.+)$/);
+    if (h) { flushPara(); closeLists(); const level = Math.min(6, h[1].length); html += '<h' + level + '>' + inlineMarkdown(h[2]) + '</h' + level + '>\n'; continue; }
+    const ul = line.match(/^[-*]\s+(.+)$/);
+    if (ul) { flushPara(); if (inOl) { html += '</ol>\n'; inOl = false; } if (!inList) { html += '<ul>\n'; inList = true; } html += '<li>' + inlineMarkdown(ul[1]) + '</li>\n'; continue; }
+    const ol = line.match(/^\d+[.)]\s+(.+)$/);
+    if (ol) { flushPara(); if (inList) { html += '</ul>\n'; inList = false; } if (!inOl) { html += '<ol>\n'; inOl = true; } html += '<li>' + inlineMarkdown(ol[1]) + '</li>\n'; continue; }
     para.push(line);
   }
   flushPara(); closeLists(); flushTable();
   return html;
 }
 
-function articlePreviewHtml(article={}){
+function articlePreviewHtml(article = {}) {
   const img = normalizeImageUrl(article.featured_image_url || '');
   const body = markdownToHtml(article.body || article.content || '');
   const site = article.site_name || 'NativPost';
-  const imageBlock = img ? `<img class="hero-img" src="${escapeHtml(img)}" alt="${escapeHtml(article.featured_image_alt||'')}" onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty',textContent:'Saved image file was not found. Re-upload the image from Edit Draft.'}))">` : '<p class="empty">No image selected.</p>';
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(article.title||'Article')}</title><link rel="stylesheet" href="/static/styles.css"><style>.sidebar{width:220px;flex-shrink:0;position:fixed;inset:0 auto 0 0;background:linear-gradient(180deg,#080a0d,#070810);border-right:1px solid rgba(134,79,254,.15);display:flex;flex-direction:column;z-index:10;overflow-y:auto}.sidebar::before{content:'';position:fixed;left:0;top:0;width:220px;height:3px;background:linear-gradient(90deg,transparent,#864FFE 40%,#22CFCF 60%,transparent);z-index:11}.main{margin-left:220px;width:calc(100% - 220px);padding:2rem}.brand{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(134,79,254,.12)}.logo{width:32px;height:36px;border-radius:50%;background:#1A1A1C;display:grid;place-items:center;font-weight:900;font-size:10px;color:#fff;box-shadow:0 0 18px rgba(134,79,254,.35)}.brand-text strong{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;display:block}.brand-text span{color:#864FFE;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;opacity:.8}nav{padding:8px 10px;display:flex;flex-direction:column;gap:1px}nav a{color:rgba(165,176,184,.75);padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;display:block;border:1px solid transparent;transition:all .15s}nav a:hover{color:#e6ecee;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}nav a.active{color:#864FFE;background:linear-gradient(135deg,rgba(134,79,254,.12),rgba(134,79,254,.06));border-color:rgba(134,79,254,.2);font-weight:600}.nav-section{margin:12px 0 3px;padding:0 8px;display:flex;align-items:center;gap:6px}.nav-section-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(134,79,254,.25),rgba(134,79,254,.06))}.nav-section-label{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#864FFE;opacity:.7;white-space:nowrap}</style></head><body><div class="app"><aside class="sidebar"><div class="brand"><div class="logo">NP</div><div class="brand-text"><strong>NativPost</strong><span>NativPost SEO</span></div></div><nav><div class="nav-section"><span class="nav-section-label">Overview</span><span class="nav-section-line"></span></div><a href="/">Dashboard</a><a href="/reports">Reports</a><div class="nav-section"><span class="nav-section-label">Content</span><span class="nav-section-line"></span></div><a href="/content-studio">Content Studio</a><a class="active" href="/articles">Drafts &amp; Articles</a><a href="/review">Review Queue</a><a href="/publish">Publish Queue</a><div class="nav-section"><span class="nav-section-label">Research</span><span class="nav-section-line"></span></div><a href="/sites">Own Sites</a><a href="/competitors">Competitors</a><a href="/keywords">Keywords</a><a href="/serp">SERP Intelligence</a><div class="nav-section"><span class="nav-section-label">System</span><span class="nav-section-line"></span></div><a href="/settings">Settings</a><a href="/admin/live-games">Live Games</a></nav></aside><main class="main"><section class="hero"><div><p class="eyebrow">${escapeHtml(article.status||'draft')} article · quality ${escapeHtml(article.quality_score||0)}</p><h1>${escapeHtml(article.title||'Untitled')}</h1><p>${escapeHtml(article.primary_keyword||'No keyword')} · ${escapeHtml(site)}</p></div><div class="actions"><a class="btn primary" href="/articles/${article.id}/edit">Edit Draft</a><form method="post" action="/articles/${article.id}/status"><button name="status" value="review" class="btn">Review</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="approved" class="btn">Approve</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="queued" class="btn">Queue</button></form></div></section><div class="grid two"><section class="card"><h2>SEO fields</h2><div class="metric-row"><strong>Slug</strong><span>${escapeHtml(article.slug||'')}</span></div><div class="metric-row"><strong>Meta title</strong><span>${escapeHtml(article.meta_title||'')}</span></div><div class="metric-row"><strong>Meta description</strong><span>${escapeHtml(article.meta_description||'')}</span></div><div class="metric-row"><strong>Image alt</strong><span>${escapeHtml(article.featured_image_alt||'')}</span></div><div class="metric-row"><strong>Published URL</strong><span>${article.published_url ? `<a target="_blank" href="${escapeHtml(article.published_url)}">${escapeHtml(article.published_url)}</a>` : 'Not published'}</span></div></section><section class="card"><h2>Featured image</h2>${imageBlock}</section></div><section class="card article-preview"><h2>Article body</h2><div class="rendered-article">${body}</div></section><section class="card danger-zone"><h2>Actions</h2><div class="actions"><form method="post" action="/publish/${article.id}"><input name="published_url" placeholder="Optional published URL"><button class="btn">Mark Published</button></form><form method="post" action="/articles/${article.id}/delete" onsubmit="return confirm('Delete this article?')"><button class="btn danger">Delete</button></form></div></section></main></div></body></html>`;
+  const imageBlock = img ? `<img class="hero-img" src="${escapeHtml(img)}" alt="${escapeHtml(article.featured_image_alt || '')}" onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty',textContent:'Saved image file was not found. Re-upload the image from Edit Draft.'}))">` : '<p class="empty">No image selected.</p>';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(article.title || 'Article')}</title><link rel="stylesheet" href="/static/styles.css"><style>.sidebar{width:220px;flex-shrink:0;position:fixed;inset:0 auto 0 0;background:linear-gradient(180deg,#080a0d,#070810);border-right:1px solid rgba(134,79,254,.15);display:flex;flex-direction:column;z-index:10;overflow-y:auto}.sidebar::before{content:'';position:fixed;left:0;top:0;width:220px;height:3px;background:linear-gradient(90deg,transparent,#864FFE 40%,#22CFCF 60%,transparent);z-index:11}.main{margin-left:220px;width:calc(100% - 220px);padding:2rem}.brand{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(134,79,254,.12)}.logo{width:32px;height:36px;border-radius:50%;background:#1A1A1C;display:grid;place-items:center;font-weight:900;font-size:10px;color:#fff;box-shadow:0 0 18px rgba(134,79,254,.35)}.brand-text strong{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;display:block}.brand-text span{color:#864FFE;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;opacity:.8}nav{padding:8px 10px;display:flex;flex-direction:column;gap:1px}nav a{color:rgba(165,176,184,.75);padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;display:block;border:1px solid transparent;transition:all .15s}nav a:hover{color:#e6ecee;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}nav a.active{color:#864FFE;background:linear-gradient(135deg,rgba(134,79,254,.12),rgba(134,79,254,.06));border-color:rgba(134,79,254,.2);font-weight:600}.nav-section{margin:12px 0 3px;padding:0 8px;display:flex;align-items:center;gap:6px}.nav-section-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(134,79,254,.25),rgba(134,79,254,.06))}.nav-section-label{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#864FFE;opacity:.7;white-space:nowrap}</style></head><body><div class="app"><aside class="sidebar"><div class="brand"><div class="logo">NP</div><div class="brand-text"><strong>NativPost</strong><span>NativPost SEO</span></div></div><nav><div class="nav-section"><span class="nav-section-label">Overview</span><span class="nav-section-line"></span></div><a href="/">Dashboard</a><a href="/reports">Reports</a><div class="nav-section"><span class="nav-section-label">Content</span><span class="nav-section-line"></span></div><a href="/content-studio">Content Studio</a><a class="active" href="/articles">Drafts &amp; Articles</a><a href="/review">Review Queue</a><a href="/publish">Publish Queue</a><div class="nav-section"><span class="nav-section-label">Research</span><span class="nav-section-line"></span></div><a href="/sites">Own Sites</a><a href="/competitors">Competitors</a><a href="/keywords">Keywords</a><a href="/serp">SERP Intelligence</a><div class="nav-section"><span class="nav-section-label">System</span><span class="nav-section-line"></span></div><a href="/settings">Settings</a><a href="/admin/live-games">Live Games</a></nav></aside><main class="main"><section class="hero"><div><p class="eyebrow">${escapeHtml(article.status || 'draft')} article · quality ${escapeHtml(article.quality_score || 0)}</p><h1>${escapeHtml(article.title || 'Untitled')}</h1><p>${escapeHtml(article.primary_keyword || 'No keyword')} · ${escapeHtml(site)}</p></div><div class="actions"><a class="btn primary" href="/articles/${article.id}/edit">Edit Draft</a><form method="post" action="/articles/${article.id}/status"><button name="status" value="review" class="btn">Review</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="approved" class="btn">Approve</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="queued" class="btn">Queue</button></form></div></section><div class="grid two"><section class="card"><h2>SEO fields</h2><div class="metric-row"><strong>Slug</strong><span>${escapeHtml(article.slug || '')}</span></div><div class="metric-row"><strong>Meta title</strong><span>${escapeHtml(article.meta_title || '')}</span></div><div class="metric-row"><strong>Meta description</strong><span>${escapeHtml(article.meta_description || '')}</span></div><div class="metric-row"><strong>Image alt</strong><span>${escapeHtml(article.featured_image_alt || '')}</span></div><div class="metric-row"><strong>Published URL</strong><span>${article.published_url ? `<a target="_blank" href="${escapeHtml(article.published_url)}">${escapeHtml(article.published_url)}</a>` : 'Not published'}</span></div></section><section class="card"><h2>Featured image</h2>${imageBlock}</section></div><section class="card article-preview"><h2>Article body</h2><div class="rendered-article">${body}</div></section><section class="card danger-zone"><h2>Actions</h2><div class="actions"><form method="post" action="/publish/${article.id}"><input name="published_url" placeholder="Optional published URL"><button class="btn">Mark Published</button></form><form method="post" action="/articles/${article.id}/delete" onsubmit="return confirm('Delete this article?')"><button class="btn danger">Delete</button></form></div></section></main></div></body></html>`;
 }
 
-function bodyForPublishing(article){
+function bodyForPublishing(article) {
   const format = String(process.env.PUBLISH_BODY_FORMAT || 'html').toLowerCase();
   const body = article.body || article.content || '';
   if (format === 'markdown') return body;
@@ -609,22 +609,22 @@ function bodyForPublishing(article){
 }
 
 function slugify(input = '') { return String(input).toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 180) || `article-${Date.now()}`; }
-function safeArticleTitle(value, fallback='Untitled SEO Article') {
-  let cleaned = String(value||'').replace(/\s+/g,' ').trim();
+function safeArticleTitle(value, fallback = 'Untitled SEO Article') {
+  let cleaned = String(value || '').replace(/\s+/g, ' ').trim();
   // Strip competitor brand names from titles — they must never appear in NativPost article titles
-  const competitorBrands = ['game host bros','gamehostbros','nitrado','gportal','g-portal',
-    'shockbyte','bisecthosting','bisect hosting','hosthavoc','apexhosting','apex hosting',
-    'scalacube','nodecraft','sparkedhost','sparked host','pingperfect','fragnet','gtxgaming'];
+  const competitorBrands = ['game host bros', 'gamehostbros', 'nitrado', 'gportal', 'g-portal',
+    'shockbyte', 'bisecthosting', 'bisect hosting', 'hosthavoc', 'apexhosting', 'apex hosting',
+    'scalacube', 'nodecraft', 'sparkedhost', 'sparked host', 'pingperfect', 'fragnet', 'gtxgaming'];
   for (const brand of competitorBrands) {
     // Remove "- Brand Alternative", "vs Brand", "Brand Alternative |", etc.
-    cleaned = cleaned.replace(new RegExp('\\s*[-–]\\s*' + brand.replace(/[-]/g,'[-–]') + '(\\s+alternative)?','gi'), '');
-    cleaned = cleaned.replace(new RegExp('\\bvs\\.?\\s*' + brand.replace(/[-]/g,'[-–]') + '(\\s+alternative)?\\s*\\|?','gi'), '');
-    cleaned = cleaned.replace(new RegExp('\\b' + brand.replace(/[-]/g,'[-–]') + '(\\s+alternative)?\\s*[-–|]?','gi'), '');
+    cleaned = cleaned.replace(new RegExp('\\s*[-–]\\s*' + brand.replace(/[-]/g, '[-–]') + '(\\s+alternative)?', 'gi'), '');
+    cleaned = cleaned.replace(new RegExp('\\bvs\\.?\\s*' + brand.replace(/[-]/g, '[-–]') + '(\\s+alternative)?\\s*\\|?', 'gi'), '');
+    cleaned = cleaned.replace(new RegExp('\\b' + brand.replace(/[-]/g, '[-–]') + '(\\s+alternative)?\\s*[-–|]?', 'gi'), '');
   }
   // Clean up orphaned separators
-  cleaned = cleaned.replace(/\s*[-–|]\s*$/, '').replace(/^\s*[-–|]\s*/, '').replace(/\s+/g,' ').trim();
+  cleaned = cleaned.replace(/\s*[-–|]\s*$/, '').replace(/^\s*[-–|]\s*/, '').replace(/\s+/g, ' ').trim();
   // Ensure | NativPost is present if brand name was removed leaving trailing space
-  return cleaned ? cleaned.slice(0,500) : fallback;
+  return cleaned ? cleaned.slice(0, 500) : fallback;
 }
 
 function parseDbDate(value) {
@@ -650,7 +650,7 @@ function formatAppDateTime(value) {
 function autoPublishWindowLabel() {
   return `auto-publishes on the next scheduler check, every ${AUTO_PUBLISH_INTERVAL_MINUTES} minute${AUTO_PUBLISH_INTERVAL_MINUTES === 1 ? '' : 's'}`;
 }
-function schedulePublishLabel(row={}) {
+function schedulePublishLabel(row = {}) {
   const value = scheduledValueFromRow(row);
   if (!value) return 'Due now — ' + autoPublishWindowLabel();
   const d = parseDbDate(value);
@@ -658,30 +658,30 @@ function schedulePublishLabel(row={}) {
   if (d.getTime() <= Date.now()) return 'Due now — ' + autoPublishWindowLabel();
   return 'Publishes ' + formatAppDateTime(value);
 }
-function publishedLabel(row={}) {
+function publishedLabel(row = {}) {
   return row?.published_at ? 'Published ' + formatAppDateTime(row.published_at) : 'Published';
 }
 
-function scheduledValueFromRow(row={}) { return row.scheduled_for || row.scheduled_date || null; }
+function scheduledValueFromRow(row = {}) { return row.scheduled_for || row.scheduled_date || null; }
 
 // Rewrites a site URL to use CRAWL_BASE_URL when set.
 // This lets the app crawl http://localhost:PORT while the public domain isn't live yet,
 // while still storing the public URL (e.g. https://nativpost.com) as canonical.
-function resolveCrawlUrl(publicUrl='') {
+function resolveCrawlUrl(publicUrl = '') {
   if (!CRAWL_BASE_URL || !publicUrl) return publicUrl;
   try {
     const u = new URL(normalizeUrl(publicUrl));
     const base = new URL(CRAWL_BASE_URL);
     u.protocol = base.protocol;
     u.hostname = base.hostname;
-    u.port     = base.port;
+    u.port = base.port;
     return u.toString().replace(/\/$/, '');
   } catch { return publicUrl; }
 }
 
 function normalizeUrl(raw = '') {
   const value = String(raw || '').trim(); if (!value) return '';
-  try { const u = new URL(value.includes('://') ? value : `https://${value}`); u.hash=''; return u.toString().replace(/\/$/, ''); } catch { return value; }
+  try { const u = new URL(value.includes('://') ? value : `https://${value}`); u.hash = ''; return u.toString().replace(/\/$/, ''); } catch { return value; }
 }
 function normalizeImageUrl(raw = '') {
   if (raw === null || raw === undefined) return '';
@@ -701,10 +701,10 @@ function normalizeImageUrl(raw = '') {
   return value;
 }
 
-function originOf(raw='') { try { return new URL(normalizeUrl(raw)).origin; } catch { return normalizeUrl(raw); } }
-function hostOf(raw='') { try { return new URL(normalizeUrl(raw)).host.replace(/^www\./,''); } catch { return String(raw||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]; } }
-function pathOf(raw='') { try { return new URL(normalizeUrl(raw)).pathname || '/'; } catch { return '/'; } }
-function titleFromUrl(raw='') { const pathname = pathOf(raw).replace(/^\/+|\/+$/g,''); if (!pathname) return ''; const last = pathname.split('/').filter(Boolean).pop() || pathname; return last.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,500); }
+function originOf(raw = '') { try { return new URL(normalizeUrl(raw)).origin; } catch { return normalizeUrl(raw); } }
+function hostOf(raw = '') { try { return new URL(normalizeUrl(raw)).host.replace(/^www\./, ''); } catch { return String(raw || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; } }
+function pathOf(raw = '') { try { return new URL(normalizeUrl(raw)).pathname || '/'; } catch { return '/'; } }
+function titleFromUrl(raw = '') { const pathname = pathOf(raw).replace(/^\/+|\/+$/g, ''); if (!pathname) return ''; const last = pathname.split('/').filter(Boolean).pop() || pathname; return last.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).slice(0, 500); }
 function stripHtml(html = '') { return String(html).replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim(); }
 function extractTitle(html = '') { return stripHtml(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '').slice(0, 500); }
 function extractH1(html = '') { return stripHtml(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || '').slice(0, 500); }
@@ -717,21 +717,21 @@ function extractMeta(html = '', key = 'description') {
   for (const p of patterns) { const m = String(html).match(p); if (m) return stripHtml(m[1]).slice(0, 500); }
   return '';
 }
-function extractCanonical(html='', base='') { try { const m=String(html).match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i); return m ? new URL(m[1], base).toString() : ''; } catch { return ''; } }
+function extractCanonical(html = '', base = '') { try { const m = String(html).match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i); return m ? new URL(m[1], base).toString() : ''; } catch { return ''; } }
 function extractLinks(html = '', base = '') {
   const out = [];
   for (const m of String(html).matchAll(/<a[^>]+href=["']([^"']+)["']/gi)) {
     try {
       const href = m[1]; if (!href || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) continue;
-      const u = new URL(href, base); if (/^https?:$/.test(u.protocol)) { u.hash=''; out.push(u.toString().replace(/\/$/, '')); }
-    } catch {}
+      const u = new URL(href, base); if (/^https?:$/.test(u.protocol)) { u.hash = ''; out.push(u.toString().replace(/\/$/, '')); }
+    } catch { }
   }
   return [...new Set(out)].slice(0, 600);
 }
 function extractImages(html = '', base = '') {
   const out = [];
   const seen = new Set();
-  function add(raw='', alt='') {
+  function add(raw = '', alt = '') {
     try {
       raw = String(raw || '').trim();
       if (!raw || /^data:image|base64|javascript:/i.test(raw)) return;
@@ -748,18 +748,18 @@ function extractImages(html = '', base = '') {
         if (nested && /\.(jpg|jpeg|png|webp)(\?|$)/i.test(decodeURIComponent(nested))) {
           url = new URL(decodeURIComponent(nested), url).toString();
         }
-      } catch {}
+      } catch { }
       if (/\.svg($|\?)|logo|favicon|tracking|pixel/i.test(url.toLowerCase())) return;
       if (seen.has(url)) return;
       seen.add(url);
-      out.push({ url, alt: stripHtml(alt || '').slice(0,255) });
-    } catch {}
+      out.push({ url, alt: stripHtml(alt || '').slice(0, 255) });
+    } catch { }
   }
   const text = String(html || '');
   for (const m of text.matchAll(/<img[^>]*>/gi)) {
     const tag = m[0];
     const alt = tag.match(/alt=["']([^"']*)["']/i)?.[1] || tag.match(/title=["']([^"']*)["']/i)?.[1] || '';
-    for (const a of ['data-full','data-original','data-large','data-src','src','data-lazy-src','data-url']) {
+    for (const a of ['data-full', 'data-original', 'data-large', 'data-src', 'src', 'data-lazy-src', 'data-url']) {
       const v = tag.match(new RegExp(`${a}=[\"']([^\"']+)[\"']`, 'i'))?.[1];
       if (v) add(v, alt);
     }
@@ -771,7 +771,7 @@ function extractImages(html = '', base = '') {
     const tag = m[0];
     const srcset = tag.match(/(?:srcset|data-srcset)=["']([^"']+)["']/i)?.[1];
     if (srcset) add(srcset, 'official media screenshot');
-    for (const a of ['data-src','src','data-url']) {
+    for (const a of ['data-src', 'src', 'data-url']) {
       const v = tag.match(new RegExp(`${a}=[\"']([^\"']+)[\"']`, 'i'))?.[1];
       if (v) add(v, 'official media screenshot');
     }
@@ -781,25 +781,25 @@ function extractImages(html = '', base = '') {
   for (const m of text.matchAll(/https?:\/\/[^"'\s<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'\s<>]*)?/gi)) add(m[0], '');
   // Handle escaped JSON/Next.js image references such as \u002F_next\u002Fimage?url=... or https:\/\/cdn...\/file.jpg
   // Strip script tags before scanning for image URLs - prevents JS code from matching
-  const noScripts = String(html||'').replace(/<script[\s\S]*?<\/script>/gi, ' ');
+  const noScripts = String(html || '').replace(/<script[\s\S]*?<\/script>/gi, ' ');
   const unescaped = noScripts.replace(/\u002F/g, '/').replace(/\\\//g, '/').replace(/&amp;/g, '&');
   for (const m of unescaped.matchAll(/https?:\/\/[^"'\s<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^"'\s<>]*)?/gi)) add(m[0], '');
   for (const m of unescaped.matchAll(/(?:url|src|image)=([^"'\s<>]+\.(?:jpg|jpeg|png|webp)(?:[^"'\s<>]*)?)/gi)) {
     try { add(decodeURIComponent(m[1]), 'official media screenshot'); } catch { add(m[1], 'official media screenshot'); }
   }
   for (const m of noScripts.matchAll(/\\\/(?:\\\/)?[^"']+\.(?:jpg|jpeg|png|webp)/gi)) {
-    try { add(m[0].replace(/\\\//g, '/').replace(/^\/\//, 'https://'), ''); } catch {}
+    try { add(m[0].replace(/\\\//g, '/').replace(/^\/\//, 'https://'), ''); } catch { }
   }
   return out.slice(0, 120);
 }
-function looksLikePressImage(url='', alt='') {
+function looksLikePressImage(url = '', alt = '') {
   const x = `${url} ${alt}`.toLowerCase();
-  if (!/^https?:\/\//i.test(String(url||''))) return false;
+  if (!/^https?:\/\//i.test(String(url || ''))) return false;
   if (/\.svg($|\?)|logo|icon|favicon|esrb|rating|avatar|sprite|tracking|pixel|analytics/i.test(x)) return false;
   return /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url) || /image|screenshot|keyart|key-art|wallpaper|press|media|cdn|assets|uploads/i.test(x);
 }
-function imageScoreForGame(img={}, game='') {
-  const x = `${img.url||''} ${img.alt||''}`.toLowerCase();
+function imageScoreForGame(img = {}, game = '') {
+  const x = `${img.url || ''} ${img.alt || ''}`.toLowerCase();
   let score = 0;
   if (game && x.includes(String(game).toLowerCase())) score += 25;
   if (/screenshot|screenshots/.test(x)) score += 20;
@@ -809,14 +809,14 @@ function imageScoreForGame(img={}, game='') {
   return score;
 }
 
-function canonicalImageSourceUrl(url='') {
+function canonicalImageSourceUrl(url = '') {
   try {
     let raw = String(url || '').trim().replace(/&amp;/g, '&');
     const u = new URL(raw);
-    for (const param of ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid']) u.searchParams.delete(param);
+    for (const param of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']) u.searchParams.delete(param);
     const nested = u.searchParams.get('url') || u.searchParams.get('src') || u.searchParams.get('image');
     if (nested) {
-      try { return canonicalImageSourceUrl(decodeURIComponent(nested)); } catch {}
+      try { return canonicalImageSourceUrl(decodeURIComponent(nested)); } catch { }
     }
     u.hash = '';
     return u.toString();
@@ -824,13 +824,13 @@ function canonicalImageSourceUrl(url='') {
     return String(url || '').trim();
   }
 }
-function sha256Text(value='') { return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex'); }
+function sha256Text(value = '') { return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex'); }
 function sha256Buffer(buffer) { return crypto.createHash('sha256').update(buffer).digest('hex'); }
-function pressKitSeedsForGame(game='') {
+function pressKitSeedsForGame(game = '') {
   const key = detectGame(game) || normalizeGameName(game);
   return [...new Set(PRESS_KIT_SEEDS[key] || [])].filter(Boolean);
 }
-async function discoverPressKitImages(game='', options={}) {
+async function discoverPressKitImages(game = '', options = {}) {
   const key = detectGame(game) || normalizeGameName(game);
   const found = [];
   // Try Steam API first — most reliable source of official screenshots
@@ -852,7 +852,7 @@ async function discoverPressKitImages(game='', options={}) {
     try {
       // If a crawl link is already an image/download URL, keep it as a candidate instead of trying to parse it as HTML.
       if (/\.(jpg|jpeg|png|webp)(\?|$)/i.test(url) || /\b(download|wallpaper|screenshot|image)\b/i.test(url)) {
-        found.push({ url, alt: `${gameDisplay(key || game)} official media screenshot`, label: `${gameDisplay(key || game)} press kit image`, sourcePage: url, sourceTitle: titleFromUrl(url), score: imageScoreForGame({url, alt:'official media screenshot'}, key) + 5 });
+        found.push({ url, alt: `${gameDisplay(key || game)} official media screenshot`, label: `${gameDisplay(key || game)} press kit image`, sourcePage: url, sourceTitle: titleFromUrl(url), score: imageScoreForGame({ url, alt: 'official media screenshot' }, key) + 5 });
         if (/\.(jpg|jpeg|png|webp)(\?|$)/i.test(url)) continue;
       }
       const { html } = await fetchUrl(url, 14000);
@@ -867,15 +867,15 @@ async function discoverPressKitImages(game='', options={}) {
         return /press|media|asset|kit|screenshot|screenshots|image|wallpaper|collectible|collectibles|download|minecraft\.net\/en-us\/(article|articles|collectibles)|google\.com\/drive|dropbox|cdn/.test(t);
       }).slice(0, 8);
       queue.push(...links);
-    } catch(e) {}
+    } catch (e) { }
   }
   const unique = [];
   const seen = new Set();
-  for (const img of found.sort((a,b)=>(b.score||0)-(a.score||0))) {
+  for (const img of found.sort((a, b) => (b.score || 0) - (a.score || 0))) {
     if (seen.has(img.url)) continue;
     seen.add(img.url);
     unique.push(img);
-  }  let final = unique;
+  } let final = unique;
   if (key === 'minecraft') {
     final = final.filter(img => {
       const x = String(img.url + ' ' + img.alt + ' ' + img.sourcePage).toLowerCase();
@@ -888,8 +888,8 @@ async function discoverPressKitImages(game='', options={}) {
   }
   return final.slice(0, Number(options.limit || process.env.PRESS_KIT_SAVE_LIMIT || 12));
 }
-async function downloadImageToUploads(url, game='press-kit') {
-  const safeGame = slugify(game || 'press-kit').replace(/[^a-z0-9-]/g,'') || 'press-kit';
+async function downloadImageToUploads(url, game = 'press-kit') {
+  const safeGame = slugify(game || 'press-kit').replace(/[^a-z0-9-]/g, '') || 'press-kit';
   const sourceUrl = canonicalImageSourceUrl(url);
   const resp = await axios.get(sourceUrl, { timeout: 30000, responseType: 'arraybuffer', maxRedirects: 8, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NativPostSEOBot/1.0; +https://nativpost.com)', 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8', 'Referer': originOf(sourceUrl) || 'https://nativpost.com/' }, validateStatus: st => st >= 200 && st < 400 });
   const type = String(resp.headers['content-type'] || '').toLowerCase();
@@ -907,16 +907,16 @@ async function downloadImageToUploads(url, game='press-kit') {
 }
 
 
-function isLocalUploadUrl(url='') {
+function isLocalUploadUrl(url = '') {
   return String(url || '').startsWith('/uploads/');
 }
-function localUploadPath(url='') {
+function localUploadPath(url = '') {
   if (!isLocalUploadUrl(url)) return '';
   const clean = String(url).split('?')[0].replace(/^\/uploads\//, '');
   if (!clean || clean.includes('..') || clean.includes('/') || clean.includes('\\')) return '';
   return path.join(uploadDir, clean);
 }
-function localUploadFileOk(url='', minBytes=12000) {
+function localUploadFileOk(url = '', minBytes = 12000) {
   try {
     const fp = localUploadPath(url);
     if (!fp) return false;
@@ -932,7 +932,7 @@ async function cleanupBrokenLocalPressKitAssets() {
       await q('UPDATE articles SET featured_image_id=NULL, featured_image_url=NULL WHERE featured_image_id=? OR featured_image_url=?', [r.id, r.asset_url]);
       await q('DELETE FROM article_assets WHERE id=?', [r.id]);
     }
-  } catch(e) { console.warn('Press-kit local image cleanup skipped:', e.message); }
+  } catch (e) { console.warn('Press-kit local image cleanup skipped:', e.message); }
 }
 async function dedupeExistingLocalPressKitAssets() {
   try {
@@ -952,9 +952,9 @@ async function dedupeExistingLocalPressKitAssets() {
       const keep = seen.get(key);
       await q('UPDATE articles SET featured_image_id=?, featured_image_url=? WHERE featured_image_id=? OR featured_image_url=?', [keep.id, keep.asset_url, r.id, r.asset_url]);
       await q('DELETE FROM article_assets WHERE id=?', [r.id]);
-      try { fs.unlinkSync(fp); } catch {}
+      try { fs.unlinkSync(fp); } catch { }
     }
-  } catch(e) { console.warn('Press-kit duplicate cleanup skipped:', e.message); }
+  } catch (e) { console.warn('Press-kit duplicate cleanup skipped:', e.message); }
 }
 async function cleanupBrokenArticleImageRefs() {
   try {
@@ -963,16 +963,16 @@ async function cleanupBrokenArticleImageRefs() {
       if (localUploadFileOk(a.featured_image_url, Number(process.env.PRESS_KIT_MIN_LOCAL_BYTES || 12000))) continue;
       await q('UPDATE articles SET featured_image_id=NULL, featured_image_url=NULL WHERE id=?', [a.id]);
     }
-  } catch(e) { console.warn('Article image cleanup skipped:', e.message); }
+  } catch (e) { console.warn('Article image cleanup skipped:', e.message); }
 }
-async function imageUseCountsForGame(game='') {
+async function imageUseCountsForGame(game = '') {
   const key = detectGame(game) || normalizeGameName(game);
   const rows = await q("SELECT featured_image_id id, COUNT(*) used FROM articles WHERE featured_image_id IS NOT NULL AND LOWER(COALESCE(primary_keyword,title,'')) LIKE ? GROUP BY featured_image_id", [`%${key}%`]);
   const m = new Map();
   for (const r of rows) m.set(Number(r.id), Number(r.used || 0));
   return m;
 }
-async function importPressKitAssets(game='', siteId=null, limit=3) {
+async function importPressKitAssets(game = '', siteId = null, limit = 3) {
   const key = detectGame(game) || normalizeGameName(game);
   if (!key) return [];
   const requested = Math.max(Number(limit || 3), 1);
@@ -987,13 +987,13 @@ async function importPressKitAssets(game='', siteId=null, limit=3) {
       if (existingSource) continue;
       const downloaded = await downloadImageToUploads(sourceUrl, key);
       const existingFile = await one('SELECT id FROM article_assets WHERE game_slug=? AND file_sha256=? LIMIT 1', [key, downloaded.fileSha256]);
-      if (existingFile) { try { fs.unlinkSync(localUploadPath(downloaded.assetUrl)); } catch {} continue; }
+      if (existingFile) { try { fs.unlinkSync(localUploadPath(downloaded.assetUrl)); } catch { } continue; }
       const alt = truncate(img.alt || `${gameDisplay(key)} official press kit image`, 255);
       const label = truncate(`${gameDisplay(key)} press kit - ${img.sourceTitle || titleFromUrl(img.sourcePage || sourceUrl) || 'official image'}`, 255);
-      const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text,source_url,source_hash,file_sha256,source_page) VALUES (?,?,?,?,?,?,?,?,?,?)',[siteId || null, label, key, key, downloaded.assetUrl, alt, sourceUrl, sourceHash, downloaded.fileSha256, img.sourcePage || null]);
-      const row = await one('SELECT * FROM article_assets WHERE id=?',[result.insertId]);
+      const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text,source_url,source_hash,file_sha256,source_page) VALUES (?,?,?,?,?,?,?,?,?,?)', [siteId || null, label, key, key, downloaded.assetUrl, alt, sourceUrl, sourceHash, downloaded.fileSha256, img.sourcePage || null]);
+      const row = await one('SELECT * FROM article_assets WHERE id=?', [result.insertId]);
       saved.push(row);
-    } catch(e) {}
+    } catch (e) { }
   }
   return saved;
 }
@@ -1019,14 +1019,14 @@ const TOPIC_IMAGE_TERMS = {
   'setup': 'gaming,setup,computer',
   'default': 'gaming,server,esports'
 };
-function topicImageQuery(keyword='') {
-  const k = String(keyword||'').toLowerCase();
+function topicImageQuery(keyword = '') {
+  const k = String(keyword || '').toLowerCase();
   for (const [term, query] of Object.entries(TOPIC_IMAGE_TERMS)) {
     if (k.includes(term)) return query;
   }
   return TOPIC_IMAGE_TERMS.default;
 }
-async function fetchTopicImageForKeyword(keyword='', siteId=null) {
+async function fetchTopicImageForKeyword(keyword = '', siteId = null) {
   try {
     const query = topicImageQuery(keyword);
     // Use Unsplash Source API - free redirect, no key needed
@@ -1044,16 +1044,16 @@ async function fetchTopicImageForKeyword(keyword='', siteId=null) {
     if (!asset) return null;
     const result = await q(
       'INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)',
-      [siteId||null, label, null, 'topic-images', asset.localPath, altText]
+      [siteId || null, label, null, 'topic-images', asset.localPath, altText]
     );
     return await one('SELECT * FROM article_assets WHERE id=?', [result.insertId]);
-  } catch(e) {
+  } catch (e) {
     console.log('[TopicImage] Failed for "' + keyword + '":', e.message);
     return null;
   }
 }
 
-async function ensurePressKitAssetForGame(game='', siteId=null) {
+async function ensurePressKitAssetForGame(game = '', siteId = null) {
   const key = detectGame(game) || normalizeGameName(game);
   if (!key) return null;
   await cleanupBrokenLocalPressKitAssets();
@@ -1074,18 +1074,18 @@ async function ensurePressKitAssetForGame(game='', siteId=null) {
   if (!candidates.length) return null;
 
   const useCounts = await imageUseCountsForGame(key);
-  candidates.sort((a,b) => (useCounts.get(Number(a.id)) || 0) - (useCounts.get(Number(b.id)) || 0) || Math.random() - 0.5);
+  candidates.sort((a, b) => (useCounts.get(Number(a.id)) || 0) - (useCounts.get(Number(b.id)) || 0) || Math.random() - 0.5);
   const leastUsed = useCounts.get(Number(candidates[0].id)) || 0;
   const pool = candidates.filter(c => (useCounts.get(Number(c.id)) || 0) === leastUsed).slice(0, 8);
   return pool[Math.floor(Math.random() * pool.length)] || candidates[0] || null;
 }
 
 function tokens(text = '') { return String(text).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(x => x.length > 2 && !STOPWORDS.has(x)); }
-function topTerms(texts = [], limit = 40) { const m = new Map(); for (const t of texts) for (const tok of tokens(t)) { const k = cleanKeyword(tok); if (k) m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0, limit).map(([keyword,count])=>({keyword,count})); }
+function topTerms(texts = [], limit = 40) { const m = new Map(); for (const t of texts) for (const tok of tokens(t)) { const k = cleanKeyword(tok); if (k) m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([keyword, count]) => ({ keyword, count })); }
 
-const BAD_KEYWORDS = new Set(['nitrado','gportal','shockbyte','bisecthosting','hosthavoc','apex','und','oder','der','die','das','mieten','sofort','gameserver','spieleserver','nstig','gmbh','com','net','www']);
-function isBadKeyword(keyword='') {
-  const k = String(keyword||'').toLowerCase().trim();
+const BAD_KEYWORDS = new Set(['nitrado', 'gportal', 'shockbyte', 'bisecthosting', 'hosthavoc', 'apex', 'und', 'oder', 'der', 'die', 'das', 'mieten', 'sofort', 'gameserver', 'spieleserver', 'nstig', 'gmbh', 'com', 'net', 'www']);
+function isBadKeyword(keyword = '') {
+  const k = String(keyword || '').toLowerCase().trim();
   if (!k || k.length < 5) return true;
   if (BAD_KEYWORDS.has(k)) return true;
   if (/^[0-9]+$/.test(k)) return true;
@@ -1097,8 +1097,8 @@ function isBadKeyword(keyword='') {
   if (/\b(und|oder|der|die|das|ein|eine|mieten|sofort|spieleserver|gameserver)\b/.test(k)) return true; // Remove non-English garbage keywords
   return false;
 }
-function cleanKeyword(keyword='') {
-  let k = String(keyword||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').replace(/\s+/g,' ').trim();
+function cleanKeyword(keyword = '') {
+  let k = String(keyword || '').toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
   if (isBadKeyword(k)) return '';
   // Accept any keyword related to social media, AI content, brand voice, or NativPost
   // NativPost: keep social media, AI, brand voice, and SaaS keywords. Block pure game hosting.
@@ -1106,7 +1106,7 @@ function cleanKeyword(keyword='') {
   if (isGameHostingOnly) return '';
   const isRelevant = /(social media|brand voice|content|caption|ai|nativpost|schedul|publish|instagram|linkedin|tiktok|twitter|facebook|youtube|threads|pinterest|africa|nigeria|kenya|ghana|smb|agency|marketing|ocoya|buffer|hootsuite|jasper|predis|feedhive|video|ugc|pricing|review|best|how|guide|tool|platform|automat)/i.test(k);
   if (!isRelevant && k.split(' ').length < 2) return '';
-  return k.slice(0,120);
+  return k.slice(0, 120);
 }
 function strategicFallbackTopics() {
   // NativPost core keywords — used as fallback when no keyword is specified
@@ -1126,10 +1126,10 @@ function strategicFallbackTopics() {
     'how to build a brand voice on social media',
   ];
 }
-function safeJsonParse(value, fallback=null){ try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
-function articleTitleFor(keyword='') {
+function safeJsonParse(value, fallback = null) { try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
+function articleTitleFor(keyword = '') {
   const k = cleanKeyword(keyword) || 'ai social media content generator';
-  const nice = k.replace(/\b\w/g,c=>c.toUpperCase());
+  const nice = k.replace(/\b\w/g, c => c.toUpperCase());
   // Comparison / alternative articles
   if (/vs\.?\s|versus|alternative/.test(k)) return `${nice} in 2026: The Honest Comparison`;
   // Best-of / listicles
@@ -1147,16 +1147,16 @@ function articleTitleFor(keyword='') {
   // Default — benefit-led
   return `${nice}: Stop Sounding Like AI in 2026`;
 }
-async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[], competitorTerms=[], imageHints=[], offerFacts='', serp=null, extended=false}) {
+async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages = [], competitorTerms = [], imageHints = [], offerFacts = '', serp = null, extended = false }) {
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
   if (!hasAnthropic && !hasOpenAI) return null;
   const target = cleanKeyword(keyword) || keyword || 'ai social media content';
-  const serpAvgWords  = Number(serp?.avg_words || 0);
-  const wordTarget    = Math.max(1600, serpAvgWords >= 800 ? serpAvgWords + 200 : 1600);
+  const serpAvgWords = Number(serp?.avg_words || 0);
+  const wordTarget = Math.max(1600, serpAvgWords >= 800 ? serpAvgWords + 200 : 1600);
   const serpQuestions = (serp?.questions || []).slice(0, 10).join('\n- ');
-  const serpFeatures  = (serp?.serp_features || []).join(', ') || 'standard organic';
-  const serpIntent    = serp?.serp_intent || 'mixed';
+  const serpFeatures = (serp?.serp_features || []).join(', ') || 'standard organic';
+  const serpIntent = serp?.serp_intent || 'mixed';
   // Detect whether this is a game-specific article or a brand/company article
   const detectedGameInKw = detectGame(target);
   const isGameArticle = false; // NativPost: never a game article
@@ -1189,15 +1189,15 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     offerFacts ? 'NativPost offer context:\n' + offerFacts.trim() : '',
     '',
 
-    `Existing internal pages to link naturally: ${ownPages.map(p=>`${p.page_title||'Page'} - ${p.page_url}`).slice(0,10).join(' | ')}`,
-    `Competitor pages observed: ${competitorPages.map(p=>`${p.page_title||'Untitled'} - ${p.page_url} (${p.word_count||0} words)`).slice(0,12).join(' | ')}`,
-    `Competitor topical terms to cover, only if relevant: ${competitorTerms.filter(x=>!isBadKeyword(x)).slice(0,30).join(', ')}`,
-    `Image hints available: ${imageHints.map(i=>`${i.label||''} ${i.game_slug||''} ${i.alt_text||''}`).slice(0,8).join(' | ')}`,
+    `Existing internal pages to link naturally: ${ownPages.map(p => `${p.page_title || 'Page'} - ${p.page_url}`).slice(0, 10).join(' | ')}`,
+    `Competitor pages observed: ${competitorPages.map(p => `${p.page_title || 'Untitled'} - ${p.page_url} (${p.word_count || 0} words)`).slice(0, 12).join(' | ')}`,
+    `Competitor topical terms to cover, only if relevant: ${competitorTerms.filter(x => !isBadKeyword(x)).slice(0, 30).join(', ')}`,
+    `Image hints available: ${imageHints.map(i => `${i.label || ''} ${i.game_slug || ''} ${i.alt_text || ''}`).slice(0, 8).join(' | ')}`,
     '',
     `SERP intelligence for "${target}":`,
     `- Search intent: ${serpIntent}`,
     `- SERP features present: ${serpFeatures}`,
-    `- Top-ranking pages average word count: ${serpAvgWords || 'unknown'} words — target ${wordTarget}–${wordTarget+400} words`,
+    `- Top-ranking pages average word count: ${serpAvgWords || 'unknown'} words — target ${wordTarget}–${wordTarget + 400} words`,
     `- People Also Ask / questions to answer in FAQ:`,
     serpQuestions ? '- ' + serpQuestions : '(none captured — use common questions for this game/topic)',
     '',
@@ -1223,7 +1223,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `Requirements:`,
     `- AI SEARCH OPTIMIZATION (critical for 2025+): Structure content so AI systems (Google AI Overviews, Perplexity) can cite NativPost directly. (1) Open with a 2-3 sentence Quick Answer stating what NativPost does and its starting price — LLMs extract this as a snippet. (2) Use specific factual statements with exact numbers (e.g. "NativPost's anti-slop filter scores every post 0-1 and auto-rejects below 0.7") — vague claims don't get cited. (3) Every FAQ answer must be self-contained and answer the question in the first sentence. (4) Include a clear "Why NativPost" section with specific differentiators. AI systems reward specificity.`,
     `- BRAND NAME RULE: Include "NativPost" naturally in the article title, at least one H2 heading, the intro paragraph, and the conclusion/CTA. Brand name must appear minimum 4-6 times in the body. CTA must always link to app.nativpost.com with "Start your 7-day free trial" language.`,
-    `- Body must be a complete, high-converting article targeting ${wordTarget}–${wordTarget+400} words. COUNT WORDS AS YOU WRITE.`,
+    `- Body must be a complete, high-converting article targeting ${wordTarget}–${wordTarget + 400} words. COUNT WORDS AS YOU WRITE.`,
     `- Search intent is ${serpIntent}. Answer the reader's core question immediately: what NativPost does, how it differs from Ocoya/Buffer/Jasper, what it costs, how to start the 7-day trial.`,
     isGameArticle ? `- GAME ARTICLE STRUCTURE (mandatory):
   1. H1 with keyword — use curiosity gap or data hook when possible. Include "2026" in title or first H2.
@@ -1248,7 +1248,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
   9. Feature comparison table: NativPost vs competitors (Ocoya, Buffer, Jasper) on key dimensions.
   10. ## FAQ — minimum 5 Q&A pairs as ### H3 questions with self-contained answers.
   11. Final CTA: direct and specific. Include "7-day free trial at app.nativpost.com".`,
-    `- The body MUST be ${wordTarget}–${wordTarget+400} words. This is non-negotiable. If you finish the structure and are under ${wordTarget} words, expand EVERY section by adding more specific sentences — do not add new filler sections.`,
+    `- The body MUST be ${wordTarget}–${wordTarget + 400} words. This is non-negotiable. If you finish the structure and are under ${wordTarget} words, expand EVERY section by adding more specific sentences — do not add new filler sections.`,
     `- GEO/AI answer optimization: write facts as declarative citable sentences. Entity-clear phrasing. No vague pronouns.`,
     `- Include 3-5 internal markdown links to NativPost blog posts or pages (nativpost.com/blog/, app.nativpost.com). Place naturally in context.`,
     isGameArticle
@@ -1258,7 +1258,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `- Do not mention refunds, money-back guarantees, or 30-day guarantees. NativPost offers a ${NP_TRIAL_DAYS}-day free trial (3 posts max, text only).`,
     `- Do not claim NativPost offers unlimited posts on Starter or a free forever plan. Starter is 15 posts/mo at $19/mo with a $5 setup fee.`,
     `- For server RAM sections: use ONLY the RAM figures from the VERIFIED GAME FACTS above. Do not invent tiers.`,
-        `- NATIVPOST PLAN DATA: Use these exact pricing facts for ALL plan claims. Starter $19/mo (15 posts, 3 platforms), Growth $39/mo (40 posts, 6 platforms, video), Pro $79/mo (80 posts, unlimited platforms), Agency $149/mo (unlimited, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only). Source: ${NP_PACKAGE_RULES}`,
+    `- NATIVPOST PLAN DATA: Use these exact pricing facts for ALL plan claims. Starter $19/mo (15 posts, 3 platforms), Growth $39/mo (40 posts, 6 platforms, video), Pro $79/mo (80 posts, unlimited platforms), Agency $149/mo (unlimited, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only). Source: ${NP_PACKAGE_RULES}`,
     `- LINK FORMAT: All pricing, CTA, and 'View Pricing' links MUST use full absolute URLs. Examples: [Start Free Trial](https://app.nativpost.com), [View Plans](https://nativpost.com/pricing), [NativPost Blog](https://nativpost.com/blog). Never use relative URLs.`,
     `- NEVER invent NativPost features not confirmed in the business facts. Do NOT claim: free forever plan, unlimited posts on Starter, 30-day trial, money-back guarantee, or any platform not in the supported list. Only claim features explicitly listed in the NativPost business facts above.`,
     isGameArticle
@@ -1267,7 +1267,7 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
     `- Do not write generic filler. Make it specific to the keyword intent, brand/content marketer pain points, and NativPost's actual confirmed features.`,
     `- Meta description must be under 160 characters. Clearly answer searcher intent with specific entities and trustworthy detail.`,
   ].filter(s => s !== '').join('\n');
-// Use Anthropic Claude as primary, OpenAI as fallback
+  // Use Anthropic Claude as primary, OpenAI as fallback
   if (hasAnthropic) {
     try {
       const r = await axios.post('https://api.anthropic.com/v1/messages', {
@@ -1275,25 +1275,73 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
         max_tokens: 12000,
         messages: [{ role: 'user', content: prompt }]
       }, { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, timeout: 180000 });
-      const text = r.data?.content?.[0]?.text || '';
-      if (text) return { rawText: text, extended: false };
-    } catch(e) {
-      console.error('[Anthropic] Article generation failed, falling back to OpenAI:', e.message);
+      const rawText = r.data?.content?.[0]?.text || '';
+      if (rawText) {
+        // Strip markdown fences if Claude wrapped the JSON
+        const cleaned = rawText.trim()
+          .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+        try {
+          const parsed = JSON.parse(cleaned);
+          if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
+          if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
+          if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
+          const issues = forbiddenOfferClaims(`${parsed.title || ''}\n${parsed.meta_description || ''}\n${parsed.excerpt || ''}\n${parsed.body_markdown || ''}`);
+          if (issues.length) parsed.review_notes = `${parsed.review_notes || ''}\nAccuracy warning: ${issues.join('; ')}. Verify against NativPost pricing facts before publishing.`.trim();
+          if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 300) {
+            console.warn('[Anthropic] Body missing/too short (' + wordCount(parsed.body_markdown || '') + ' words) — checking OpenAI fallback');
+            if (!hasOpenAI) return null;
+            // Fall through to OpenAI
+          } else {
+            // Extend if under target word count
+            const wc = wordCount(parsed.body_markdown);
+            if (wc < 1500 && !extended) {
+              try {
+                const extPrompt = `The following article body is ${wc} words. Expand it to at least 1500 words.\n\nAdd:\n1. 2-3 more detailed sentences to each existing section\n2. One additional ## section if the topic warrants it\n3. 2 more FAQ Q&A pairs with self-contained answers\n\nReturn ONLY the expanded body_markdown as plain text (no JSON wrapper, no code fences).\n\nCurrent article body:\n${parsed.body_markdown}`;
+                const extR = await axios.post('https://api.anthropic.com/v1/messages', {
+                  model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5',
+                  max_tokens: 8000,
+                  messages: [{ role: 'user', content: extPrompt }]
+                }, { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, timeout: 120000 });
+                const extText = (extR.data?.content?.[0]?.text || '').trim()
+                  .replace(/^```(?:markdown)?\s*/i, '').replace(/```\s*$/, '').trim();
+                if (extText && wordCount(extText) > wc) {
+                  parsed.body_markdown = extText;
+                  console.log(`[Anthropic] Extended body from ${wc} to ${wordCount(extText)} words`);
+                }
+              } catch (extErr) { console.log('[Anthropic] Body extension failed:', extErr.message); }
+            }
+            return parsed;
+          }
+        } catch (parseErr) {
+          console.error('[Anthropic] JSON parse error:', parseErr.message);
+          console.error('[Anthropic] Response preview:', cleaned.slice(0, 300));
+          if (!hasOpenAI) return null;
+          // Fall through to OpenAI
+        }
+      }
+    } catch (e) {
+      console.error('[Anthropic] Article generation failed:', e.message);
       if (!hasOpenAI) throw e;
     }
   }
   if (!hasOpenAI) return null;
   const body = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: prompt, max_output_tokens: 12000 };
   try {
-    const r = await axios.post('https://api.openai.com/v1/responses', body, { headers: { Authorization:`Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type':'application/json' }, timeout: 120000 });
+    const r = await axios.post('https://api.openai.com/v1/responses', body, { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 });
     let text = r.data.output_text || '';
-    if (!text && Array.isArray(r.data.output)) text = r.data.output.flatMap(o => (o.content||[]).map(c => c.text || '')).join('\n');
-    text = text.trim().replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
-    const parsed = JSON.parse(text);
+    if (!text && Array.isArray(r.data.output)) text = r.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
+    text = text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch(jsonErr) {
+      // Try sanitizing bad escape sequences before giving up
+      try { parsed = JSON.parse(sanitized); } catch(e2) { throw new Error('JSON parse failed: ' + jsonErr.message); }
+    }
     if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
     if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
     if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
-    const issues = forbiddenOfferClaims(`${parsed.title||''}\n${parsed.meta_description||''}\n${parsed.excerpt||''}\n${parsed.body_markdown||''}`);
+    const issues = forbiddenOfferClaims(`${parsed.title || ''}\n${parsed.meta_description || ''}\n${parsed.excerpt || ''}\n${parsed.body_markdown || ''}`);
     if (issues.length) parsed.review_notes = `${parsed.review_notes || ''}\nAccuracy warning: ${issues.join('; ')}. Verify against NativPost pricing facts before publishing.`.trim();
     if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 500) return null;
     // If article is too thin, request an extension (one retry)
@@ -1303,15 +1351,15 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
         const shortfall = 1600 - wc;
         const extPrompt = `The following article body is too short (${wc} words). It needs at least 1500 words minimum, ideally 1600+. You are ${shortfall} words short.\n\nExpand it by:\n1. Adding 2-3 more sentences of specific detail to each existing section\n2. Adding one more ## section if the topic warrants it\n3. Expanding the FAQ with 2 more Q&A pairs\n4. Adding more specific game/server detail in the performance section\n\nReturn ONLY the expanded body_markdown as a plain string (no JSON wrapper, no markdown fences).\n\nCurrent article body:\n${parsed.body_markdown}`;
         const extBody = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: extPrompt, max_output_tokens: 8000 };
-        const extR = await axios.post('https://api.openai.com/v1/responses', extBody, { headers: { Authorization:`Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type':'application/json' }, timeout: 90000 });
+        const extR = await axios.post('https://api.openai.com/v1/responses', extBody, { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 90000 });
         let extText = extR.data.output_text || '';
-        if (!extText && Array.isArray(extR.data.output)) extText = extR.data.output.flatMap(o => (o.content||[]).map(c => c.text||'')).join('\n');
-        extText = extText.trim().replace(/^```(?:markdown)?\s*/,'').replace(/```$/,'').trim();
+        if (!extText && Array.isArray(extR.data.output)) extText = extR.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
+        extText = extText.trim().replace(/^```(?:markdown)?\s*/, '').replace(/```$/, '').trim();
         if (extText && wordCount(extText) > wc) {
           parsed.body_markdown = extText;
           console.log(`[Article] Extended from ${wc} to ${wordCount(extText)} words`);
         }
-      } catch(extErr) { console.log('[Article] Extension failed:', extErr.message); }
+      } catch (extErr) { console.log('[Article] Extension failed:', extErr.message); }
     }
     return parsed;
   } catch (err) {
@@ -1320,17 +1368,17 @@ async function callOpenAIArticle({site, keyword, ownPages=[], competitorPages=[]
   }
 }
 
-function wordCount(text = '') { return String(text||'').split(/\s+/).filter(Boolean).length; }
-function detectGame(text='') {
-  const lower=String(text||'').toLowerCase().replace(/[-_]+/g,' ');
+function wordCount(text = '') { return String(text || '').split(/\s+/).filter(Boolean).length; }
+function detectGame(text = '') {
+  const lower = String(text || '').toLowerCase().replace(/[-_]+/g, ' ');
   for (const game of GAME_ALIASES) {
-    if (game.patterns.some(p => lower.includes(String(p).toLowerCase().replace(/[-_]+/g,' ')))) return game.key;
+    if (game.patterns.some(p => lower.includes(String(p).toLowerCase().replace(/[-_]+/g, ' ')))) return game.key;
   }
   return '';
 }
-function intentOf(keyword='') { const k=String(keyword).toLowerCase(); if (/buy|hosting|host|server rental|pricing|cheap|best|provider/.test(k)) return 'commercial'; if (/how|setup|configure|guide|install|mods|settings/.test(k)) return 'informational'; return 'mixed'; }
-function clusterName(keyword='') {
-  const k = String(keyword||'').toLowerCase();
+function intentOf(keyword = '') { const k = String(keyword).toLowerCase(); if (/buy|hosting|host|server rental|pricing|cheap|best|provider/.test(k)) return 'commercial'; if (/how|setup|configure|guide|install|mods|settings/.test(k)) return 'informational'; return 'mixed'; }
+function clusterName(keyword = '') {
+  const k = String(keyword || '').toLowerCase();
   // Brand cluster
   if (/nativpost|nativ post/.test(k)) return 'NativPost Brand';
   // Game-specific clusters
@@ -1349,23 +1397,23 @@ function clusterName(keyword='') {
   if (/cheap|affordable|budget/.test(k)) return 'Budget Hosting';
   if (/best|top|review/.test(k)) return 'Best Hosting';
   // Fallback: first meaningful word + cluster
-  const t = tokens(k).filter(x => !['server','servers','hosting','host','game','games','a','the','for','and','or','to','in','of'].includes(x));
-  return (t.slice(0,2).join(' ') || 'General') + ' Cluster';
+  const t = tokens(k).filter(x => !['server', 'servers', 'hosting', 'host', 'game', 'games', 'a', 'the', 'for', 'and', 'or', 'to', 'in', 'of'].includes(x));
+  return (t.slice(0, 2).join(' ') || 'General') + ' Cluster';
 }
-function priorityScore({impressions=0, clicks=0, position=50, volume=0, difficulty=40, competitorCount=0}={}) { return Math.max(1, Math.round((Number(impressions)||0)*.03 + (Number(volume)||0)*.2 + (60-Math.min(Number(position)||50,60))*1.2 + Number(competitorCount||0)*5 - (Number(difficulty)||0)*.4 - (Number(clicks)||0)*.1)); }
-function siteScore(s={}) {
+function priorityScore({ impressions = 0, clicks = 0, position = 50, volume = 0, difficulty = 40, competitorCount = 0 } = {}) { return Math.max(1, Math.round((Number(impressions) || 0) * .03 + (Number(volume) || 0) * .2 + (60 - Math.min(Number(position) || 50, 60)) * 1.2 + Number(competitorCount || 0) * 5 - (Number(difficulty) || 0) * .4 - (Number(clicks) || 0) * .1)); }
+function siteScore(s = {}) {
   // SERP component: only meaningful when avg_position < 50 (real GSC data)
-  const serpScore = Number(s.avg_position||0) > 0 ? Math.round((100-Math.min(Number(s.avg_position),100))*1.3 + Number(s.clicks||0)*.3 + Number(s.impressions||0)*.005) : 0;
-  const contentScore = Math.round(Math.min(Number(s.articles||0)/500*100, 100)*0.3); // 500 articles = 30 pts
-  const keywordScore = Math.round(Math.min(Number(s.keyword_count||0)/200*100, 100)*0.2); // 200 kw = 20 pts
-  const crawlScore   = Math.round(Math.min(Number(s.pages||0)/200*100, 100)*0.2); // 200 pages = 20 pts
-  const blScore      = Math.round(Math.min(Number(s.backlinks||0)/50*100, 100)*0.1); // 50 BL = 10 pts
+  const serpScore = Number(s.avg_position || 0) > 0 ? Math.round((100 - Math.min(Number(s.avg_position), 100)) * 1.3 + Number(s.clicks || 0) * .3 + Number(s.impressions || 0) * .005) : 0;
+  const contentScore = Math.round(Math.min(Number(s.articles || 0) / 500 * 100, 100) * 0.3); // 500 articles = 30 pts
+  const keywordScore = Math.round(Math.min(Number(s.keyword_count || 0) / 200 * 100, 100) * 0.2); // 200 kw = 20 pts
+  const crawlScore = Math.round(Math.min(Number(s.pages || 0) / 200 * 100, 100) * 0.2); // 200 pages = 20 pts
+  const blScore = Math.round(Math.min(Number(s.backlinks || 0) / 50 * 100, 100) * 0.1); // 50 BL = 10 pts
   return Math.max(0, serpScore + contentScore + keywordScore + crawlScore + blScore);
 }
-function competitorScore(a={}) { return Math.round((a.indexablePages||0)*.9 + (a.contentPages||0)*5 + (a.keywordCount||0)*2.5 + (a.externalDomains||0)*2 + (a.hasTitle?10:0) + (a.hasMeta?10:0) + (a.hasH1?8:0) + (a.hasRobots?7:0) + (a.hasSitemap?10:0) + Math.min(a.avgWords||0,2500)/25); }
-async function q(sql, params=[]) { const [rows] = await pool.query(sql, dbSafeParams(params)); return rows; }
-async function one(sql, params=[]) { const rows = await q(sql, params); return rows[0] || null; }
-async function execSafe(sql, params=[]) { try { return await q(sql, params); } catch (e) { return null; } }
+function competitorScore(a = {}) { return Math.round((a.indexablePages || 0) * .9 + (a.contentPages || 0) * 5 + (a.keywordCount || 0) * 2.5 + (a.externalDomains || 0) * 2 + (a.hasTitle ? 10 : 0) + (a.hasMeta ? 10 : 0) + (a.hasH1 ? 8 : 0) + (a.hasRobots ? 7 : 0) + (a.hasSitemap ? 10 : 0) + Math.min(a.avgWords || 0, 2500) / 25); }
+async function q(sql, params = []) { const [rows] = await pool.query(sql, dbSafeParams(params)); return rows; }
+async function one(sql, params = []) { const rows = await q(sql, params); return rows[0] || null; }
+async function execSafe(sql, params = []) { try { return await q(sql, params); } catch (e) { return null; } }
 async function repairContentCalendarSchema() {
   await execSafe(`CREATE TABLE IF NOT EXISTS content_calendar (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NULL, article_id INT NULL, title VARCHAR(500) NULL, target_keyword VARCHAR(255) NULL, reason TEXT NULL, status VARCHAR(80) DEFAULT 'planned', scheduled_for DATETIME NULL, scheduled_date DATETIME NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   await execSafe(`ALTER TABLE content_calendar ADD COLUMN site_id INT NULL`);
@@ -1388,7 +1436,7 @@ async function repairContentCalendarSchema() {
   await execSafe(`UPDATE content_calendar SET scheduled_for=COALESCE(scheduled_for, scheduled_date), scheduled_date=COALESCE(scheduled_date, scheduled_for, created_at, NOW()) WHERE scheduled_for IS NULL OR scheduled_date IS NULL`);
 }
 
-async function insertCalendarItem({ site_id=null, title='', target_keyword='', reason='', status='planned', scheduled_for=null }={}) {
+async function insertCalendarItem({ site_id = null, title = '', target_keyword = '', reason = '', status = 'planned', scheduled_for = null } = {}) {
   await repairContentCalendarSchema();
   const scheduled = scheduled_for || scheduledDateForPlan(1);
   await q('INSERT INTO content_calendar (site_id,article_id,title,target_keyword,reason,status,scheduled_for,scheduled_date) VALUES (?,?,?,?,?,?,?,?)', [site_id || null, null, title || articleTitleFor(target_keyword || 'ai social media content'), target_keyword || title || 'ai social media content', reason || null, status || 'planned', scheduled, scheduled]);
@@ -1426,7 +1474,7 @@ function injectUserTheme(req, res, next) {
   })();
 }
 
-function render(res, view, data={}) { const baseMonth={label:'Current Month',weekdays:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],cells:[]}; res.render(view, { i:/./, currentPath:'', message:null, aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:[], pages:[], competitors:[], assets:[], keywords:[], articles:[], reports:[], metrics:[], backlinks:[], gaps:[], calendar:[], month:baseMonth, supportedGames:[], gameRecommendations:[], ownRanked:[], compRanked:[], stats:{}, env:{}, audit:{}, status:'', articleHtml:'', article:null, appTimezone:APP_TIMEZONE, autoPublishIntervalMinutes:AUTO_PUBLISH_INTERVAL_MINUTES, autoPublishDailyLimit:AUTO_PUBLISH_DAILY_LIMIT, minQualityScore:MIN_QUALITY_SCORE, autoPublishEnabled:AUTO_PUBLISH_ENABLED, formatAppDateTime, schedulePublishLabel, publishedLabel, userTheme: res.locals?.userTheme || 'np-purple', currentUser: res.locals?.currentUser || null, ...data, currentPath: data.currentPath || '', message: data.message || null }); }
+function render(res, view, data = {}) { const baseMonth = { label: 'Current Month', weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], cells: [] }; res.render(view, { i: /./, currentPath: '', message: null, aiConnected: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites: [], pages: [], competitors: [], assets: [], keywords: [], articles: [], reports: [], metrics: [], backlinks: [], gaps: [], calendar: [], month: baseMonth, supportedGames: [], gameRecommendations: [], ownRanked: [], compRanked: [], stats: {}, env: {}, audit: {}, status: '', articleHtml: '', article: null, appTimezone: APP_TIMEZONE, autoPublishIntervalMinutes: AUTO_PUBLISH_INTERVAL_MINUTES, autoPublishDailyLimit: AUTO_PUBLISH_DAILY_LIMIT, minQualityScore: MIN_QUALITY_SCORE, autoPublishEnabled: AUTO_PUBLISH_ENABLED, formatAppDateTime, schedulePublishLabel, publishedLabel, userTheme: res.locals?.userTheme || 'np-purple', currentUser: res.locals?.currentUser || null, ...data, currentPath: data.currentPath || '', message: data.message || null }); }
 
 async function ensureSchema() {
   const statements = [
@@ -1451,7 +1499,7 @@ async function ensureSchema() {
   for (const s of statements) await execSafe(s);
   await repairContentCalendarSchema();
   await execSafe(`ALTER DATABASE \`${process.env.DB_NAME || 'seoapp'}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  for (const t of ['sites','site_pages','competitors','competitor_pages','articles','article_assets','keywords','rankings','backlinks','content_calendar','game_recommendations','page_metrics','seo_report_snapshots','automations','serp_results','serp_cache','topic_clusters']) {
+  for (const t of ['sites', 'site_pages', 'competitors', 'competitor_pages', 'articles', 'article_assets', 'keywords', 'rankings', 'backlinks', 'content_calendar', 'game_recommendations', 'page_metrics', 'seo_report_snapshots', 'automations', 'serp_results', 'serp_cache', 'topic_clusters']) {
     await execSafe(`ALTER TABLE ${t} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
   }
   await execSafe(`ALTER TABLE competitors MODIFY homepage_title VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL`);
@@ -1481,12 +1529,12 @@ async function ensureSchema() {
   await execSafe(`ALTER TABLE competitor_pages MODIFY meta_description TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL`);
   await execSafe(`ALTER TABLE competitor_pages MODIFY h1_text VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL`);
   const alters = [
-    ['sites','cms_type',`ALTER TABLE sites ADD COLUMN cms_type VARCHAR(80) DEFAULT 'contentful'`], ['sites','active',`ALTER TABLE sites ADD COLUMN active TINYINT DEFAULT 1`],
-    ['competitors','name',`ALTER TABLE competitors ADD COLUMN name VARCHAR(255) NULL`], ['competitors','url',`ALTER TABLE competitors ADD COLUMN url TEXT NULL`], ['competitors','homepage_title',`ALTER TABLE competitors ADD COLUMN homepage_title VARCHAR(500) NULL`], ['competitors','audit_score',`ALTER TABLE competitors ADD COLUMN audit_score DECIMAL(10,2) DEFAULT 0`], ['competitors','snapshot_json',`ALTER TABLE competitors ADD COLUMN snapshot_json LONGTEXT NULL`], ['competitors','last_audited_at',`ALTER TABLE competitors ADD COLUMN last_audited_at DATETIME NULL`], ['competitors','active',`ALTER TABLE competitors ADD COLUMN active TINYINT DEFAULT 1`],
-    ['articles','primary_keyword',`ALTER TABLE articles ADD COLUMN primary_keyword VARCHAR(255) NULL`], ['articles','body',`ALTER TABLE articles ADD COLUMN body LONGTEXT NULL`], ['articles','content',`ALTER TABLE articles ADD COLUMN content LONGTEXT NULL`], ['articles','quality_score',`ALTER TABLE articles ADD COLUMN quality_score DECIMAL(10,2) DEFAULT 0`], ['articles','featured_image_id',`ALTER TABLE articles ADD COLUMN featured_image_id INT NULL`], ['articles','featured_image_alt',`ALTER TABLE articles ADD COLUMN featured_image_alt VARCHAR(255) NULL`], ['articles','review_notes',`ALTER TABLE articles ADD COLUMN review_notes TEXT NULL`], ['articles','scheduled_for',`ALTER TABLE articles ADD COLUMN scheduled_for DATETIME NULL`],
-    ['keywords','intent',`ALTER TABLE keywords ADD COLUMN intent VARCHAR(80) NULL`], ['keywords','source',`ALTER TABLE keywords ADD COLUMN source VARCHAR(120) DEFAULT 'manual'`], ['keywords','cluster_name',`ALTER TABLE keywords ADD COLUMN cluster_name VARCHAR(255) NULL`], ['keywords','priority_score',`ALTER TABLE keywords ADD COLUMN priority_score DECIMAL(10,2) DEFAULT 0`], ['keywords','volume',`ALTER TABLE keywords ADD COLUMN volume INT DEFAULT 0`], ['keywords','difficulty',`ALTER TABLE keywords ADD COLUMN difficulty DECIMAL(10,2) DEFAULT 0`], ['keywords','last_updated',`ALTER TABLE keywords ADD COLUMN last_updated DATETIME NULL`],
-    ['site_pages','page_type',`ALTER TABLE site_pages ADD COLUMN page_type VARCHAR(80) DEFAULT 'page'`], ['site_pages','word_count',`ALTER TABLE site_pages ADD COLUMN word_count INT DEFAULT 0`], ['site_pages','status_code',`ALTER TABLE site_pages ADD COLUMN status_code INT DEFAULT 200`], ['site_pages','last_scanned_at',`ALTER TABLE site_pages ADD COLUMN last_scanned_at DATETIME NULL`], ['site_pages','meta_description',`ALTER TABLE site_pages ADD COLUMN meta_description TEXT NULL`], ['site_pages','h1_text',`ALTER TABLE site_pages ADD COLUMN h1_text VARCHAR(500) NULL`],
-    ['competitor_pages','page_type',`ALTER TABLE competitor_pages ADD COLUMN page_type VARCHAR(80) DEFAULT 'page'`], ['competitor_pages','word_count',`ALTER TABLE competitor_pages ADD COLUMN word_count INT DEFAULT 0`], ['competitor_pages','meta_description',`ALTER TABLE competitor_pages ADD COLUMN meta_description TEXT NULL`], ['competitor_pages','h1_text',`ALTER TABLE competitor_pages ADD COLUMN h1_text VARCHAR(500) NULL`]
+    ['sites', 'cms_type', `ALTER TABLE sites ADD COLUMN cms_type VARCHAR(80) DEFAULT 'contentful'`], ['sites', 'active', `ALTER TABLE sites ADD COLUMN active TINYINT DEFAULT 1`],
+    ['competitors', 'name', `ALTER TABLE competitors ADD COLUMN name VARCHAR(255) NULL`], ['competitors', 'url', `ALTER TABLE competitors ADD COLUMN url TEXT NULL`], ['competitors', 'homepage_title', `ALTER TABLE competitors ADD COLUMN homepage_title VARCHAR(500) NULL`], ['competitors', 'audit_score', `ALTER TABLE competitors ADD COLUMN audit_score DECIMAL(10,2) DEFAULT 0`], ['competitors', 'snapshot_json', `ALTER TABLE competitors ADD COLUMN snapshot_json LONGTEXT NULL`], ['competitors', 'last_audited_at', `ALTER TABLE competitors ADD COLUMN last_audited_at DATETIME NULL`], ['competitors', 'active', `ALTER TABLE competitors ADD COLUMN active TINYINT DEFAULT 1`],
+    ['articles', 'primary_keyword', `ALTER TABLE articles ADD COLUMN primary_keyword VARCHAR(255) NULL`], ['articles', 'body', `ALTER TABLE articles ADD COLUMN body LONGTEXT NULL`], ['articles', 'content', `ALTER TABLE articles ADD COLUMN content LONGTEXT NULL`], ['articles', 'quality_score', `ALTER TABLE articles ADD COLUMN quality_score DECIMAL(10,2) DEFAULT 0`], ['articles', 'featured_image_id', `ALTER TABLE articles ADD COLUMN featured_image_id INT NULL`], ['articles', 'featured_image_alt', `ALTER TABLE articles ADD COLUMN featured_image_alt VARCHAR(255) NULL`], ['articles', 'review_notes', `ALTER TABLE articles ADD COLUMN review_notes TEXT NULL`], ['articles', 'scheduled_for', `ALTER TABLE articles ADD COLUMN scheduled_for DATETIME NULL`],
+    ['keywords', 'intent', `ALTER TABLE keywords ADD COLUMN intent VARCHAR(80) NULL`], ['keywords', 'source', `ALTER TABLE keywords ADD COLUMN source VARCHAR(120) DEFAULT 'manual'`], ['keywords', 'cluster_name', `ALTER TABLE keywords ADD COLUMN cluster_name VARCHAR(255) NULL`], ['keywords', 'priority_score', `ALTER TABLE keywords ADD COLUMN priority_score DECIMAL(10,2) DEFAULT 0`], ['keywords', 'volume', `ALTER TABLE keywords ADD COLUMN volume INT DEFAULT 0`], ['keywords', 'difficulty', `ALTER TABLE keywords ADD COLUMN difficulty DECIMAL(10,2) DEFAULT 0`], ['keywords', 'last_updated', `ALTER TABLE keywords ADD COLUMN last_updated DATETIME NULL`],
+    ['site_pages', 'page_type', `ALTER TABLE site_pages ADD COLUMN page_type VARCHAR(80) DEFAULT 'page'`], ['site_pages', 'word_count', `ALTER TABLE site_pages ADD COLUMN word_count INT DEFAULT 0`], ['site_pages', 'status_code', `ALTER TABLE site_pages ADD COLUMN status_code INT DEFAULT 200`], ['site_pages', 'last_scanned_at', `ALTER TABLE site_pages ADD COLUMN last_scanned_at DATETIME NULL`], ['site_pages', 'meta_description', `ALTER TABLE site_pages ADD COLUMN meta_description TEXT NULL`], ['site_pages', 'h1_text', `ALTER TABLE site_pages ADD COLUMN h1_text VARCHAR(500) NULL`],
+    ['competitor_pages', 'page_type', `ALTER TABLE competitor_pages ADD COLUMN page_type VARCHAR(80) DEFAULT 'page'`], ['competitor_pages', 'word_count', `ALTER TABLE competitor_pages ADD COLUMN word_count INT DEFAULT 0`], ['competitor_pages', 'meta_description', `ALTER TABLE competitor_pages ADD COLUMN meta_description TEXT NULL`], ['competitor_pages', 'h1_text', `ALTER TABLE competitor_pages ADD COLUMN h1_text VARCHAR(500) NULL`]
   ];
   for (const [, , sql] of alters) await execSafe(sql);
 
@@ -1674,7 +1722,7 @@ async function cleanupDuplicates() {
 }
 
 
-async function fetchUrl(url, timeout=14000) {
+async function fetchUrl(url, timeout = 14000) {
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -1704,7 +1752,7 @@ async function fetchUrl(url, timeout=14000) {
       return { html: String(r2.data || ''), status: r2.status };
     }
     return { html: String(data || ''), status };
-  } catch(e) {
+  } catch (e) {
     if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND') throw new Error('Site unreachable: ' + e.code);
     if (e.code === 'ETIMEDOUT' || e.code === 'ECONNABORTED') throw new Error('Connection timed out');
     throw e;
@@ -1712,17 +1760,17 @@ async function fetchUrl(url, timeout=14000) {
 }
 async function discoverFromSitemap(root) {
   const base = originOf(root); const urls = [];
-  for (const p of ['/sitemap.xml','/sitemap_index.xml','/post-sitemap.xml','/page-sitemap.xml']) {
+  for (const p of ['/sitemap.xml', '/sitemap_index.xml', '/post-sitemap.xml', '/page-sitemap.xml']) {
     try {
-      const { html } = await fetchUrl(base+p, 7000);
+      const { html } = await fetchUrl(base + p, 7000);
       for (const m of html.matchAll(/<loc>([^<]+)<\/loc>/gi)) urls.push(m[1].trim());
       if (urls.length) break;
-    } catch {}
+    } catch { }
   }
   return [...new Set(urls)].slice(0, 100);
 }
-function classifyPage(url='', title='', text='') {
-  const x=(url+' '+title+' '+text.slice(0,200)).toLowerCase();
+function classifyPage(url = '', title = '', text = '') {
+  const x = (url + ' ' + title + ' ' + text.slice(0, 200)).toLowerCase();
   if (/blog|article|guide|knowledge|news|post|tutorial|how-to|settings/.test(x)) return 'blog';
   if (/pricing|store|cart|order|buy|checkout/.test(x)) return 'money';
   if (/support|contact|billing|faq|help|ticket/.test(x)) return 'support';
@@ -1732,13 +1780,13 @@ function classifyPage(url='', title='', text='') {
   if (/hosting|vps|cloud|server|deploy/.test(x)) return 'money';
   return 'page';
 }
-async function crawlWebsite(root, maxPages=30) {
+async function crawlWebsite(root, maxPages = 30) {
   const start = normalizeUrl(root);
   const rootHost = hostOf(start);
   // When CRAWL_BASE_URL is set, we crawl via localhost but store public URLs.
   // publicHost = nativpost.com, crawlHost = localhost
   const crawlOrigin = CRAWL_BASE_URL ? originOf(CRAWL_BASE_URL) : null;
-  const crawlHost   = crawlOrigin ? hostOf(crawlOrigin) : rootHost;
+  const crawlHost = crawlOrigin ? hostOf(crawlOrigin) : rootHost;
   const publicOrigin = crawlOrigin ? originOf(start.replace(crawlOrigin, '') ? start : start) : null;
 
   // Rewrite a public URL to its crawl equivalent
@@ -1751,10 +1799,10 @@ async function crawlWebsite(root, maxPages=30) {
       if (u.hostname === rootHost || u.hostname === publicHost || u.hostname === (process.env.SITE_HOST || '')) {
         u.protocol = new URL(crawlOrigin).protocol;
         u.hostname = new URL(crawlOrigin).hostname;
-        u.port     = new URL(crawlOrigin).port;
+        u.port = new URL(crawlOrigin).port;
         return u.toString();
       }
-    } catch {}
+    } catch { }
     return url;
   }
 
@@ -1767,10 +1815,10 @@ async function crawlWebsite(root, maxPages=30) {
         const pub = new URL(start);
         u.protocol = pub.protocol;
         u.hostname = pub.hostname;
-        u.port     = pub.port || '';
+        u.port = pub.port || '';
         return u.toString().replace(/\/$/, '');
       }
-    } catch {}
+    } catch { }
     return url;
   }
 
@@ -1782,7 +1830,7 @@ async function crawlWebsite(root, maxPages=30) {
     const liveRows = await q("SELECT game_key, igh_page_url FROM live_games WHERE status='live'");
     for (const r of liveRows) {
       const publicGameUrl = r.igh_page_url ||
-        `${publicOrigin || originOf(start)}/game/${r.game_key.replace(/\s+/g,'-')}-server-hosting`;
+        `${publicOrigin || originOf(start)}/game/${r.game_key.replace(/\s+/g, '-')}-server-hosting`;
       // toCrawlUrl converts public URL to https://localhost/... so it passes rootHost check
       knownGameUrls.push(toCrawlUrl(publicGameUrl));
     }
@@ -1790,7 +1838,7 @@ async function crawlWebsite(root, maxPages=30) {
     for (const p of ['/games', '/about', '/blog', '/affiliate', '/terms', '/privacy', '/support']) {
       knownGameUrls.push(`${originOf(start)}${p}`);
     }
-  } catch(e) {}
+  } catch (e) { }
   const rawQueue = [start, ...sitemapUrls, ...knownGameUrls];
   // Deduplicate by path only — ignore whether URL uses localhost or public domain
   // since toCrawlUrl converts both to localhost anyway
@@ -1823,13 +1871,13 @@ async function crawlWebsite(root, maxPages=30) {
     if (hostOf(publicUrl) !== rootHost && hostOf(publicUrl) !== siteHost) continue;
     try {
       const { html, status } = await fetchUrl(fetchTarget, 12000);
-      const text  = stripHtml(html);
+      const text = stripHtml(html);
       const title = extractTitle(html);
-      const h1    = extractH1(html);
-      const meta  = extractMeta(html);
+      const h1 = extractH1(html);
+      const meta = extractMeta(html);
       const links = extractLinks(html, fetchTarget);
       if (!homepage) homepage = { html, text, title, h1, meta, status };
-      try { images = images.concat(extractImages(html, fetchTarget)); } catch(imgErr) { /* image extraction failed - non-fatal */ }
+      try { images = images.concat(extractImages(html, fetchTarget)); } catch (imgErr) { /* image extraction failed - non-fatal */ }
       for (const l of links) {
         const lPublic = toPublicUrl(normalizeUrl(l));
         if (hostOf(lPublic) === rootHost && !seen.has(lPublic) && queue.length < maxPages * 6) {
@@ -1838,36 +1886,36 @@ async function crawlWebsite(root, maxPages=30) {
           externalDomains.add(hostOf(lPublic));
         }
       }
-      const canonical  = extractCanonical(html, publicUrl);
+      const canonical = extractCanonical(html, publicUrl);
       const derivedTitle = title || h1 || titleFromUrl(publicUrl) || publicUrl;
       pages.push({ page_url: publicUrl, page_title: derivedTitle, meta_description: meta, h1_text: h1, page_type: classifyPage(publicUrl, derivedTitle, text), word_count: wordCount(text), status_code: status, sample: text.slice(0, 1500), canonical });
       allText.push(`${derivedTitle} ${h1} ${meta} ${text.slice(0, 3000)}`);
-    } catch(e) {
+    } catch (e) {
       console.error(`[Crawl] Error on ${publicUrl}: ${e.message}\n${e.stack}`);
       pages.push({ page_url: publicUrl, page_title: 'Crawl failed', meta_description: e.message + (e.stack ? ' | ' + e.stack.split('\n')[1] : ''), h1_text: '', page_type: 'error', word_count: 0, status_code: 0, sample: '' });
     }
   }
-  let hasRobots=false, hasSitemap=false;
+  let hasRobots = false, hasSitemap = false;
   const crawlBase = crawlOrigin || originOf(start);
-  try { const { html }=await fetchUrl(crawlBase+'/robots.txt',5000); hasRobots=/user-agent/i.test(html); hasSitemap=/sitemap:/i.test(html); } catch {}
-  if (!hasSitemap) { try { const { html }=await fetchUrl(crawlBase+'/sitemap.xml',5000); hasSitemap=/<urlset|<sitemapindex/i.test(html); } catch {} }
+  try { const { html } = await fetchUrl(crawlBase + '/robots.txt', 5000); hasRobots = /user-agent/i.test(html); hasSitemap = /sitemap:/i.test(html); } catch { }
+  if (!hasSitemap) { try { const { html } = await fetchUrl(crawlBase + '/sitemap.xml', 5000); hasSitemap = /<urlset|<sitemapindex/i.test(html); } catch { } }
   const cleanPages = []; const seenUrls = new Set();
   for (const p of pages) {
     const key = normalizeUrl(p.page_url); if (seenUrls.has(key)) continue; seenUrls.add(key);
     if (homepage?.title && p.page_title === homepage.title && pathOf(p.page_url) !== '/' && pathOf(p.page_url) !== '') p.page_title = titleFromUrl(p.page_url) || p.page_title;
-    if (!p.meta_description && p.sample) p.meta_description = p.sample.slice(0,220);
+    if (!p.meta_description && p.sample) p.meta_description = p.sample.slice(0, 220);
     cleanPages.push(p);
   }
   const keywords = topTerms(allText, 40);
-  const contentPages = cleanPages.filter(p=>['blog','game','money'].includes(p.page_type));
-  return { url:start, homepageTitle: homepage?.title || '', homepageMeta: homepage?.meta || '', homepageH1: homepage?.h1 || '', hasTitle:!!homepage?.title, hasMeta:!!homepage?.meta, hasH1:!!homepage?.h1, hasRobots, hasSitemap, indexablePages:cleanPages.filter(p=>p.status_code>=200&&p.status_code<400).length, contentPages:contentPages.length, keywordCount:keywords.length, avgWords: cleanPages.length ? Math.round(cleanPages.reduce((a,b)=>a+(b.word_count||0),0)/cleanPages.length) : 0, externalDomains: externalDomains.size, externalDomainList:[...externalDomains].filter(Boolean).slice(0,50), keywords, pages: cleanPages, imageCandidates: images.filter((v,i,a)=>a.findIndex(x=>x.url===v.url)===i).slice(0,30) };
+  const contentPages = cleanPages.filter(p => ['blog', 'game', 'money'].includes(p.page_type));
+  return { url: start, homepageTitle: homepage?.title || '', homepageMeta: homepage?.meta || '', homepageH1: homepage?.h1 || '', hasTitle: !!homepage?.title, hasMeta: !!homepage?.meta, hasH1: !!homepage?.h1, hasRobots, hasSitemap, indexablePages: cleanPages.filter(p => p.status_code >= 200 && p.status_code < 400).length, contentPages: contentPages.length, keywordCount: keywords.length, avgWords: cleanPages.length ? Math.round(cleanPages.reduce((a, b) => a + (b.word_count || 0), 0) / cleanPages.length) : 0, externalDomains: externalDomains.size, externalDomainList: [...externalDomains].filter(Boolean).slice(0, 50), keywords, pages: cleanPages, imageCandidates: images.filter((v, i, a) => a.findIndex(x => x.url === v.url) === i).slice(0, 30) };
 }
-async function auditCompetitor(url) { const audit=await crawlWebsite(url, Number(process.env.CRAWL_PAGE_LIMIT || 35)); audit.score=competitorScore(audit); return audit; }
+async function auditCompetitor(url) { const audit = await crawlWebsite(url, Number(process.env.CRAWL_PAGE_LIMIT || 35)); audit.score = competitorScore(audit); return audit; }
 async function saveCompetitorAudit(competitorId, audit) {
   await q('UPDATE competitors SET homepage_title=?, audit_score=?, snapshot_json=?, last_audited_at=NOW(), name=COALESCE(name,?), url=COALESCE(url,?) WHERE id=?', [dbSafeText(audit.homepageTitle || null), audit.score || 0, dbSafeText(JSON.stringify(audit)), hostOf(audit.url), audit.url, competitorId]);
   await q('DELETE FROM competitor_pages WHERE competitor_id=?', [competitorId]);
-  for (const p of audit.pages || []) await execSafe('INSERT INTO competitor_pages (competitor_id,page_url,page_title,meta_description,h1_text,page_type,word_count) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), meta_description=VALUES(meta_description), h1_text=VALUES(h1_text), page_type=VALUES(page_type), word_count=VALUES(word_count)', [competitorId,p.page_url,dbSafeText(truncate(p.page_title,500)),dbSafeText(p.meta_description),dbSafeText(p.h1_text),p.page_type,p.word_count||0]);
-  const comp=await one('SELECT site_id FROM competitors WHERE id=?',[competitorId]);
+  for (const p of audit.pages || []) await execSafe('INSERT INTO competitor_pages (competitor_id,page_url,page_title,meta_description,h1_text,page_type,word_count) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), meta_description=VALUES(meta_description), h1_text=VALUES(h1_text), page_type=VALUES(page_type), word_count=VALUES(word_count)', [competitorId, p.page_url, dbSafeText(truncate(p.page_title, 500)), dbSafeText(p.meta_description), dbSafeText(p.h1_text), p.page_type, p.word_count || 0]);
+  const comp = await one('SELECT site_id FROM competitors WHERE id=?', [competitorId]);
   for (const k of audit.keywords || []) {
     const ck = cleanKeyword(k.keyword);
     if (!ck) continue;
@@ -1879,9 +1927,9 @@ async function saveCompetitorAudit(competitorId, audit) {
     const isGameKeyword = /server hosting|game server|minecraft|palworld|ark|rust server|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|vrising|v rising|hytale|everwind|eco server/i.test(ck);
     if (!isUseful || isGameKeyword) continue;
     await execSafe('INSERT INTO keywords (site_id,keyword,cluster_name,volume,difficulty,priority_score,source,intent,last_updated) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE priority_score=GREATEST(priority_score, VALUES(priority_score)), source=VALUES(source), last_updated=NOW()',
-      [comp?.site_id||null, ck, clusterName(ck), 0, 35, priorityScore({competitorCount:k.count, difficulty:35}), 'competitor-crawl', intentOf(ck)]);
+      [comp?.site_id || null, ck, clusterName(ck), 0, 35, priorityScore({ competitorCount: k.count, difficulty: 35 }), 'competitor-crawl', intentOf(ck)]);
   }
-  for (const d of audit.externalDomainList || []) { const bScore = scoreBacklinkOpportunity(d); await execSafe('INSERT INTO backlinks (site_id,competitor_id,source_domain,status,authority_score,domain_rating) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM backlinks WHERE competitor_id<=>? AND source_domain=?)', [comp?.site_id||null, competitorId, d, 'competitor-opportunity', bScore, bScore, competitorId, d]); }
+  for (const d of audit.externalDomainList || []) { const bScore = scoreBacklinkOpportunity(d); await execSafe('INSERT INTO backlinks (site_id,competitor_id,source_domain,status,authority_score,domain_rating) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM backlinks WHERE competitor_id<=>? AND source_domain=?)', [comp?.site_id || null, competitorId, d, 'competitor-opportunity', bScore, bScore, competitorId, d]); }
 }
 async function saveOwnSiteScan(siteId, scan) {
   const newPages = scan.pages || [];
@@ -1892,20 +1940,20 @@ async function saveOwnSiteScan(siteId, scan) {
     return;
   }
   await q('DELETE FROM site_pages WHERE site_id=?', [siteId]);
-  for (const p of newPages) await execSafe('INSERT INTO site_pages (site_id,page_url,page_title,meta_description,h1_text,page_type,word_count,status_code,last_scanned_at) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), meta_description=VALUES(meta_description), h1_text=VALUES(h1_text), page_type=VALUES(page_type), word_count=VALUES(word_count), status_code=VALUES(status_code), last_scanned_at=NOW()', [siteId,p.page_url,truncate(p.page_title,500),p.meta_description,p.h1_text,p.page_type,p.word_count||0,p.status_code||0]);
+  for (const p of newPages) await execSafe('INSERT INTO site_pages (site_id,page_url,page_title,meta_description,h1_text,page_type,word_count,status_code,last_scanned_at) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), meta_description=VALUES(meta_description), h1_text=VALUES(h1_text), page_type=VALUES(page_type), word_count=VALUES(word_count), status_code=VALUES(status_code), last_scanned_at=NOW()', [siteId, p.page_url, truncate(p.page_title, 500), p.meta_description, p.h1_text, p.page_type, p.word_count || 0, p.status_code || 0]);
   for (const img of scan.imageCandidates || []) {
     // NativPost: save all candidate images from site crawl
-    await execSafe('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)', [siteId, truncate(img.alt || `${game || 'site'} image`,255), game, game || 'site-images', img.url, img.alt || `${game || 'Game server'} hosting image`]);
+    await execSafe('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)', [siteId, truncate(img.alt || `${game || 'site'} image`, 255), game, game || 'site-images', img.url, img.alt || `${game || 'Game server'} hosting image`]);
   }
-  const payload={...scan, pages:(scan.pages||[]).slice(0,50)};
-  await q('INSERT INTO seo_report_snapshots (site_id,snapshot_type,score,payload_json,recorded_on) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE score=VALUES(score), payload_json=VALUES(payload_json), created_at=CURRENT_TIMESTAMP',[siteId,'site-crawl',competitorScore(scan),JSON.stringify(payload),today()]);
+  const payload = { ...scan, pages: (scan.pages || []).slice(0, 50) };
+  await q('INSERT INTO seo_report_snapshots (site_id,snapshot_type,score,payload_json,recorded_on) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE score=VALUES(score), payload_json=VALUES(payload_json), created_at=CURRENT_TIMESTAMP', [siteId, 'site-crawl', competitorScore(scan), JSON.stringify(payload), today()]);
 }
 
 async function siteOptions() { return await q('SELECT id,name,url FROM sites WHERE active=1 ORDER BY name ASC'); }
-async function assetOptions(siteId=null, gameFilter='') {
+async function assetOptions(siteId = null, gameFilter = '') {
   const game = detectGame(gameFilter || '') || normalizeGameName(gameFilter || '');
-  if (game) return await q(`SELECT id,label,game_slug,folder_name,asset_url,alt_text FROM article_assets WHERE (${siteId?'site_id=? OR site_id IS NULL':'1=1'}) AND (game_slug IS NULL OR game_slug='' OR LOWER(CONCAT_WS(' ',game_slug,folder_name,label,alt_text)) LIKE ?) ORDER BY folder_name,label ASC`, siteId?[siteId,`%${game}%`]:[`%${game}%`]);
-  return await q(`SELECT id,label,game_slug,folder_name,asset_url,alt_text FROM article_assets ${siteId?'WHERE site_id=? OR site_id IS NULL':''} ORDER BY folder_name,label ASC`, siteId?[siteId]:[]);
+  if (game) return await q(`SELECT id,label,game_slug,folder_name,asset_url,alt_text FROM article_assets WHERE (${siteId ? 'site_id=? OR site_id IS NULL' : '1=1'}) AND (game_slug IS NULL OR game_slug='' OR LOWER(CONCAT_WS(' ',game_slug,folder_name,label,alt_text)) LIKE ?) ORDER BY folder_name,label ASC`, siteId ? [siteId, `%${game}%`] : [`%${game}%`]);
+  return await q(`SELECT id,label,game_slug,folder_name,asset_url,alt_text FROM article_assets ${siteId ? 'WHERE site_id=? OR site_id IS NULL' : ''} ORDER BY folder_name,label ASC`, siteId ? [siteId] : []);
 }
 async function dashboardData() {
   const summary = {
@@ -1920,7 +1968,7 @@ async function dashboardData() {
     backlinks: (await one('SELECT COUNT(*) count FROM backlinks'))?.count || 0
   };
   // Our own SERP presence count
-  const ownSerpCount = await one("SELECT COUNT(DISTINCT keyword) cnt FROM serp_results WHERE result_url LIKE '%nativpost%' AND position <= 20").catch(()=>({cnt:0}));
+  const ownSerpCount = await one("SELECT COUNT(DISTINCT keyword) cnt FROM serp_results WHERE result_url LIKE '%nativpost%' AND position <= 20").catch(() => ({ cnt: 0 }));
   const own = await q(`SELECT s.id,s.name,s.url,COALESCE(k.keyword_count,0) keyword_count,COALESCE(r.avg_position,0) avg_position,COALESCE(r.clicks,0) clicks,COALESCE(r.impressions,0) impressions,COALESCE(r.ranking_rows,0) ranking_rows,COALESCE(a.articles,0) articles,COALESCE(b.backlinks,0) backlinks,COALESCE(b.earned_backlinks,0) earned_backlinks,COALESCE(p.pages,0) pages,MAX(p2.last_scanned_at) last_scanned_at
     FROM sites s
     LEFT JOIN (SELECT site_id,COUNT(*) keyword_count FROM keywords GROUP BY site_id) k ON k.site_id=s.id
@@ -1930,17 +1978,17 @@ async function dashboardData() {
     LEFT JOIN (SELECT site_id,COUNT(*) pages FROM site_pages GROUP BY site_id) p ON p.site_id=s.id
     LEFT JOIN site_pages p2 ON p2.site_id=s.id
     WHERE s.active=1 GROUP BY s.id ORDER BY s.name ASC`);
-  const ownRanked = own.map(x => ({ ...x, kind: 'Own Site', score: siteScore(x) })).sort((a,b)=>b.score-a.score);
+  const ownRanked = own.map(x => ({ ...x, kind: 'Own Site', score: siteScore(x) })).sort((a, b) => b.score - a.score);
   const competitors = await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,homepage_title,audit_score,last_audited_at,snapshot_json FROM competitors WHERE active=1 ORDER BY audit_score DESC, id DESC');
   // Enrich competitors with page counts and keyword gap counts
-  const ourArticleKeywords = new Set((await q("SELECT LOWER(primary_keyword) kw FROM articles WHERE status IN ('published','queued','approved','review','draft') AND primary_keyword IS NOT NULL")).map(r=>r.kw));
+  const ourArticleKeywords = new Set((await q("SELECT LOWER(primary_keyword) kw FROM articles WHERE status IN ('published','queued','approved','review','draft') AND primary_keyword IS NOT NULL")).map(r => r.kw));
   const compRanked = await Promise.all(competitors.map(async c => {
-    const snap = c.snapshot_json ? (() => { try { return JSON.parse(c.snapshot_json); } catch(e) { return {}; } })() : {};
+    const snap = c.snapshot_json ? (() => { try { return JSON.parse(c.snapshot_json); } catch (e) { return {}; } })() : {};
     const pageCount = await one('SELECT COUNT(*) cnt FROM competitor_pages WHERE competitor_id=?', [c.id]);
-    const compKws = (snap.keywords||[]).map(k=>(k.keyword||'').toLowerCase().trim()).filter(Boolean);
+    const compKws = (snap.keywords || []).map(k => (k.keyword || '').toLowerCase().trim()).filter(Boolean);
     const gapCount = compKws.filter(kw => !ourArticleKeywords.has(kw)).length;
     // SERP presence: how many of our tracked keywords does this competitor appear in?
-    const compHost = hostOf(c.url||c.competitor_url||'');
+    const compHost = hostOf(c.url || c.competitor_url || '');
     const serpPresence = compHost ? await one(
       `SELECT COUNT(DISTINCT keyword) cnt FROM serp_results WHERE result_url LIKE ? OR result_url LIKE ?`,
       ['%' + compHost + '%', '%www.' + compHost + '%']
@@ -1951,10 +1999,12 @@ async function dashboardData() {
     ) : null;
     const serpRankCount = serpPresence?.cnt || 0;
     // Our own SERP presence for same keywords (for comparison)
-    return { ...c, kind:'Competitor', score:Math.round(Number(c.audit_score||0)),
-      contentPages: snap.contentPages||0, pageCount: pageCount?.cnt||0,
-      gapCount, avgWords: snap.avgWords||0, keywordCount: snap.keywordCount||0,
-      externalDomains: snap.externalDomains||0, serpRankCount, serpAvgPos: serpAvgPos?.avg_pos||null, serpBestPos: serpAvgPos?.best_pos||null };
+    return {
+      ...c, kind: 'Competitor', score: Math.round(Number(c.audit_score || 0)),
+      contentPages: snap.contentPages || 0, pageCount: pageCount?.cnt || 0,
+      gapCount, avgWords: snap.avgWords || 0, keywordCount: snap.keywordCount || 0,
+      externalDomains: snap.externalDomains || 0, serpRankCount, serpAvgPos: serpAvgPos?.avg_pos || null, serpBestPos: serpAvgPos?.best_pos || null
+    };
   }));
   const leaderboard = [];
   const drafts = await q("SELECT id,title,primary_keyword,status,quality_score,updated_at FROM articles WHERE status IN ('draft','review') ORDER BY updated_at DESC, id DESC LIMIT 8");
@@ -1962,20 +2012,20 @@ async function dashboardData() {
   const radarOpportunities = await getTopRadarOpportunities(3);
   // Daily brief — top 3 recommendations shown on dashboard
   let dailyBrief = [];
-  try { dailyBrief = (await generateDailyBrief(null)).slice(0, 3); } catch(e) {}
-  return { summary, ownRanked, compRanked, leaderboard, drafts, opportunities, radarOpportunities, ownSerpCount: ownSerpCount?.cnt||0, dailyBrief };
+  try { dailyBrief = (await generateDailyBrief(null)).slice(0, 3); } catch (e) { }
+  return { summary, ownRanked, compRanked, leaderboard, drafts, opportunities, radarOpportunities, ownSerpCount: ownSerpCount?.cnt || 0, dailyBrief };
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // WEEKLY CHANGE REPORT — compares current rankings vs 7 days ago
 // Returns top movers (up/down), new keywords, lost keywords
 // ══════════════════════════════════════════════════════════════════════════════
-async function buildWeeklyChangeReport(siteId=null) {
-  const report = { movers_up:[], movers_down:[], new_keywords:[], lost_keywords:[], summary:{} };
+async function buildWeeklyChangeReport(siteId = null) {
+  const report = { movers_up: [], movers_down: [], new_keywords: [], lost_keywords: [], summary: {} };
   try {
     const today = new Date();
-    const weekAgo = new Date(Date.now() - 7*24*60*60*1000);
-    const todayStr = today.toISOString().slice(0,10);
-    const weekAgoStr = weekAgo.toISOString().slice(0,10);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const todayStr = today.toISOString().slice(0, 10);
+    const weekAgoStr = weekAgo.toISOString().slice(0, 10);
 
     const siteFilter = siteId ? 'AND site_id=?' : '';
     const params = siteId ? [siteId] : [];
@@ -1994,12 +2044,12 @@ async function buildWeeklyChangeReport(siteId=null) {
        WHERE recorded_on BETWEEN DATE_SUB(CURDATE(), INTERVAL 10 DAY) AND DATE_SUB(CURDATE(), INTERVAL 6 DAY) ${siteFilter}
        GROUP BY keyword`, params);
 
-    const prevMap = new Map(previous.map(r => [r.keyword, Number(r.position||50)]));
-    const currMap = new Map(current.map(r => [r.keyword, { pos: Number(r.position||50), clicks: r.clicks, impressions: r.impressions }]));
+    const prevMap = new Map(previous.map(r => [r.keyword, Number(r.position || 50)]));
+    const currMap = new Map(current.map(r => [r.keyword, { pos: Number(r.position || 50), clicks: r.clicks, impressions: r.impressions }]));
 
     for (const row of current) {
       const keyword = row.keyword;
-      const currPos = Number(row.position||50);
+      const currPos = Number(row.position || 50);
       if (!cleanKeyword(keyword)) continue;
       if (prevMap.has(keyword)) {
         const prevPos = prevMap.get(keyword);
@@ -2012,13 +2062,13 @@ async function buildWeeklyChangeReport(siteId=null) {
     }
     for (const row of previous) {
       if (!currMap.has(row.keyword) && cleanKeyword(row.keyword)) {
-        report.lost_keywords.push({ keyword: row.keyword, prev_position: Number(row.position||50) });
+        report.lost_keywords.push({ keyword: row.keyword, prev_position: Number(row.position || 50) });
       }
     }
 
-    report.movers_up.sort((a,b) => b.delta - a.delta).splice(20);
-    report.movers_down.sort((a,b) => a.delta - b.delta).splice(20);
-    report.new_keywords.sort((a,b) => a.position - b.position).splice(20);
+    report.movers_up.sort((a, b) => b.delta - a.delta).splice(20);
+    report.movers_down.sort((a, b) => a.delta - b.delta).splice(20);
+    report.new_keywords.sort((a, b) => a.position - b.position).splice(20);
     report.lost_keywords.splice(20);
     report.summary = {
       improved: report.movers_up.length,
@@ -2026,7 +2076,7 @@ async function buildWeeklyChangeReport(siteId=null) {
       new: report.new_keywords.length,
       lost: report.lost_keywords.length
     };
-  } catch(e) { console.error('Weekly change report error:', e.message); }
+  } catch (e) { console.error('Weekly change report error:', e.message); }
   return report;
 }
 
@@ -2034,7 +2084,7 @@ async function buildWeeklyChangeReport(siteId=null) {
 // CONTENT DECAY DETECTION — finds published articles losing traffic over time
 // Compares recent GA4 data vs older GA4 data to flag declining pages
 // ══════════════════════════════════════════════════════════════════════════════
-async function detectContentDecay(siteId=null) {
+async function detectContentDecay(siteId = null) {
   const decaying = [];
   try {
     const siteFilter = siteId ? 'AND site_id=?' : '';
@@ -2051,12 +2101,12 @@ async function detectContentDecay(siteId=null) {
        WHERE report_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 90 DAY) AND DATE_SUB(CURDATE(), INTERVAL 60 DAY) ${siteFilter}
        GROUP BY page_path`, params);
 
-    const olderMap = new Map(older.map(r => [r.page_path, Number(r.views||0)]));
+    const olderMap = new Map(older.map(r => [r.page_path, Number(r.views || 0)]));
 
     for (const row of recent) {
       const oldViews = olderMap.get(row.page_path);
       if (!oldViews || oldViews < 10) continue; // no baseline
-      const recentViews = Number(row.views||0);
+      const recentViews = Number(row.views || 0);
       const dropPct = Math.round((oldViews - recentViews) / oldViews * 100);
       if (dropPct >= 25) { // 25%+ drop = decaying
         decaying.push({
@@ -2069,15 +2119,15 @@ async function detectContentDecay(siteId=null) {
         });
       }
     }
-    decaying.sort((a,b) => b.drop_pct - a.drop_pct).splice(20);
-  } catch(e) { console.error('Content decay detection error:', e.message); }
+    decaying.sort((a, b) => b.drop_pct - a.drop_pct).splice(20);
+  } catch (e) { console.error('Content decay detection error:', e.message); }
   return decaying;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // POSITION HISTORY — sparkline data for top keywords over last 30 days
 // ══════════════════════════════════════════════════════════════════════════════
-async function getPositionHistory(siteId=null, limit=10) {
+async function getPositionHistory(siteId = null, limit = 10) {
   try {
     const siteFilter = siteId ? 'AND site_id=?' : '';
     const relevanceFilter = `AND (
@@ -2123,17 +2173,17 @@ async function getPositionHistory(siteId=null, limit=10) {
     const grouped = new Map();
     for (const row of history) {
       if (!grouped.has(row.keyword)) grouped.set(row.keyword, []);
-      grouped.get(row.keyword).push({ date: row.recorded_on instanceof Date ? row.recorded_on.toISOString().slice(0,10) : String(row.recorded_on||'').slice(0,10), position: Number(row.position||50) });
+      grouped.get(row.keyword).push({ date: row.recorded_on instanceof Date ? row.recorded_on.toISOString().slice(0, 10) : String(row.recorded_on || '').slice(0, 10), position: Number(row.position || 50) });
     }
     return kwList.map(kw => ({ keyword: kw, history: grouped.get(kw) || [] }));
-  } catch(e) { console.error('Position history error:', e.message); return []; }
+  } catch (e) { console.error('Position history error:', e.message); return []; }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // BACKLINK OPPORTUNITY SCORER — scores backlink prospects by relevance
 // ══════════════════════════════════════════════════════════════════════════════
-function scoreBacklinkOpportunity(domain='') {
-  const d = String(domain||'').toLowerCase();
+function scoreBacklinkOpportunity(domain = '') {
+  const d = String(domain || '').toLowerCase();
   let score = 0;
   // Gaming/server related domains get high scores
   if (/game|gaming|server|host|gamer|play|steam|survival|craft|pvp|mmo/.test(d)) score += 40;
@@ -2156,9 +2206,9 @@ function scoreBacklinkOpportunity(domain='') {
 // Returns an array of issue objects: { type, severity, url, title, detail }
 // severity: 'critical' | 'warning' | 'info'
 // ══════════════════════════════════════════════════════════════════════════════
-async function runTechnicalSEOAudit(siteId=null) {
+async function runTechnicalSEOAudit(siteId = null) {
   const issues = [];
-  const where  = siteId ? 'WHERE sp.site_id=?' : 'WHERE 1=1';
+  const where = siteId ? 'WHERE sp.site_id=?' : 'WHERE 1=1';
   const params = siteId ? [siteId] : [];
 
   const pages = await q(
@@ -2172,15 +2222,15 @@ async function runTechnicalSEOAudit(siteId=null) {
   // — Title checks —
   const titleMap = new Map();
   for (const p of pages) {
-    const t = (p.page_title||'').trim();
+    const t = (p.page_title || '').trim();
     if (!t) {
-      issues.push({ type:'missing_title', severity:'critical', url:p.page_url, title:'Missing page title', detail:`${p.page_url} has no title tag. Google uses this as the primary ranking signal and click text.` });
+      issues.push({ type: 'missing_title', severity: 'critical', url: p.page_url, title: 'Missing page title', detail: `${p.page_url} has no title tag. Google uses this as the primary ranking signal and click text.` });
     } else {
-      if (t.length < 30) issues.push({ type:'short_title', severity:'warning', url:p.page_url, title:'Title too short', detail:`"${t.slice(0,80)}" (${t.length} chars). Titles under 30 chars waste ranking opportunity — aim for 50–60.` });
-      if (t.length > 65) issues.push({ type:'long_title', severity:'warning', url:p.page_url, title:'Title too long', detail:`"${t.slice(0,80)}…" (${t.length} chars). Google truncates at ~60 chars — the keyword may be cut off in results.` });
+      if (t.length < 30) issues.push({ type: 'short_title', severity: 'warning', url: p.page_url, title: 'Title too short', detail: `"${t.slice(0, 80)}" (${t.length} chars). Titles under 30 chars waste ranking opportunity — aim for 50–60.` });
+      if (t.length > 65) issues.push({ type: 'long_title', severity: 'warning', url: p.page_url, title: 'Title too long', detail: `"${t.slice(0, 80)}…" (${t.length} chars). Google truncates at ~60 chars — the keyword may be cut off in results.` });
       const key = t.toLowerCase().trim();
       if (titleMap.has(key)) {
-        issues.push({ type:'duplicate_title', severity:'critical', url:p.page_url, title:'Duplicate title tag', detail:`"${t.slice(0,80)}" is identical to ${titleMap.get(key)}. Duplicate titles confuse Google about which page to rank.` });
+        issues.push({ type: 'duplicate_title', severity: 'critical', url: p.page_url, title: 'Duplicate title tag', detail: `"${t.slice(0, 80)}" is identical to ${titleMap.get(key)}. Duplicate titles confuse Google about which page to rank.` });
       } else {
         titleMap.set(key, p.page_url);
       }
@@ -2190,14 +2240,14 @@ async function runTechnicalSEOAudit(siteId=null) {
   // — Meta description checks —
   const metaMap = new Map();
   for (const p of pages) {
-    const m = (p.meta_description||'').trim();
+    const m = (p.meta_description || '').trim();
     if (!m) {
-      issues.push({ type:'missing_meta', severity:'warning', url:p.page_url, title:'Missing meta description', detail:`${p.page_url} has no meta description. Google may auto-generate one that doesn't reflect your message.` });
+      issues.push({ type: 'missing_meta', severity: 'warning', url: p.page_url, title: 'Missing meta description', detail: `${p.page_url} has no meta description. Google may auto-generate one that doesn't reflect your message.` });
     } else {
-      if (m.length > 165) issues.push({ type:'long_meta', severity:'info', url:p.page_url, title:'Meta description too long', detail:`(${m.length} chars) Google truncates at ~155 chars. Trim to keep the CTA visible in search results.` });
-      const key = m.toLowerCase().trim().slice(0,100);
+      if (m.length > 165) issues.push({ type: 'long_meta', severity: 'info', url: p.page_url, title: 'Meta description too long', detail: `(${m.length} chars) Google truncates at ~155 chars. Trim to keep the CTA visible in search results.` });
+      const key = m.toLowerCase().trim().slice(0, 100);
       if (metaMap.has(key)) {
-        issues.push({ type:'duplicate_meta', severity:'warning', url:p.page_url, title:'Duplicate meta description', detail:`Same meta as ${metaMap.get(key)}. Unique descriptions improve CTR significantly.` });
+        issues.push({ type: 'duplicate_meta', severity: 'warning', url: p.page_url, title: 'Duplicate meta description', detail: `Same meta as ${metaMap.get(key)}. Unique descriptions improve CTR significantly.` });
       } else {
         metaMap.set(key, p.page_url);
       }
@@ -2206,11 +2256,11 @@ async function runTechnicalSEOAudit(siteId=null) {
 
   // — H1 checks —
   for (const p of pages) {
-    const h = (p.h1_text||'').trim();
+    const h = (p.h1_text || '').trim();
     if (!h) {
-      issues.push({ type:'missing_h1', severity:'critical', url:p.page_url, title:'Missing H1', detail:`${p.page_url} has no H1 heading. H1 is one of the strongest on-page ranking signals.` });
+      issues.push({ type: 'missing_h1', severity: 'critical', url: p.page_url, title: 'Missing H1', detail: `${p.page_url} has no H1 heading. H1 is one of the strongest on-page ranking signals.` });
     } else if (h.length < 15) {
-      issues.push({ type:'weak_h1', severity:'warning', url:p.page_url, title:'H1 too short or vague', detail:`"${h}" — a short H1 often means the primary keyword isn't in it. Make it descriptive and keyword-rich.` });
+      issues.push({ type: 'weak_h1', severity: 'warning', url: p.page_url, title: 'H1 too short or vague', detail: `"${h}" — a short H1 often means the primary keyword isn't in it. Make it descriptive and keyword-rich.` });
     }
   }
 
@@ -2218,8 +2268,8 @@ async function runTechnicalSEOAudit(siteId=null) {
   for (const p of pages) {
     // Skip low-content pages — NativPost app uses a Next.js SPA that delivers minimal HTML server-side,
     // so all game pages show ~13 words even though they have full content client-side
-    if (['money','blog','support'].includes(p.page_type) && Number(p.word_count||0) < 300 && Number(p.word_count||0) > 0) {
-      issues.push({ type:'thin_content', severity:'warning', url:p.page_url, title:'Thin content page', detail:`${p.page_url} (${p.word_count} words). Pages under 300 words rarely rank — expand or consolidate.` });
+    if (['money', 'blog', 'support'].includes(p.page_type) && Number(p.word_count || 0) < 300 && Number(p.word_count || 0) > 0) {
+      issues.push({ type: 'thin_content', severity: 'warning', url: p.page_url, title: 'Thin content page', detail: `${p.page_url} (${p.word_count} words). Pages under 300 words rarely rank — expand or consolidate.` });
     }
   }
 
@@ -2227,56 +2277,56 @@ async function runTechnicalSEOAudit(siteId=null) {
   // We approximate by checking if any OTHER page_url contains a link to this URL
   // Since we don't store full link graphs, flag pages with zero word_count as likely orphaned
   for (const p of pages) {
-    if (p.page_type === 'blog' && Number(p.word_count||0) === 0) {
-      issues.push({ type:'orphan_suspect', severity:'info', url:p.page_url, title:'Possible orphan page', detail:`${p.page_url} was detected as a blog page but shows 0 words. It may be orphaned or unscanned — re-scan or add internal links to it.` });
+    if (p.page_type === 'blog' && Number(p.word_count || 0) === 0) {
+      issues.push({ type: 'orphan_suspect', severity: 'info', url: p.page_url, title: 'Possible orphan page', detail: `${p.page_url} was detected as a blog page but shows 0 words. It may be orphaned or unscanned — re-scan or add internal links to it.` });
     }
   }
 
   // — Blog posts not linking to money pages —
   const moneyPages = pages.filter(p => p.page_type === 'money' || p.page_type === 'game');
-  const blogPages  = pages.filter(p => p.page_type === 'blog');
+  const blogPages = pages.filter(p => p.page_type === 'blog');
   if (moneyPages.length && blogPages.length) {
     const articles = await q("SELECT title, body, slug, primary_keyword FROM articles WHERE status='published' ORDER BY id DESC LIMIT 200");
     const moneyUrls = moneyPages.map(p => p.page_url.toLowerCase());
     let blogsMissingLink = 0;
     for (const a of articles) {
-      const body = String(a.body||'').toLowerCase();
+      const body = String(a.body || '').toLowerCase();
       const hasMoneyLink = moneyUrls.some(mu => body.includes(mu) || (a.slug && mu.includes(a.slug)));
       if (!hasMoneyLink) blogsMissingLink++;
     }
     if (blogsMissingLink > 0) {
-      issues.push({ type:'blog_no_money_link', severity:'warning', url:'multiple', title:`${blogsMissingLink} published articles may not link to money pages`, detail:`${blogsMissingLink} of your published articles don't appear to link to any NativPost pricing or feature page. Internal links to money pages pass PageRank and increase conversion chances.` });
+      issues.push({ type: 'blog_no_money_link', severity: 'warning', url: 'multiple', title: `${blogsMissingLink} published articles may not link to money pages`, detail: `${blogsMissingLink} of your published articles don't appear to link to any NativPost pricing or feature page. Internal links to money pages pass PageRank and increase conversion chances.` });
     }
   }
 
   // — Sort: critical first, then warning, then info —
-  const order = { critical:0, warning:1, info:2 };
-  issues.sort((a,b) => (order[a.severity]||2) - (order[b.severity]||2));
+  const order = { critical: 0, warning: 1, info: 2 };
+  issues.sort((a, b) => (order[a.severity] || 2) - (order[b.severity] || 2));
   return issues;
 }
 // ══════════════════════════════════════════════════════════════════════════════
 
-function extractMarkdownLinks(md='') {
-  return [...String(md||'').matchAll(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/gi)].map(m => ({text:m[1], url:m[2]}));
+function extractMarkdownLinks(md = '') {
+  return [...String(md || '').matchAll(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/gi)].map(m => ({ text: m[1], url: m[2] }));
 }
-function countHeadings(md='') { return [...String(md||'').matchAll(/^##\s+.+$/gim)].length; }
-function hasAnswerFirst(md='') { return /## (Quick Answer|TL.DR|Short Answer|Answer|What is|In Short)/im.test(String(md||'')) || /\*\*(Quick Answer|TL.DR|Short Answer)\*\*/im.test(String(md||'')); }
-function hasTableOrChecklist(md='') { return /\|.+\|.+\|/.test(String(md||'')) || /(?:^|\n)(?:-|\*)\s+/.test(String(md||'')); }
-function qualityBreakdown(article={}) {
+function countHeadings(md = '') { return [...String(md || '').matchAll(/^##\s+.+$/gim)].length; }
+function hasAnswerFirst(md = '') { return /## (Quick Answer|TL.DR|Short Answer|Answer|What is|In Short)/im.test(String(md || '')) || /\*\*(Quick Answer|TL.DR|Short Answer)\*\*/im.test(String(md || '')); }
+function hasTableOrChecklist(md = '') { return /\|.+\|.+\|/.test(String(md || '')) || /(?:^|\n)(?:-|\*)\s+/.test(String(md || '')); }
+function qualityBreakdown(article = {}) {
   const body = String(article.body || article.content || '');
   const bodyWords = wordCount(body);
   const links = extractMarkdownLinks(body);
   const internalLinks = links.filter(l => /nativpost\.com/i.test(l.url) || /^\/(?!\/)/.test(l.url));
   const outboundLinks = links.filter(l => !/nativpost\.com/i.test(l.url) && /^https?:\/\//i.test(l.url));
   // Also check for bare external URLs not wrapped in markdown links (e.g. steam pages mentioned in text)
-  const bareExternalUrls = [...String(body||'').matchAll(/https?:\/\/(?!nativpost)[^\s)\]]+/gi)].map(m=>m[0]);
+  const bareExternalUrls = [...String(body || '').matchAll(/https?:\/\/(?!nativpost)[^\s)\]]+/gi)].map(m => m[0]);
   const hasExternalUrl = outboundLinks.length > 0 || bareExternalUrls.length > 0;
-  const game = detectGame(`${article.title||''} ${article.primary_keyword||''} ${body}`);
-  const notes=[];
-  let score=0;
-  if ((article.title||'').length >= 35 && (article.title||'').length <= 72) score += 10; else notes.push('Title should be 35-72 characters.');
-  if (article.primary_keyword && new RegExp(article.primary_keyword.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(`${article.title||''} ${body.slice(0,300)}`)) score += 10; else notes.push('Primary keyword is not prominent enough in the title/opening.');
-  if ((article.meta_description||'').length >= 120 && (article.meta_description||'').length <= 160) score += 10; else notes.push('Meta description should be 120-160 characters.');
+  const game = detectGame(`${article.title || ''} ${article.primary_keyword || ''} ${body}`);
+  const notes = [];
+  let score = 0;
+  if ((article.title || '').length >= 35 && (article.title || '').length <= 72) score += 10; else notes.push('Title should be 35-72 characters.');
+  if (article.primary_keyword && new RegExp(article.primary_keyword.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(`${article.title || ''} ${body.slice(0, 300)}`)) score += 10; else notes.push('Primary keyword is not prominent enough in the title/opening.');
+  if ((article.meta_description || '').length >= 120 && (article.meta_description || '').length <= 160) score += 10; else notes.push('Meta description should be 120-160 characters.');
   if (bodyWords >= 1500) score += 14; else if (bodyWords >= 1200) score += 10; else notes.push('Article is too thin; target 1200+ words, ideally 1500+.');
   const h2Count = countHeadings(body);
   if (h2Count >= 5) score += 8; else notes.push('Needs at least 5 useful H2 sections.');
@@ -2286,15 +2336,15 @@ function qualityBreakdown(article={}) {
   if (internalLinks.length >= 2) score += 8; else notes.push('Needs at least two internal NativPost links.');
   if (hasExternalUrl) score += 4; else notes.push('Needs at least one authoritative outbound source link (e.g. Steam page, official game site).');
   if (article.featured_image_url) score += 5; else notes.push('Needs a featured image.');
-  if ((article.featured_image_alt||'').length >= 8) score += 3; else notes.push('Needs better featured image alt text.');
+  if ((article.featured_image_alt || '').length >= 8) score += 3; else notes.push('Needs better featured image alt text.');
   if (/NativPost/i.test(body) && /free trial|brand voice|anti-slop|7-day/i.test(body)) score += 6; else notes.push('Needs a stronger NativPost CTA — mention 7-day free trial and brand voice.');
-  if (game && new RegExp(game.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(body)) score += 4;
+  if (game && new RegExp(game.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(body)) score += 4;
   const duplicatePenalty = Number(article.cannibalization_penalty || 0);
   score = Math.max(1, Math.min(100, Math.round(score - duplicatePenalty)));
   return { score, notes, bodyWords, h2Count, internalLinks: internalLinks.length, outboundLinks: outboundLinks.length, game };
 }
-function contentQuality(article={}) { return qualityBreakdown(article).score; }
-function dedupeByUrl(rows=[]) {
+function contentQuality(article = {}) { return qualityBreakdown(article).score; }
+function dedupeByUrl(rows = []) {
   const seen = new Set();
   const out = [];
   for (const row of rows || []) {
@@ -2305,17 +2355,17 @@ function dedupeByUrl(rows=[]) {
   }
   return out;
 }
-function entityTermsFromRows(rows=[]) {
+function entityTermsFromRows(rows = []) {
   const bag = [];
   for (const r of rows || []) {
-    const t = `${r.title||r.result_title||''} ${r.snippet||r.meta_description||''} ${(r.headings||[]).join(' ')} ${r.url||r.result_url||''}`;
+    const t = `${r.title || r.result_title || ''} ${r.snippet || r.meta_description || ''} ${(r.headings || []).join(' ')} ${r.url || r.result_url || ''}`;
     bag.push(...tokens(t));
   }
-  return [...new Set(bag.filter(Boolean))].slice(0,40);
+  return [...new Set(bag.filter(Boolean))].slice(0, 40);
 }
-async function httpGetText(url, timeout=25000) {
+async function httpGetText(url, timeout = 25000) {
   const r = await axios.get(url, { timeout, headers: { 'User-Agent': process.env.SEO_USER_AGENT || 'Mozilla/5.0 (compatible; NativPostSEO/1.0; +https://nativpost.com)' } });
-  return typeof r.data === 'string' ? r.data : JSON.stringify(r.data||{});
+  return typeof r.data === 'string' ? r.data : JSON.stringify(r.data || {});
 }
 // ══════════════════════════════════════════════════════════════════════════════
 // SERP INTELLIGENCE ENGINE — DataForSEO (primary) + DuckDuckGo (fallback)
@@ -2359,7 +2409,7 @@ async function fetchDataForSEOBalance() {
 }
 // Single place to refresh all API balance caches. Called from a route and from
 // a periodic background refresher so the Reports page is always instant.
-async function refreshApiBalances(serviceFilter=null) {
+async function refreshApiBalances(serviceFilter = null) {
   const services = serviceFilter ? [serviceFilter] : ['dataforseo', 'contentful', 'anthropic', 'openai', 'google'];
   const results = {};
   for (const svc of services) {
@@ -2444,7 +2494,7 @@ async function getCachedApiBalances() {
   const out = {};
   for (const r of rows) {
     let details = null;
-    try { details = r.details_json ? JSON.parse(r.details_json) : null; } catch {}
+    try { details = r.details_json ? JSON.parse(r.details_json) : null; } catch { }
     out[r.service] = {
       balance: r.balance === null ? null : Number(r.balance),
       currency: r.currency,
@@ -2591,7 +2641,7 @@ async function refreshGameExpansionRadar() {
   console.log('[Radar] Game expansion radar disabled for NativPost — skipping.');
   return;
 }
-async function getTopRadarOpportunities(limit=10) {
+async function getTopRadarOpportunities(limit = 10) {
   return await q(
     `SELECT * FROM game_expansion_radar WHERE status='pending' ORDER BY opportunity_score DESC, signal_score DESC LIMIT ?`,
     [limit]
@@ -2704,7 +2754,7 @@ async function runLinkGapDiscovery({ siteId = null, maxCompetitors = 5 } = {}) {
   }
   return { saved, total: items.length, ourHost, competitorHosts };
 }
-async function getSerpCache(siteId, keyword, provider='dataforseo') {
+async function getSerpCache(siteId, keyword, provider = 'dataforseo') {
   try {
     // Get most recent row for this keyword+provider — check expiry in JS to avoid timezone issues
     const row = await one(
@@ -2716,15 +2766,15 @@ async function getSerpCache(siteId, keyword, provider='dataforseo') {
     return safeJsonParse(row.summary_json, null);
   } catch { return null; }
 }
-async function setSerpCache(siteId, keyword, provider, summary, volumeData={}) {
+async function setSerpCache(siteId, keyword, provider, summary, volumeData = {}) {
   const expires = new Date(Date.now() + DFS_CACHE_DAYS * 86400 * 1000);
-  const expiresStr = expires.toISOString().slice(0,19).replace('T',' ');
+  const expiresStr = expires.toISOString().slice(0, 19).replace('T', ' ');
   // DELETE first then INSERT — avoids NULL unique key ambiguity in MySQL
-  await execSafe('DELETE FROM serp_cache WHERE site_id<=>? AND keyword=? AND provider=?', [siteId||null, keyword, provider]);
+  await execSafe('DELETE FROM serp_cache WHERE site_id<=>? AND keyword=? AND provider=?', [siteId || null, keyword, provider]);
   await execSafe(
     `INSERT INTO serp_cache (site_id,keyword,provider,summary_json,fetched_at,expires_at,search_volume,keyword_difficulty,serp_features_json)
      VALUES (?,?,?,?,NOW(),?,?,?,?)`,
-    [siteId||null, keyword, provider, JSON.stringify(summary), expiresStr, volumeData.volume||0, volumeData.difficulty||0, JSON.stringify(volumeData.features||[])]
+    [siteId || null, keyword, provider, JSON.stringify(summary), expiresStr, volumeData.volume || 0, volumeData.difficulty || 0, JSON.stringify(volumeData.features || [])]
   );
 }
 async function fetchSerpViaDataForSEO(keyword) {
@@ -2741,62 +2791,62 @@ async function fetchSerpViaDataForSEO(keyword) {
     const rows = []; const serpFeatures = []; const paaQuestions = []; const relatedSearches = [];
     for (const item of items) {
       if (item.type === 'organic') {
-        rows.push({ url: normalizeUrl(item.url||''), title: item.title||titleFromUrl(item.url||''), snippet: item.description||item.snippet||'', position: item.rank_absolute||rows.length+1, word_count: 0 });
+        rows.push({ url: normalizeUrl(item.url || ''), title: item.title || titleFromUrl(item.url || ''), snippet: item.description || item.snippet || '', position: item.rank_absolute || rows.length + 1, word_count: 0 });
       } else if (item.type === 'people_also_ask') {
-        for (const q of (item.items||[])) { const t = q.title||q.question||''; if (t) paaQuestions.push(t); }
+        for (const q of (item.items || [])) { const t = q.title || q.question || ''; if (t) paaQuestions.push(t); }
       } else if (item.type === 'related_searches') {
-        for (const s of (item.items||[])) { if (typeof s === 'string') relatedSearches.push(s); }
+        for (const s of (item.items || [])) { if (typeof s === 'string') relatedSearches.push(s); }
       } else if (item.type) {
         serpFeatures.push(item.type);
       }
     }
     // Use related searches as bonus questions if PAA is empty
     const allQuestions = paaQuestions.length ? paaQuestions : relatedSearches;
-    return { rows: dedupeByUrl(rows).slice(0, DFS_MAX_RESULTS), paaQuestions: allQuestions.slice(0,20), serpFeatures: [...new Set(serpFeatures)] };
-  } catch(err) { console.warn('[SERP] DataForSEO error:', err.message); return null; }
+    return { rows: dedupeByUrl(rows).slice(0, DFS_MAX_RESULTS), paaQuestions: allQuestions.slice(0, 20), serpFeatures: [...new Set(serpFeatures)] };
+  } catch (err) { console.warn('[SERP] DataForSEO error:', err.message); return null; }
 }
 async function fetchKeywordMetricsViaDataForSEO(keyword) {
   if (!DFS_ENABLED) return {};
   if (!dfsCallAllowed()) return {};
   try {
     dfsCallUsed();
-    const data = await dfsPost('keywords_data/google_ads/search_volume/live', [{ keywords:[keyword], location_code:DFS_LOCATION, language_code:DFS_LANGUAGE }]);
+    const data = await dfsPost('keywords_data/google_ads/search_volume/live', [{ keywords: [keyword], location_code: DFS_LOCATION, language_code: DFS_LANGUAGE }]);
     const item = data?.tasks?.[0]?.result?.[0];
-    return item ? { volume: item.search_volume||0, competition: item.competition_index||0 } : {};
+    return item ? { volume: item.search_volume || 0, competition: item.competition_index || 0 } : {};
   } catch { return {}; }
 }
-async function fetchSerpResultsViaDuckDuckGo(query='') {
+async function fetchSerpResultsViaDuckDuckGo(query = '') {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
     const html = await httpGetText(url, 25000);
     const rows = [];
     for (const m of html.matchAll(/<a[^>]+class=["'][^"']*result__a[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
-      const rawUrl = stripHtml(m[1]||''); const title = stripHtml(m[2]||'');
+      const rawUrl = stripHtml(m[1] || ''); const title = stripHtml(m[2] || '');
       if (!rawUrl || !title) continue;
-      rows.push({ url: normalizeUrl(rawUrl), title, snippet: '', position: rows.length+1, word_count: 0 });
+      rows.push({ url: normalizeUrl(rawUrl), title, snippet: '', position: rows.length + 1, word_count: 0 });
       if (rows.length >= 10) break;
     }
     return dedupeByUrl(rows);
   } catch { return []; }
 }
-async function enrichSerpPage(url, timeoutMs=12000) {
+async function enrichSerpPage(url, timeoutMs = 12000) {
   try {
     const html = await httpGetText(url, timeoutMs);
-    const headings = [...String(html||'').matchAll(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi)].map(m=>stripHtml(m[1])).filter(Boolean).slice(0,12);
-    const questions = headings.filter(h => /\?$/.test(h) || /^(how|what|why|when|where|can|does|is)\b/i.test(h)).slice(0,8);
-    const bodyText = stripHtml(html||'').replace(/\s+/g,' ').trim();
+    const headings = [...String(html || '').matchAll(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi)].map(m => stripHtml(m[1])).filter(Boolean).slice(0, 12);
+    const questions = headings.filter(h => /\?$/.test(h) || /^(how|what|why|when|where|can|does|is)\b/i.test(h)).slice(0, 8);
+    const bodyText = stripHtml(html || '').replace(/\s+/g, ' ').trim();
     return { headings, questions, word_count: wordCount(bodyText) };
   } catch { return null; }
 }
-function detectSerpIntent(serpFeatures=[], questions=[]) {
+function detectSerpIntent(serpFeatures = [], questions = []) {
   const f = serpFeatures.map(x => String(x).toLowerCase());
   if (f.some(x => /shopping|price|buy|product/.test(x))) return 'commercial';
   if (f.some(x => /answer|knowledge|featured_snippet|definition/.test(x)) || questions.length > 3) return 'informational';
   return 'mixed';
 }
-async function purgeSerpCache(siteId=null, keyword=null) {
+async function purgeSerpCache(siteId = null, keyword = null) {
   if (keyword) {
-    const qword = cleanKeyword(keyword)||keyword;
+    const qword = cleanKeyword(keyword) || keyword;
     // Delete all rows for this keyword regardless of site_id to prevent stale rows accumulating
     await execSafe('DELETE FROM serp_cache WHERE keyword=?', [qword]);
     await execSafe('DELETE FROM serp_results WHERE keyword=?', [qword]);
@@ -2809,8 +2859,8 @@ async function purgeSerpCache(siteId=null, keyword=null) {
     await execSafe('DELETE FROM serp_results WHERE 1=1');
   }
 }
-async function analyzeSerpForKeyword({siteId=null, keyword='', siteUrl=''}) {
-  const qword = cleanKeyword(keyword) || String(keyword||'').trim() || 'ai social media content';
+async function analyzeSerpForKeyword({ siteId = null, keyword = '', siteUrl = '' }) {
+  const qword = cleanKeyword(keyword) || String(keyword || '').trim() || 'ai social media content';
   const provider = DFS_ENABLED ? 'dataforseo' : 'duckduckgo';
   const cached = await getSerpCache(siteId, qword, provider);
   if (cached) { console.log(`[SERP] Cache hit: "${qword}"`); return cached; }
@@ -2819,66 +2869,66 @@ async function analyzeSerpForKeyword({siteId=null, keyword='', siteUrl=''}) {
   if (DFS_ENABLED) {
     const dfs = await fetchSerpViaDataForSEO(qword);
     if (dfs) { rows = dfs.rows; paaQuestions = dfs.paaQuestions; serpFeatures = dfs.serpFeatures; }
-    fetchKeywordMetricsViaDataForSEO(qword).then(m => { volumeData = m; }).catch(()=>{});
+    fetchKeywordMetricsViaDataForSEO(qword).then(m => { volumeData = m; }).catch(() => { });
   }
-  if (!rows.length) { try { rows = await fetchSerpResultsViaDuckDuckGo(qword); } catch {} }
+  if (!rows.length) { try { rows = await fetchSerpResultsViaDuckDuckGo(qword); } catch { } }
   if (!rows.length) {
     const fallback = await q("SELECT cp.page_url url, cp.page_title title, cp.meta_description snippet, cp.word_count FROM competitor_pages cp JOIN competitors c ON c.id=cp.competitor_id WHERE c.active=1 ORDER BY cp.word_count DESC LIMIT 10");
-    rows = fallback.map((r,i) => ({ url:r.url||r.page_url, title:r.title||r.page_title||titleFromUrl(r.url||r.page_url), snippet:r.snippet||r.meta_description||'', position:i+1, word_count:r.word_count||0 }));
+    rows = fallback.map((r, i) => ({ url: r.url || r.page_url, title: r.title || r.page_title || titleFromUrl(r.url || r.page_url), snippet: r.snippet || r.meta_description || '', position: i + 1, word_count: r.word_count || 0 }));
   }
   rows = dedupeByUrl(rows).slice(0, DFS_MAX_RESULTS);
   const enriched = [];
   // Always save every row — enrich with headings/word count where possible, fall back gracefully
-  const enrichResults = await Promise.allSettled(rows.slice(0,8).map(row => enrichSerpPage(row.url, 12000).then(e => ({row,e}))));
+  const enrichResults = await Promise.allSettled(rows.slice(0, 8).map(row => enrichSerpPage(row.url, 12000).then(e => ({ row, e }))));
   const enrichMap = new Map();
   for (const r of enrichResults) {
     if (r.status === 'fulfilled' && r.value?.e) enrichMap.set(r.value.row.url, r.value.e);
   }
   for (const row of rows) {
     const e = enrichMap.get(row.url) || null;
-    enriched.push({ keyword:qword, query:qword, url:row.url, title:row.title||titleFromUrl(row.url), snippet:row.snippet||'', position:row.position||0, headings:e?.headings||[], questions:e?.questions||[], word_count:e?.word_count||row.word_count||0, provider });
+    enriched.push({ keyword: qword, query: qword, url: row.url, title: row.title || titleFromUrl(row.url), snippet: row.snippet || '', position: row.position || 0, headings: e?.headings || [], questions: e?.questions || [], word_count: e?.word_count || row.word_count || 0, provider });
   }
-  const allHeadings  = [...new Set(enriched.flatMap(r=>r.headings||[]).filter(Boolean))].slice(0,30);
-  const allQuestions = [...new Set([...paaQuestions, ...enriched.flatMap(r=>r.questions||[]).filter(Boolean)])].slice(0,24);
-  const allEntities  = entityTermsFromRows(enriched).slice(0,40);
-  const wordCounts   = enriched.map(r=>Number(r.word_count||0)).filter(n=>n>0);
-  const avgWords     = wordCounts.length ? Math.round(wordCounts.reduce((a,b)=>a+b,0)/wordCounts.length) : 0;
-  const serpIntent   = detectSerpIntent(serpFeatures, allQuestions);
-  await execSafe('DELETE FROM serp_results WHERE site_id<=>? AND keyword=?', [siteId||null, qword]);
+  const allHeadings = [...new Set(enriched.flatMap(r => r.headings || []).filter(Boolean))].slice(0, 30);
+  const allQuestions = [...new Set([...paaQuestions, ...enriched.flatMap(r => r.questions || []).filter(Boolean)])].slice(0, 24);
+  const allEntities = entityTermsFromRows(enriched).slice(0, 40);
+  const wordCounts = enriched.map(r => Number(r.word_count || 0)).filter(n => n > 0);
+  const avgWords = wordCounts.length ? Math.round(wordCounts.reduce((a, b) => a + b, 0) / wordCounts.length) : 0;
+  const serpIntent = detectSerpIntent(serpFeatures, allQuestions);
+  await execSafe('DELETE FROM serp_results WHERE site_id<=>? AND keyword=?', [siteId || null, qword]);
   for (const row of enriched) {
     await execSafe('INSERT INTO serp_results (site_id,keyword,query_text,result_title,result_url,snippet,headings_json,questions_json,entities_json,word_count,position,provider) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-      [siteId||null, qword, qword, row.title||'', row.url||'', row.snippet||'', JSON.stringify(row.headings||[]), JSON.stringify(row.questions||[]), JSON.stringify(allEntities), Number(row.word_count||0), Number(row.position||0), provider]);
+      [siteId || null, qword, qword, row.title || '', row.url || '', row.snippet || '', JSON.stringify(row.headings || []), JSON.stringify(row.questions || []), JSON.stringify(allEntities), Number(row.word_count || 0), Number(row.position || 0), provider]);
   }
-  if (volumeData.volume) await execSafe('UPDATE keywords SET volume=?,last_updated=NOW() WHERE (site_id<=>? OR site_id IS NULL) AND LOWER(keyword)=LOWER(?) AND (volume=0 OR volume IS NULL)', [volumeData.volume, siteId||null, qword]);
-  const summary = { keyword:qword, query:qword, provider, results:enriched, headings:allHeadings, questions:allQuestions, entities:allEntities, avg_words:avgWords, serp_features:serpFeatures, serp_intent:serpIntent, search_volume:volumeData.volume||0, keyword_difficulty:volumeData.competition||0 };
-  await setSerpCache(siteId, qword, provider, summary, { volume:volumeData.volume||0, difficulty:volumeData.competition||0, features:serpFeatures });
+  if (volumeData.volume) await execSafe('UPDATE keywords SET volume=?,last_updated=NOW() WHERE (site_id<=>? OR site_id IS NULL) AND LOWER(keyword)=LOWER(?) AND (volume=0 OR volume IS NULL)', [volumeData.volume, siteId || null, qword]);
+  const summary = { keyword: qword, query: qword, provider, results: enriched, headings: allHeadings, questions: allQuestions, entities: allEntities, avg_words: avgWords, serp_features: serpFeatures, serp_intent: serpIntent, search_volume: volumeData.volume || 0, keyword_difficulty: volumeData.competition || 0 };
+  await setSerpCache(siteId, qword, provider, summary, { volume: volumeData.volume || 0, difficulty: volumeData.competition || 0, features: serpFeatures });
   console.log(`[SERP] Done: "${qword}" — ${enriched.length} results, avg ${avgWords} words, ${allQuestions.length} questions, intent: ${serpIntent}`);
   return summary;
 }
 // ══════════════════════════════════════════════════════════════════════════════
-async function upsertTopicCluster(siteId, keyword, serp={}) {
+async function upsertTopicCluster(siteId, keyword, serp = {}) {
   const ck = cleanKeyword(keyword) || keyword;
   if (!ck) return null;
   const cluster = clusterName(ck);
-  const note = `SERP avg words: ${Number(serp.avg_words||0)}. Questions: ${(serp.questions||[]).slice(0,6).join(' | ')}`.slice(0,2000);
+  const note = `SERP avg words: ${Number(serp.avg_words || 0)}. Questions: ${(serp.questions || []).slice(0, 6).join(' | ')}`.slice(0, 2000);
   await execSafe('INSERT INTO topic_clusters (site_id,cluster_name,primary_keyword,intent,status,notes) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE primary_keyword=VALUES(primary_keyword), intent=VALUES(intent), status=VALUES(status), notes=VALUES(notes)', [siteId || null, cluster, ck, intentOf(ck), 'active', note]);
   return cluster;
 }
-async function cannibalizationPenalty(siteId, keyword, slug='') {
+async function cannibalizationPenalty(siteId, keyword, slug = '') {
   const ck = cleanKeyword(keyword) || keyword;
   if (!ck) return 0;
   const existing = await q("SELECT id,title,slug,primary_keyword,status FROM articles WHERE (? IS NULL OR site_id<=>?) AND LOWER(COALESCE(primary_keyword,''))=LOWER(?) AND status NOT IN ('rejected')", [siteId || null, siteId || null, ck]);
-  const others = existing.filter(r => String(r.slug||'') !== String(slug||''));
+  const others = existing.filter(r => String(r.slug || '') !== String(slug || ''));
   return others.length ? Math.min(18, others.length * 6) : 0;
 }
-function buildArticleSchema(article={}) {
+function buildArticleSchema(article = {}) {
   const siteUrl = originOf(article.site_url || article.url || 'https://nativpost.com');
   const url = article.published_url || article.canonical_url || `${siteUrl}/blog/${article.slug || slugify(article.title || '')}`;
   const image = article.featured_image_url ? (String(article.featured_image_url).startsWith('http') ? article.featured_image_url : `${siteUrl}${article.featured_image_url}`) : '';
   const body = String(article.body || article.content || '');
   const faq = [];
-  const lines = body.replace(/\r\n/g,'\n').split('\n');
-  for (let i=0; i<lines.length; i++) {
+  const lines = body.replace(/\r\n/g, '\n').split('\n');
+  for (let i = 0; i < lines.length; i++) {
     const qline = lines[i].trim();
     // H3 FAQ style with paragraph answer below
     if (/^###\s+/.test(qline)) {
@@ -2886,44 +2936,44 @@ function buildArticleSchema(article={}) {
       if (/\?$/.test(q) || /^(how|what|why|when|where|can|does|is|do|will|should)\b/i.test(q)) {
         // Collect the paragraph(s) that follow until next heading or blank-blank
         const answerParts = [];
-        for (let j = i+1; j < lines.length && j < i + 8; j++) {
+        for (let j = i + 1; j < lines.length && j < i + 8; j++) {
           const next = lines[j].trim();
           if (!next) { if (answerParts.length) break; else continue; }
           if (/^#{1,6}\s+/.test(next)) break;
           answerParts.push(next.replace(/^[-*]\s+/, ''));
         }
-        const answer = answerParts.join(' ').replace(/\s+/g,' ').trim();
+        const answer = answerParts.join(' ').replace(/\s+/g, ' ').trim();
         if (q && answer) faq.push({ question: q, answer });
       }
     }
   }
-  const detectedGame = detectGame(`${article.title||''} ${article.primary_keyword||''}`);
+  const detectedGame = detectGame(`${article.title || ''} ${article.primary_keyword || ''}`);
   const gameLabel = detectedGame ? gameDisplay(detectedGame) : '';
   const publishedAt = article.published_at || article.created_at || new Date().toISOString();
   const modifiedAt = article.updated_at || publishedAt;
   const graph = [];
   // WebPage anchors the URL and connects everything
   graph.push({
-    '@context':'https://schema.org', '@type':'WebPage',
+    '@context': 'https://schema.org', '@type': 'WebPage',
     '@id': `${url}#webpage`,
     url, name: article.title || '',
     description: article.meta_description || article.excerpt || '',
     isPartOf: { '@id': `${siteUrl}#website` },
     inLanguage: 'en-US',
     datePublished: publishedAt, dateModified: modifiedAt,
-    primaryImageOfPage: image ? { '@type':'ImageObject', url: image } : undefined
+    primaryImageOfPage: image ? { '@type': 'ImageObject', url: image } : undefined
   });
   graph.push({
-    '@context':'https://schema.org', '@type':'Article',
+    '@context': 'https://schema.org', '@type': 'Article',
     '@id': `${url}#article`,
-    headline: (article.title||'').slice(0, 110),
+    headline: (article.title || '').slice(0, 110),
     description: article.meta_description || article.excerpt || '',
     image: image ? [image] : undefined,
     datePublished: publishedAt, dateModified: modifiedAt,
-    author: { '@type':'Organization', name:'NativPost', url: siteUrl },
+    author: { '@type': 'Organization', name: 'NativPost', url: siteUrl },
     publisher: {
-      '@type':'Organization', name:'NativPost', url: siteUrl,
-      logo: { '@type':'ImageObject', url: `${siteUrl}/logo.png` }
+      '@type': 'Organization', name: 'NativPost', url: siteUrl,
+      logo: { '@type': 'ImageObject', url: `${siteUrl}/logo.png` }
     },
     mainEntityOfPage: { '@id': `${url}#webpage` },
     keywords: [article.primary_keyword || '', gameLabel].filter(Boolean).join(', '),
@@ -2932,64 +2982,64 @@ function buildArticleSchema(article={}) {
   });
   // Organization/Website is referenced but may already exist on the site — safe to restate
   graph.push({
-    '@context':'https://schema.org', '@type':'WebSite',
+    '@context': 'https://schema.org', '@type': 'WebSite',
     '@id': `${siteUrl}#website`,
     url: siteUrl, name: 'NativPost',
-    potentialAction: { '@type':'SearchAction', target: `${siteUrl}/?s={search_term_string}`, 'query-input':'required name=search_term_string' }
+    potentialAction: { '@type': 'SearchAction', target: `${siteUrl}/?s={search_term_string}`, 'query-input': 'required name=search_term_string' }
   });
   // If this article targets a NativPost feature or product, add Product schema for the hosting offer.
   // This is the highest-value schema type for ranking in game-hosting SERPs.
-  const isLiveHostingArticle = detectedGame && /host|server|rental|dedicated/i.test(`${article.title||''} ${article.primary_keyword||''}`);
+  const isLiveHostingArticle = detectedGame && /host|server|rental|dedicated/i.test(`${article.title || ''} ${article.primary_keyword || ''}`);
   const excludedGames = []; // NativPost: no game exclusion list needed
   if (isLiveHostingArticle && !excludedGames.includes(detectedGame)) {
-    const basePrice = String(process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)').replace(/[^0-9.]/g,'') || '11';
+    const basePrice = String(process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)').replace(/[^0-9.]/g, '') || '11';
     graph.push({
-      '@context':'https://schema.org', '@type':'Product',
+      '@context': 'https://schema.org', '@type': 'Product',
       '@id': `${url}#product`,
       name: `${gameLabel} Server Hosting`,
       description: `NativPost AI social media content platform — brand voice AI, anti-slop filter, and instant deployment. ${String(process.env.NATIVPOST_TRIAL_DAYS || 7)}-day free trial.`,
       image: image ? [image] : undefined,
-      brand: { '@type':'Brand', name:'NativPost' },
+      brand: { '@type': 'Brand', name: 'NativPost' },
       category: 'Social Media SEO',
       offers: {
-        '@type':'Offer',
-        url: `${siteUrl}/game/${detectedGame.replace(/\s+/g,'-')}-server-hosting`,
+        '@type': 'Offer',
+        url: `${siteUrl}/game/${detectedGame.replace(/\s+/g, '-')}-server-hosting`,
         priceCurrency: 'USD', price: basePrice,
-        priceValidUntil: new Date(Date.now() + 365*24*60*60*1000).toISOString().slice(0,10),
+        priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         availability: 'https://schema.org/InStock',
-        seller: { '@type':'Organization', name:'NativPost' }
+        seller: { '@type': 'Organization', name: 'NativPost' }
       }
     });
   }
   if (faq.length >= 2) {
     graph.push({
-      '@context':'https://schema.org', '@type':'FAQPage',
+      '@context': 'https://schema.org', '@type': 'FAQPage',
       '@id': `${url}#faq`,
-      mainEntity: faq.slice(0,10).map(item => ({
-        '@type':'Question', name:item.question,
-        acceptedAnswer:{ '@type':'Answer', text:item.answer.slice(0, 1000) }
+      mainEntity: faq.slice(0, 10).map(item => ({
+        '@type': 'Question', name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer.slice(0, 1000) }
       }))
     });
   }
   // Speakable schema — tells Google AI Overviews and voice assistants which
   // parts to read aloud or cite. Covers h1, h2 headings and first paragraphs.
   graph.push({
-    '@context':'https://schema.org', '@type':'WebPage',
+    '@context': 'https://schema.org', '@type': 'WebPage',
     '@id': `${url}#webpage`,
     name: article.title || '',
     url: url,
     speakable: {
-      '@type':'SpeakableSpecification',
-      cssSelector: ['h1','h2','p']
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'h2', 'p']
     }
   });
   graph.push({
-    '@context':'https://schema.org', '@type':'BreadcrumbList',
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
     '@id': `${url}#breadcrumb`,
-    itemListElement:[
-      { '@type':'ListItem', position:1, name:'Home', item:siteUrl },
-      { '@type':'ListItem', position:2, name:'Blog', item:`${siteUrl}/blog` },
-      { '@type':'ListItem', position:3, name:article.title || '', item:url }
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${siteUrl}/blog` },
+      { '@type': 'ListItem', position: 3, name: article.title || '', item: url }
     ]
   });
   return JSON.stringify(graph, null, 2);
@@ -2997,13 +3047,13 @@ function buildArticleSchema(article={}) {
 
 // Wrap a JSON-LD graph as an inline <script> tag safe for embedding in HTML body.
 // Escapes </script> to prevent breakout, and </ to avoid HTML parser issues.
-function inlineJsonLdScript(schemaJson='') {
-  const safe = String(schemaJson||'').replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
+function inlineJsonLdScript(schemaJson = '') {
+  const safe = String(schemaJson || '').replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
   if (!safe.trim()) return '';
   return `<script type="application/ld+json">${safe}</script>`;
 }
-function draftBody({title, keyword, siteName, competitorTerms=[], ownPages=[], serp=null}) {
-  const game=detectGame(`${title} ${keyword}`); const terms = competitorTerms.slice(0,10).join(', '); const internal = ownPages.slice(0,6).map(p=>`- ${p.page_title || p.page_url}: ${p.page_url}`).join('\n'); const serpQs = (serp?.questions || []).slice(0,5).map(q=>`- ${q}`).join('\n');
+function draftBody({ title, keyword, siteName, competitorTerms = [], ownPages = [], serp = null }) {
+  const game = detectGame(`${title} ${keyword}`); const terms = competitorTerms.slice(0, 10).join(', '); const internal = ownPages.slice(0, 6).map(p => `- ${p.page_title || p.page_url}: ${p.page_url}`).join('\n'); const serpQs = (serp?.questions || []).slice(0, 5).map(q => `- ${q}`).join('\n');
   return `# ${title}
 
 ## Quick Answer
@@ -3061,10 +3111,11 @@ async function getLiveGamesFromDB() {
   try {
     const rows = await q("SELECT * FROM live_games WHERE status='live' ORDER BY game_label ASC");
     return rows;
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
-async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return {confirmed:[], debug:[]}; /* NativPost: not a game host */
+async function refreshLiveGamesFromIGH(siteUrl = 'https://nativpost.com') {
+  return { confirmed: [], debug: [] }; /* NativPost: not a game host */
   const confirmed = [];
   const debug = [];
   try {
@@ -3108,8 +3159,8 @@ async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return
           }
         }
       }
-      if (!bundleUrl) debug.push('Bundle not found. HTML sample: ' + homeHtml.slice(0, 200).replace(/\n/g,' '));
-    } catch(e) {
+      if (!bundleUrl) debug.push('Bundle not found. HTML sample: ' + homeHtml.slice(0, 200).replace(/\n/g, ' '));
+    } catch (e) {
       debug.push(`Homepage fetch failed: ${e.message}`);
     }
 
@@ -3123,8 +3174,8 @@ async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return
     try {
       const { html } = await fetchUrl(bundleUrl, 30000);
       bundleJs = html;
-      debug.push(`Bundle fetched: ${Math.round(bundleJs.length/1024)}KB`);
-    } catch(e) {
+      debug.push(`Bundle fetched: ${Math.round(bundleJs.length / 1024)}KB`);
+    } catch (e) {
       debug.push(`Bundle fetch failed: ${e.message}`);
       return { confirmed, debug };
     }
@@ -3145,7 +3196,7 @@ async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return
       let gameKey = detectGame(slugText) || detectGame(slug);
       // If no alias match, use the slug itself as the key (e.g. "voyagers-of-nera")
       if (!gameKey) gameKey = slugText;
-      const label = gameDisplay(gameKey) || slug.split('-').map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+      const label = gameDisplay(gameKey) || slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       const publicUrl = `${base}/game/${slug}-server-hosting`;
       await q(`INSERT INTO live_games (game_key, game_label, igh_page_url, status)
                VALUES (?,?,?,'live') ON DUPLICATE KEY UPDATE
@@ -3157,7 +3208,7 @@ async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return
     }
 
     debug.push(`Done: ${confirmed.length} live games detected`);
-  } catch(e) {
+  } catch (e) {
     debug.push(`Refresh failed: ${e.message}`);
     console.error('[LiveGames] refresh error:', e.message);
   }
@@ -3170,16 +3221,16 @@ async function refreshLiveGamesFromIGH(siteUrl='https://nativpost.com') { return
 // published article gaps per game, keyword clusters, and recent momentum.
 // Produces a ranked list of specific article recommendations with reasoning.
 // ══════════════════════════════════════════════════════════════════════════════
-async function generateDailyBrief(siteId=null) {
-  const today = new Date().toISOString().slice(0,10);
-  const existing = await one('SELECT * FROM daily_brief WHERE brief_date=?', [today]).catch(()=>null);
+async function generateDailyBrief(siteId = null) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existing = await one('SELECT * FROM daily_brief WHERE brief_date=?', [today]).catch(() => null);
   if (existing) {
-    try { return JSON.parse(existing.recommendations_json); } catch(e) {}
+    try { return JSON.parse(existing.recommendations_json); } catch (e) { }
   }
 
   const recommendations = [];
 
-  function addRec(keyword, reason, score, category, evidence=[]) {
+  function addRec(keyword, reason, score, category, evidence = []) {
     // Deduplicate — don't recommend something we've already planned
     const kl = keyword.toLowerCase().trim();
     if (recommendations.some(r => r.keyword.toLowerCase() === kl)) return;
@@ -3193,10 +3244,10 @@ async function generateDailyBrief(siteId=null) {
   const sid = siteId;
 
   // 1. Our published articles - build coverage from BOTH primary_keyword AND title
-  const published = await q("SELECT primary_keyword, title, slug FROM articles WHERE status='published' AND primary_keyword IS NOT NULL").catch(()=>[]);
+  const published = await q("SELECT primary_keyword, title, slug FROM articles WHERE status='published' AND primary_keyword IS NOT NULL").catch(() => []);
   const publishedKeywords = new Set(published.map(a => a.primary_keyword.toLowerCase().trim()));
   // Also extract game names from titles for articles with bad/old primary_keywords
-  const publishedTitles = new Set(published.map(a => (a.title||'').toLowerCase().trim()));
+  const publishedTitles = new Set(published.map(a => (a.title || '').toLowerCase().trim()));
 
   // 2. Also pull from Contentful — articles published directly (e.g. by Adaptify) bypassing local DB
   try {
@@ -3213,15 +3264,15 @@ async function generateDailyBrief(siteId=null) {
         const title = typeof f.title === 'object' ? Object.values(f.title)[0] : f.title;
         const slug = typeof f.slug === 'object' ? Object.values(f.slug)[0] : f.slug;
         if (title) publishedTitles.add(String(title).toLowerCase().trim());
-        if (slug) publishedKeywords.add(String(slug).toLowerCase().replace(/-/g,' ').trim());
+        if (slug) publishedKeywords.add(String(slug).toLowerCase().replace(/-/g, ' ').trim());
       }
     }
-  } catch(e) { /* non-fatal */ }
+  } catch (e) { /* non-fatal */ }
 
   // 3. Our queued/drafted articles
-  const inProgress = await q("SELECT primary_keyword, title FROM articles WHERE status IN ('draft','review','approved','queued') AND primary_keyword IS NOT NULL").catch(()=>[]);
+  const inProgress = await q("SELECT primary_keyword, title FROM articles WHERE status IN ('draft','review','approved','queued') AND primary_keyword IS NOT NULL").catch(() => []);
   const inProgressKeywords = new Set(inProgress.map(a => a.primary_keyword.toLowerCase().trim()));
-  const inProgressTitles = new Set(inProgress.map(a => (a.title||'').toLowerCase().trim()));
+  const inProgressTitles = new Set(inProgress.map(a => (a.title || '').toLowerCase().trim()));
 
   const covered = new Set([...publishedKeywords, ...inProgressKeywords]);
   const coveredTitles = new Set([...publishedTitles, ...inProgressTitles]);
@@ -3235,7 +3286,7 @@ async function generateDailyBrief(siteId=null) {
   }
 
   // 3. Live games we offer
-  const liveGameRows = await q("SELECT game_key, game_label FROM live_games WHERE status='live'").catch(()=>[]);
+  const liveGameRows = await q("SELECT game_key, game_label FROM live_games WHERE status='live'").catch(() => []);
   const liveGames = liveGameRows.map(g => g.game_key);
 
   // 4. Current rankings - keywords with high impressions but low clicks (high CTR opportunity)
@@ -3250,7 +3301,7 @@ async function generateDailyBrief(siteId=null) {
     HAVING MIN(position) BETWEEN 4 AND 30
     ORDER BY SUM(impressions) DESC
     LIMIT 50
-  `).catch(()=>[]);
+  `).catch(() => []);
 
   // 5. Competitor keyword gaps - keywords competitors rank for but we don't have articles for
   const competitorGaps = await q(`
@@ -3263,7 +3314,7 @@ async function generateDailyBrief(siteId=null) {
     AND cp.word_count > 500
     ORDER BY c.audit_score DESC, cp.word_count DESC
     LIMIT 100
-  `).catch(()=>[]);
+  `).catch(() => []);
 
   // 6. Keywords with high priority scores we haven't written about
   const untappedKeywords = await q(`
@@ -3273,7 +3324,7 @@ async function generateDailyBrief(siteId=null) {
     AND keyword LIKE '% %'
     ORDER BY priority_score DESC, volume DESC
     LIMIT 100
-  `).catch(()=>[]);
+  `).catch(() => []);
 
   // --- ANALYSIS & SCORING ---
 
@@ -3290,10 +3341,10 @@ async function generateDailyBrief(siteId=null) {
     const score = (impressions / 10) + ((30 - pos) * 8) + ((0.15 - Math.min(ctr, 0.15)) * 200);
     addRec(
       row.keyword,
-      `Currently ranking #${pos.toFixed(0)} with ${impressions.toLocaleString()} impressions but only ${clicks} clicks (${(ctr*100).toFixed(1)}% CTR). A dedicated article targeting this exact keyword would push ranking higher and dramatically increase clicks.`,
+      `Currently ranking #${pos.toFixed(0)} with ${impressions.toLocaleString()} impressions but only ${clicks} clicks (${(ctr * 100).toFixed(1)}% CTR). A dedicated article targeting this exact keyword would push ranking higher and dramatically increase clicks.`,
       score,
       'ranking-gap',
-      [`Position: #${pos.toFixed(0)}`, `Impressions/mo: ${impressions}`, `Clicks: ${clicks}`, `CTR: ${(ctr*100).toFixed(1)}%`]
+      [`Position: #${pos.toFixed(0)}`, `Impressions/mo: ${impressions}`, `Clicks: ${clicks}`, `CTR: ${(ctr * 100).toFixed(1)}%`]
     );
   }
 
@@ -3315,23 +3366,23 @@ async function generateDailyBrief(siteId=null) {
 
   // CATEGORY C: Competitor content gaps — they have it, we don't
   for (const page of competitorGaps) {
-    const pageGame = detectGame(`${page.page_url||''} ${page.page_title||''}`);
+    const pageGame = detectGame(`${page.page_url || ''} ${page.page_title || ''}`);
     if (pageGame && !liveGames.includes(pageGame)) continue;
     // Clean the page title to extract a usable keyword — strip competitor names
     let rawKw = cleanKeyword(page.page_title || '');
     if (!rawKw) continue;
     // Strip competitor brand names from the keyword
-    const compBrands = ['game host bros','gamehostbros','nitrado','gportal','shockbyte',
-      'bisecthosting','bisect hosting','hosthavoc','nodecraft','scalacube','sparkedhost',
-      'pingperfect','fragnet','gtxgaming','pinehosting','dathost','ghostcap','qonzer'];
+    const compBrands = ['game host bros', 'gamehostbros', 'nitrado', 'gportal', 'shockbyte',
+      'bisecthosting', 'bisect hosting', 'hosthavoc', 'nodecraft', 'scalacube', 'sparkedhost',
+      'pingperfect', 'fragnet', 'gtxgaming', 'pinehosting', 'dathost', 'ghostcap', 'qonzer'];
     for (const brand of compBrands) {
       rawKw = rawKw.replace(new RegExp('\\s*[-–]?\\s*' + brand + '.*$', 'i'), '').trim();
       rawKw = rawKw.replace(new RegExp(brand, 'gi'), '').trim();
     }
-    rawKw = rawKw.replace(/\s*[-–]\s*$/, '').replace(/\s+/g,' ').trim();
+    rawKw = rawKw.replace(/\s*[-–]\s*$/, '').replace(/\s+/g, ' ').trim();
     if (!rawKw || rawKw.length < 8) continue;
     if (covered.has(rawKw.toLowerCase())) continue;
-    const score = 80 + (Number(page.audit_score||0) / 5) + Math.min(50, Number(page.word_count||0) / 40);
+    const score = 80 + (Number(page.audit_score || 0) / 5) + Math.min(50, Number(page.word_count || 0) / 40);
     addRec(
       rawKw,
       `Top competitors cover this topic with ${page.word_count.toLocaleString()}-word articles and we have nothing equivalent. Writing a stronger, more detailed article on this keyword directly attacks their ranking advantage.`,
@@ -3344,11 +3395,11 @@ async function generateDailyBrief(siteId=null) {
   // CATEGORY D: High-priority keywords from our keyword table we haven't written about
   for (const kw of untappedKeywords) {
     if (covered.has(kw.keyword.toLowerCase())) continue;
-    const score = Number(kw.priority_score||0) * 0.6 + Number(kw.volume||0) * 0.1;
+    const score = Number(kw.priority_score || 0) * 0.6 + Number(kw.volume || 0) * 0.1;
     if (score < 40) continue;
     addRec(
       kw.keyword,
-      `High-priority ${kw.intent||'commercial'} keyword from ${kw.source||'research'} (priority score: ${Number(kw.priority_score).toFixed(0)}${kw.volume ? ', volume: ' + kw.volume : ''}). No article written yet.`,
+      `High-priority ${kw.intent || 'commercial'} keyword from ${kw.source || 'research'} (priority score: ${Number(kw.priority_score).toFixed(0)}${kw.volume ? ', volume: ' + kw.volume : ''}). No article written yet.`,
       score,
       'keyword-opportunity',
       [`Source: ${kw.source}`, `Intent: ${kw.intent}`, `Priority score: ${Number(kw.priority_score).toFixed(0)}`]
@@ -3360,8 +3411,8 @@ async function generateDailyBrief(siteId=null) {
     const label = gameDisplay(gameKey);
     const kwName = gameKeywordName(gameKey);
     const gameArticles = published.filter(a =>
-      (a.primary_keyword||'').toLowerCase().includes(kwName) ||
-      (a.title||'').toLowerCase().includes(kwName)
+      (a.primary_keyword || '').toLowerCase().includes(kwName) ||
+      (a.title || '').toLowerCase().includes(kwName)
     );
     if (gameArticles.length === 0) continue; // Handled in Category B
     if (gameArticles.length >= 4) continue; // Already well-covered
@@ -3386,11 +3437,11 @@ async function generateDailyBrief(siteId=null) {
   }
 
   // Sort by score and take top 10
-  recommendations.sort((a,b) => b.score - a.score);
+  recommendations.sort((a, b) => b.score - a.score);
   const top = recommendations.slice(0, 10);
 
   // Build summary
-  const summary = `${top.length} recommendations: ${top.filter(r=>r.category==='ranking-gap').length} ranking gaps, ${top.filter(r=>r.category==='game-coverage').length} game coverage gaps, ${top.filter(r=>r.category==='competitor-gap').length} competitor gaps, ${top.filter(r=>r.category==='topical-depth').length} topical depth opportunities.`;
+  const summary = `${top.length} recommendations: ${top.filter(r => r.category === 'ranking-gap').length} ranking gaps, ${top.filter(r => r.category === 'game-coverage').length} game coverage gaps, ${top.filter(r => r.category === 'competitor-gap').length} competitor gaps, ${top.filter(r => r.category === 'topical-depth').length} topical depth opportunities.`;
 
   // Store in DB
   await execSafe('INSERT INTO daily_brief (brief_date, recommendations_json, summary, generated_at) VALUES (?,?,?,NOW()) ON DUPLICATE KEY UPDATE recommendations_json=VALUES(recommendations_json), summary=VALUES(summary), generated_at=NOW()',
@@ -3404,28 +3455,28 @@ function startDailyBriefRefresher() {
   async function tick() {
     try {
       // Clear yesterday's brief so today's gets freshly generated
-      const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().slice(0,10);
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       await execSafe('DELETE FROM daily_brief WHERE brief_date < ?', [yesterday]);
       await generateDailyBrief(null);
       console.log('[DailyBrief] Daily brief generated.');
-    } catch(e) { console.error('[DailyBrief] Generation failed:', e.message); }
+    } catch (e) { console.error('[DailyBrief] Generation failed:', e.message); }
   }
   // Run first at 7am, then every 24h
   const now = new Date();
   const next7am = new Date(now);
-  next7am.setHours(7,0,0,0);
+  next7am.setHours(7, 0, 0, 0);
   if (next7am <= now) next7am.setDate(next7am.getDate() + 1);
   const msUntil7am = next7am - now;
-  setTimeout(() => { tick(); setInterval(tick, 24*60*60*1000); }, msUntil7am);
+  setTimeout(() => { tick(); setInterval(tick, 24 * 60 * 60 * 1000); }, msUntil7am);
   // Also generate on boot after 2 minutes
   setTimeout(tick, 2 * 60 * 1000);
-  console.log(`Daily brief scheduler enabled. Next run in ${Math.round(msUntil7am/60000)}min.`);
+  console.log(`Daily brief scheduler enabled. Next run in ${Math.round(msUntil7am / 60000)}min.`);
 }
 // Fetches the NativPost pricing page and extracts real pricing / RAM packages.
 // Caches result for 24 hours so it only re-fetches when stale.
 // Injected into every article prompt so the AI knows exactly what NativPost offers.
 // ══════════════════════════════════════════════════════════════════════════════
-async function fetchLivePackagesForGame(gameKey='', siteUrl='https://nativpost.com') {
+async function fetchLivePackagesForGame(gameKey = '', siteUrl = 'https://nativpost.com') {
   // NativPost: returns static plan facts instead of scraping game pages
   return 'NativPost plans: Starter $19/mo (15 posts, 3 platforms) | Growth $39/mo (40 posts, 6 platforms, video) | Pro $79/mo (80 posts, unlimited platforms) | Agency $149/mo (unlimited posts, 5 brand profiles). $5 one-time setup fee. 7-day free trial (3 posts max, text only). Paystack accepted for African markets.';
 }
@@ -3441,13 +3492,13 @@ async function getGameFacts(gameKey) {
   if (!gameKey) return null;
   try {
     return await one('SELECT * FROM game_facts WHERE game_key=?', [gameKey]);
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 
 function buildGameFactsPrompt(facts, gameKey) {
   if (!facts) return '';
   const lines = [];
-  lines.push(`VERIFIED FACTS FOR ${(facts.game_key||gameKey).toUpperCase()} (use these EXACTLY — do not invent or adjust):`);
+  lines.push(`VERIFIED FACTS FOR ${(facts.game_key || gameKey).toUpperCase()} (use these EXACTLY — do not invent or adjust):`);
   if (facts.dedicated_server_available === 0) {
     lines.push(`⚠ CRITICAL: Dedicated servers DO NOT exist for this game yet. Do NOT write as if hosting is available to purchase. Write anticipation/preview content only.`);
     if (facts.custom_facts) lines.push(facts.custom_facts);
@@ -3473,9 +3524,9 @@ function buildGameFactsPrompt(facts, gameKey) {
 }
 
 async function makeDraftFromKeyword(keywordRow, siteId) {
-  const site = await one('SELECT * FROM sites WHERE id=?',[siteId || keywordRow.site_id]) || await one('SELECT * FROM sites WHERE active=1 ORDER BY id LIMIT 1');
+  const site = await one('SELECT * FROM sites WHERE id=?', [siteId || keywordRow.site_id]) || await one('SELECT * FROM sites WHERE active=1 ORDER BY id LIMIT 1');
   const rawKeyword = cleanKeyword(keywordRow.keyword) || strategicFallbackTopics()[0];
-  let ownPages = await q("SELECT page_url,page_title,page_type,word_count FROM site_pages WHERE site_id=? ORDER BY FIELD(page_type,'money','game','blog','support','page'), word_count DESC LIMIT 12",[site?.id]);
+  let ownPages = await q("SELECT page_url,page_title,page_type,word_count FROM site_pages WHERE site_id=? ORDER BY FIELD(page_type,'money','game','blog','support','page'), word_count DESC LIMIT 12", [site?.id]);
   // Fallback: if crawl failed and we have no pages, provide known NativPost URLs so articles can include internal links
   if (!ownPages || ownPages.length === 0 || ownPages.every(p => p.page_title === 'Crawl failed')) {
     const siteBase = originOf(site?.url || 'https://nativpost.com');
@@ -3493,40 +3544,40 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     try {
       const liveG = await q("SELECT * FROM live_games WHERE status='live' ORDER BY game_label ASC");
       for (const g of liveG) {
-        const pageUrl = g.igh_page_url || (siteBase + '/game/' + g.game_key.replace(/\s+/g,'-') + '-server-hosting');
+        const pageUrl = g.igh_page_url || (siteBase + '/game/' + g.game_key.replace(/\s+/g, '-') + '-server-hosting');
         if (!ownPages.find(p => p.page_url === pageUrl)) {
           ownPages.push({ page_url: pageUrl, page_title: g.game_label + ' Server Hosting', page_type: 'money', word_count: 400 });
         }
       }
-    } catch(e) {}
+    } catch (e) { }
   }
-  const compPages = await q("SELECT cp.page_url,cp.page_title,cp.page_type,cp.word_count,cp.meta_description FROM competitor_pages cp JOIN competitors c ON c.id=cp.competitor_id WHERE c.active=1 AND (c.site_id<=>? OR c.site_id IS NULL) ORDER BY cp.word_count DESC LIMIT 20",[site?.id || null]);
-  const comps = await q('SELECT snapshot_json FROM competitors WHERE active=1 AND (site_id<=>? OR site_id IS NULL) AND snapshot_json IS NOT NULL ORDER BY audit_score DESC LIMIT 5',[site?.id || null]);
-  let terms=[]; for (const c of comps) { const j=safeJsonParse(c.snapshot_json,{}); terms=terms.concat((j.keywords||[]).map(k=>k.keyword)); }
-  terms=[...new Set(terms.map(cleanKeyword).filter(Boolean))];
-  const imageHints = await q('SELECT * FROM article_assets WHERE (site_id=? OR site_id IS NULL) ORDER BY id DESC LIMIT 20',[site?.id || null]);
+  const compPages = await q("SELECT cp.page_url,cp.page_title,cp.page_type,cp.word_count,cp.meta_description FROM competitor_pages cp JOIN competitors c ON c.id=cp.competitor_id WHERE c.active=1 AND (c.site_id<=>? OR c.site_id IS NULL) ORDER BY cp.word_count DESC LIMIT 20", [site?.id || null]);
+  const comps = await q('SELECT snapshot_json FROM competitors WHERE active=1 AND (site_id<=>? OR site_id IS NULL) AND snapshot_json IS NOT NULL ORDER BY audit_score DESC LIMIT 5', [site?.id || null]);
+  let terms = []; for (const c of comps) { const j = safeJsonParse(c.snapshot_json, {}); terms = terms.concat((j.keywords || []).map(k => k.keyword)); }
+  terms = [...new Set(terms.map(cleanKeyword).filter(Boolean))];
+  const imageHints = await q('SELECT * FROM article_assets WHERE (site_id=? OR site_id IS NULL) ORDER BY id DESC LIMIT 20', [site?.id || null]);
   const offerFacts = await scannedOfferFacts(site?.id || null);
   const liveGamesFacts = await getLiveGamesFacts();
   // Fetch per-game knowledge base facts
-  const detectedGame = detectGame(rawKeyword) || detectGame(keywordRow.keyword||'');
+  const detectedGame = detectGame(rawKeyword) || detectGame(keywordRow.keyword || '');
   const gameFacts = detectedGame ? await getGameFacts(detectedGame) : null;
   const gameFactsPrompt = buildGameFactsPrompt(gameFacts, detectedGame);
   // Live-scrape the NativPost pricing page for real package/pricing data
   const siteBase = originOf(site?.url || 'https://nativpost.com');
   const livePackageFacts = detectedGame ? await fetchLivePackagesForGame(detectedGame, siteBase) : '';
-  let serp = await analyzeSerpForKeyword({siteId: site?.id || null, keyword: rawKeyword, siteUrl: site?.url || ''});
+  let serp = await analyzeSerpForKeyword({ siteId: site?.id || null, keyword: rawKeyword, siteUrl: site?.url || '' });
   if (!serp || typeof serp !== 'object') serp = { keyword: rawKeyword, query: rawKeyword, results: [], headings: [], questions: [], entities: [], avg_words: 0 };
   serp.results = Array.isArray(serp.results) ? serp.results : [];
   serp.entities = Array.isArray(serp.entities) ? serp.entities : [];
   serp.headings = Array.isArray(serp.headings) ? serp.headings : [];
   serp.questions = Array.isArray(serp.questions) ? serp.questions : [];
   const cluster = await upsertTopicCluster(site?.id || null, rawKeyword, serp);
-  const ai = await callOpenAIArticle({site, keyword:rawKeyword, ownPages, competitorPages:compPages.concat(serp.results.map(r=>({page_url:r.url||r.result_url,page_title:r.title||r.result_title,word_count:r.word_count,page_type:'serp'}))), competitorTerms:[...terms, ...serp.entities], imageHints, offerFacts: [offerFacts, liveGamesFacts, gameFactsPrompt, livePackageFacts].filter(Boolean).join('\n'), serp});
+  const ai = await callOpenAIArticle({ site, keyword: rawKeyword, ownPages, competitorPages: compPages.concat(serp.results.map(r => ({ page_url: r.url || r.result_url, page_title: r.title || r.result_title, word_count: r.word_count, page_type: 'serp' }))), competitorTerms: [...terms, ...serp.entities], imageHints, offerFacts: [offerFacts, liveGamesFacts, gameFactsPrompt, livePackageFacts].filter(Boolean).join('\n'), serp });
   let title, body, meta, excerpt, imageAlt, notes;
   if (ai) {
     title = truncate(ai.title || articleTitleFor(rawKeyword), 500);
     body = ai.body_markdown;
-    meta = truncate(ai.meta_description || `Learn what to look for in ${rawKeyword} and why NativPost is built for reliable servers.`, 160);
+    meta = truncate(ai.meta_description || `Learn how ${rawKeyword} works and why NativPost is the best AI social media content platform in 2026.`, 160);
     excerpt = ai.excerpt || meta;
     imageAlt = ai.featured_image_alt || `${rawKeyword} hosting image`;
     notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${ai.review_notes || ''}`;
@@ -3546,36 +3597,36 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
   let asset = game ? await ensurePressKitAssetForGame(game, site?.id || null) : null;
   // Fallback: fetch a relevant topic image from Unsplash Source for non-game or no-image articles
   if (!asset) {
-    try { asset = await fetchTopicImageForKeyword(rawKeyword, site?.id || null); } catch(e) { console.log('[Image] Topic fallback failed:', e.message); }
+    try { asset = await fetchTopicImageForKeyword(rawKeyword, site?.id || null); } catch (e) { console.log('[Image] Topic fallback failed:', e.message); }
   }
   if (!asset) notes = `${notes}\nImage needed: no image found for "${rawKeyword}". Upload a relevant image from the Image Library or re-generate.`.trim();
   const slug = slugify((ai?.slug || title || rawKeyword));
   const penalty = await cannibalizationPenalty(site?.id || null, rawKeyword, slug);
-  const result = await q('INSERT INTO articles (site_id,keyword_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,cannibalization_penalty,quality_score) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[site?.id||null,keywordRow.id||null,title,slug,'draft',rawKeyword,truncate(ai?.meta_title || title,500),meta,excerpt,body,body,asset?.id||null,normalizeImageUrl(asset?.asset_url)||null,imageAlt||asset?.alt_text||null,notes,penalty,0]);
-  const article = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?',[result.insertId]);
+  const result = await q('INSERT INTO articles (site_id,keyword_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,cannibalization_penalty,quality_score) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [site?.id || null, keywordRow.id || null, title, slug, 'draft', rawKeyword, truncate(ai?.meta_title || title, 500), meta, excerpt, body, body, asset?.id || null, normalizeImageUrl(asset?.asset_url) || null, imageAlt || asset?.alt_text || null, notes, penalty, 0]);
+  const article = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?', [result.insertId]);
   const breakdown = qualityBreakdown(article);
   const schemaJson = buildArticleSchema(article);
   const finalNotes = [notes, `Cluster: ${cluster || clusterName(rawKeyword)}.`, `SERP avg words: ${serp.avg_words || 0}.`, breakdown.notes.length ? `Quality gate ${breakdown.score}/${MIN_QUALITY_SCORE}: ${breakdown.notes.join(' ')}` : `Quality gate ${breakdown.score}/${MIN_QUALITY_SCORE}: Ready.`].filter(Boolean).join('\n');
-  await q('UPDATE articles SET quality_score=?, review_notes=?, schema_json=?, status=? WHERE id=?',[breakdown.score, finalNotes, schemaJson, breakdown.score >= MIN_QUALITY_SCORE ? 'review' : 'draft', result.insertId]);
-  for (const r of serp.results.slice(0,6)) await execSafe('INSERT INTO backlinks (site_id,competitor_id,source_domain,source_url,target_url,anchor_text,authority_score,status) VALUES (?,?,?,?,?,?,?,?)',[site?.id || null, null, hostOf(r.url||''), r.url || '', `${originOf(site?.url || 'https://nativpost.com')}/blog/${slug}`, rawKeyword, 0, 'prospect']);
+  await q('UPDATE articles SET quality_score=?, review_notes=?, schema_json=?, status=? WHERE id=?', [breakdown.score, finalNotes, schemaJson, breakdown.score >= MIN_QUALITY_SCORE ? 'review' : 'draft', result.insertId]);
+  for (const r of serp.results.slice(0, 6)) await execSafe('INSERT INTO backlinks (site_id,competitor_id,source_domain,source_url,target_url,anchor_text,authority_score,status) VALUES (?,?,?,?,?,?,?,?)', [site?.id || null, null, hostOf(r.url || ''), r.url || '', `${originOf(site?.url || 'https://nativpost.com')}/blog/${slug}`, rawKeyword, 0, 'prospect']);
   return result.insertId;
 }
 
-function contentfulToken(){ return process.env.CONTENTFUL_CMA_TOKEN || process.env.CONTENTFUL_MANAGEMENT_TOKEN || ''; }
-function contentfulContentType(){ return process.env.CONTENTFUL_BLOG_CONTENT_TYPE_ID || process.env.CONTENTFUL_CONTENT_TYPE || 'blogPost'; }
-function contentfulReady(){ return !!(process.env.CONTENTFUL_SPACE_ID && contentfulToken() && contentfulContentType()); }
-function publishModeAllowsContentful(){
+function contentfulToken() { return process.env.CONTENTFUL_CMA_TOKEN || process.env.CONTENTFUL_MANAGEMENT_TOKEN || ''; }
+function contentfulContentType() { return process.env.CONTENTFUL_BLOG_CONTENT_TYPE_ID || process.env.CONTENTFUL_CONTENT_TYPE || 'blogPost'; }
+function contentfulReady() { return !!(process.env.CONTENTFUL_SPACE_ID && contentfulToken() && contentfulContentType()); }
+function publishModeAllowsContentful() {
   const m = String(process.env.PUBLISH_MODE || 'contentful').toLowerCase().replace(/_/g, '');
   // Any mode containing 'manual', 'off', or 'disabled' prevents auto-contentful publish
   if (/manual|off|disabled/.test(m)) return false;
   return contentfulReady();
 }
-function googleCredentialsStatus(){ const serviceAccount = !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) || !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON || !!process.env.GOOGLE_APPLICATION_CREDENTIALS; const oauth = !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET); return { serviceAccount, oauth, configured: serviceAccount || oauth, label: serviceAccount ? 'Service account configured' : (oauth ? 'OAuth client configured' : 'Missing') }; }
+function googleCredentialsStatus() { const serviceAccount = !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) || !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON || !!process.env.GOOGLE_APPLICATION_CREDENTIALS; const oauth = !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET); return { serviceAccount, oauth, configured: serviceAccount || oauth, label: serviceAccount ? 'Service account configured' : (oauth ? 'OAuth client configured' : 'Missing') }; }
 
 // ── GOOGLE OAUTH + GSC + GA4 ──────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID     = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
-const GOOGLE_REDIRECT_URI  = process.env.GOOGLE_OAUTH_REDIRECT_URI || ('http://localhost:' + (process.env.PORT||7783) + '/api/auth/google/callback');
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI || ('http://localhost:' + (process.env.PORT || 7783) + '/api/auth/google/callback');
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly';
 
 async function ensureGoogleTokenTable() {
@@ -3599,16 +3650,16 @@ async function saveGoogleToken(tokens) {
   const existing = await one('SELECT id FROM google_oauth_tokens LIMIT 1');
   if (existing) {
     await q('UPDATE google_oauth_tokens SET access_token=?, refresh_token=COALESCE(?,refresh_token), expiry_date=?, scope=? WHERE id=?',
-      [tokens.access_token||null, tokens.refresh_token||null, tokens.expiry_date||0, tokens.scope||null, existing.id]);
+      [tokens.access_token || null, tokens.refresh_token || null, tokens.expiry_date || 0, tokens.scope || null, existing.id]);
   } else {
     await q('INSERT INTO google_oauth_tokens (access_token,refresh_token,expiry_date,scope) VALUES (?,?,?,?)',
-      [tokens.access_token||null, tokens.refresh_token||null, tokens.expiry_date||0, tokens.scope||null]);
+      [tokens.access_token || null, tokens.refresh_token || null, tokens.expiry_date || 0, tokens.scope || null]);
   }
 }
 
 async function getValidAccessToken() {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return null;
-  const stored = await getStoredGoogleToken().catch(()=>null);
+  const stored = await getStoredGoogleToken().catch(() => null);
   if (!stored || !stored.refresh_token) return null;
   const now = Date.now();
   if (stored.access_token && stored.expiry_date && (stored.expiry_date - now) > 60000) return stored.access_token;
@@ -3616,38 +3667,38 @@ async function getValidAccessToken() {
     const resp = await axios.post('https://oauth2.googleapis.com/token', new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
       refresh_token: stored.refresh_token, grant_type: 'refresh_token'
-    }).toString(), { headers:{ 'Content-Type':'application/x-www-form-urlencoded' } });
-    const newTokens = { ...stored, access_token: resp.data.access_token, expiry_date: now + (resp.data.expires_in||3600)*1000 };
+    }).toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const newTokens = { ...stored, access_token: resp.data.access_token, expiry_date: now + (resp.data.expires_in || 3600) * 1000 };
     await saveGoogleToken(newTokens);
     return newTokens.access_token;
-  } catch(e) { console.error('Google token refresh failed:', e.message); return null; }
+  } catch (e) { console.error('Google token refresh failed:', e.message); return null; }
 }
 
 async function googleConnected() {
-  try { const t = await getStoredGoogleToken(); return !!(t && t.refresh_token); } catch(e) { return false; }
+  try { const t = await getStoredGoogleToken(); return !!(t && t.refresh_token); } catch (e) { return false; }
 }
 
 async function syncGSCData(siteId, gscProperty) {
   const token = await getValidAccessToken();
   if (!token) throw new Error('No valid Google token — connect Google in Settings first.');
-  const endDate = new Date().toISOString().slice(0,10);
-  const startDate = new Date(Date.now()-90*24*60*60*1000).toISOString().slice(0,10);
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(gscProperty) + '/searchAnalytics/query';
-  const resp = await axios.post(url, { startDate, endDate, dimensions:['page','query'], rowLimit:5000, startRow:0 },
-    { headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' } });
+  const resp = await axios.post(url, { startDate, endDate, dimensions: ['page', 'query'], rowLimit: 5000, startRow: 0 },
+    { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
   const rows = resp.data.rows || [];
   let imported = 0;
 
   // Competitor brand names — filter these OUT of rankings, they are not our keywords
-  const COMPETITOR_BRANDS = ['ocoya','predis','buffer','hootsuite','sprout social','later',
-    'feedhive','socialbee','contentstudio','postbridge','jasper','copy.ai','writesonic',
-    'semrush','ahrefs','hubspot','mailchimp','canva','planoly','tailwind app',
+  const COMPETITOR_BRANDS = ['ocoya', 'predis', 'buffer', 'hootsuite', 'sprout social', 'later',
+    'feedhive', 'socialbee', 'contentstudio', 'postbridge', 'jasper', 'copy.ai', 'writesonic',
+    'semrush', 'ahrefs', 'hubspot', 'mailchimp', 'canva', 'planoly', 'tailwind app',
     // Also block game hosting competitor brands that might sneak in from Jasper blog
-    'nitrado','gportal','g-portal','shockbyte','bisecthosting','hosthavoc','apexhosting',
-    'apex hosting','scalacube','nodecraft','sparkedhost','pingperfect','fragnet'];
+    'nitrado', 'gportal', 'g-portal', 'shockbyte', 'bisecthosting', 'hosthavoc', 'apexhosting',
+    'apex hosting', 'scalacube', 'nodecraft', 'sparkedhost', 'pingperfect', 'fragnet'];
 
   function isRelevantGSCKeyword(kw) {
-    const k = String(kw||'').toLowerCase().trim();
+    const k = String(kw || '').toLowerCase().trim();
     if (!k || k.length < 3) return false;
     for (const brand of COMPETITOR_BRANDS) { if (k.includes(brand)) return false; }
     if (/[^\u0000-\u007f]{3,}/.test(k)) return false; // non-English garbage
@@ -3659,12 +3710,12 @@ async function syncGSCData(siteId, gscProperty) {
   }
 
   for (const row of rows) {
-    const pageUrl = (row.keys[0]||'').slice(0,1023);
-    const keyword = (row.keys[1]||'').slice(0,499);
-    const clicks  = Math.round(row.clicks||0);
-    const impressions = Math.round(row.impressions||0);
-    const position = parseFloat((row.position||50).toFixed(2));
-    const ctr = parseFloat((row.ctr||0).toFixed(6));
+    const pageUrl = (row.keys[0] || '').slice(0, 1023);
+    const keyword = (row.keys[1] || '').slice(0, 499);
+    const clicks = Math.round(row.clicks || 0);
+    const impressions = Math.round(row.impressions || 0);
+    const position = parseFloat((row.position || 50).toFixed(2));
+    const ctr = parseFloat((row.ctr || 0).toFixed(6));
     if (!keyword || !pageUrl) continue;
     if (!isRelevantGSCKeyword(keyword)) continue;
     await execSafe('INSERT INTO rankings (site_id,keyword,page_url,position,clicks,impressions,ctr,recorded_on) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE position=VALUES(position),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr)',
@@ -3673,14 +3724,14 @@ async function syncGSCData(siteId, gscProperty) {
       [siteId, keyword, pageUrl, position, clicks, impressions, endDate]);
     const ck = cleanKeyword(keyword);
     if (ck) await execSafe('INSERT INTO keywords (site_id,keyword,cluster_name,volume,difficulty,priority_score,source,intent,last_updated) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE priority_score=GREATEST(priority_score,VALUES(priority_score)),source=VALUES(source),last_updated=NOW()',
-      [siteId, ck, clusterName(ck), impressions, 30, priorityScore({impressions,clicks,position}), 'gsc', intentOf(ck)]);
+      [siteId, ck, clusterName(ck), impressions, 30, priorityScore({ impressions, clicks, position }), 'gsc', intentOf(ck)]);
     imported++;
   }
   // Clean up previously-imported competitor brand keywords
   for (const brand of COMPETITOR_BRANDS) {
-    await execSafe('DELETE FROM rankings WHERE keyword LIKE ?', ['%'+brand+'%']);
-    await execSafe('DELETE FROM ranking_history WHERE keyword LIKE ?', ['%'+brand+'%']);
-    await execSafe("DELETE FROM keywords WHERE keyword LIKE ? AND source='gsc'", ['%'+brand+'%']);
+    await execSafe('DELETE FROM rankings WHERE keyword LIKE ?', ['%' + brand + '%']);
+    await execSafe('DELETE FROM ranking_history WHERE keyword LIKE ?', ['%' + brand + '%']);
+    await execSafe("DELETE FROM keywords WHERE keyword LIKE ? AND source='gsc'", ['%' + brand + '%']);
   }
   return imported;
 }
@@ -3688,23 +3739,23 @@ async function syncGSCData(siteId, gscProperty) {
 async function syncGA4Data(siteId, propertyId) {
   const token = await getValidAccessToken();
   if (!token) throw new Error('No valid Google token — connect Google in Settings first.');
-  const endDate = new Date().toISOString().slice(0,10);
-  const startDate = new Date(Date.now()-90*24*60*60*1000).toISOString().slice(0,10);
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const url = 'https://analyticsdata.googleapis.com/v1beta/properties/' + propertyId + ':runReport';
   const resp = await axios.post(url, {
-    dateRanges:[{startDate,endDate}],
-    dimensions:[{name:'pagePath'},{name:'pageTitle'}],
-    metrics:[{name:'screenPageViews'},{name:'sessions'},{name:'engagementRate'}],
-    limit:5000
-  }, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' } });
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+    metrics: [{ name: 'screenPageViews' }, { name: 'sessions' }, { name: 'engagementRate' }],
+    limit: 5000
+  }, { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
   const rows = resp.data.rows || [];
   let imported = 0;
   for (const row of rows) {
-    const pagePath  = ((row.dimensionValues[0]||{}).value||'').slice(0,1023);
-    const pageTitle = ((row.dimensionValues[1]||{}).value||'').slice(0,499);
-    const views     = Math.round(Number((row.metricValues[0]||{}).value||0));
-    const sessions  = Math.round(Number((row.metricValues[1]||{}).value||0));
-    const engRate   = parseFloat((Number((row.metricValues[2]||{}).value||0)).toFixed(6));
+    const pagePath = ((row.dimensionValues[0] || {}).value || '').slice(0, 1023);
+    const pageTitle = ((row.dimensionValues[1] || {}).value || '').slice(0, 499);
+    const views = Math.round(Number((row.metricValues[0] || {}).value || 0));
+    const sessions = Math.round(Number((row.metricValues[1] || {}).value || 0));
+    const engRate = parseFloat((Number((row.metricValues[2] || {}).value || 0)).toFixed(6));
     if (!pagePath) continue;
     await execSafe('INSERT INTO page_metrics (site_id,page_path,page_title,views,sessions,engagement_rate,report_date) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE views=VALUES(views),sessions=VALUES(sessions),engagement_rate=VALUES(engagement_rate)',
       [siteId, pagePath, pageTitle, views, sessions, engRate, endDate]);
@@ -3712,29 +3763,31 @@ async function syncGA4Data(siteId, propertyId) {
   }
   return imported;
 }
-function markdownToContentfulRichText(md){
+function markdownToContentfulRichText(md) {
   const blocks = [];
-  const lines = String(md||'').replace(/\r\n/g,'\n').split('\n');
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
   let tableRows = [], inTable = false, inList = false, listItems = [], inOl = false;
 
   function flushList() {
     if (!listItems.length) return;
     const listType = inOl ? 'ordered-list' : 'unordered-list';
-    blocks.push({ nodeType: listType, data: {}, content: listItems.map(text => ({
-      nodeType: 'list-item', data: {}, content: [{ nodeType: 'paragraph', data: {}, content: inlineNodes(text) }]
-    }))});
+    blocks.push({
+      nodeType: listType, data: {}, content: listItems.map(text => ({
+        nodeType: 'list-item', data: {}, content: [{ nodeType: 'paragraph', data: {}, content: inlineNodes(text) }]
+      }))
+    });
     listItems = []; inList = false; inOl = false;
   }
 
   function flushTable() {
     if (!tableRows.length) { inTable = false; return; }
     // Parse rows: filter out separator rows (---|---), extract cells
-    const parsed = tableRows.map(row => row.split('|').map(c=>c.trim()).filter((_,i,a)=>i>0&&i<a.length-1));
-    const dataRows = parsed.filter(cells => !cells.every(c=>/^[-:]+$/.test(c)));
-    if (!dataRows.length) { tableRows=[]; inTable=false; return; }
+    const parsed = tableRows.map(row => row.split('|').map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1));
+    const dataRows = parsed.filter(cells => !cells.every(c => /^[-:]+$/.test(c)));
+    if (!dataRows.length) { tableRows = []; inTable = false; return; }
     const tableContent = dataRows.map((cells, ri) => ({
       nodeType: 'table-row', data: {}, content: cells.map(cell => ({
-        nodeType: ri===0 ? 'table-header-cell' : 'table-cell', data: {},
+        nodeType: ri === 0 ? 'table-header-cell' : 'table-cell', data: {},
         content: [{ nodeType: 'paragraph', data: {}, content: inlineNodes(cell) }]
       }))
     }));
@@ -3742,17 +3795,17 @@ function markdownToContentfulRichText(md){
     tableRows = []; inTable = false;
   }
 
-  function inlineNodes(text='') {
+  function inlineNodes(text = '') {
     // Convert **bold**, *italic*, and [text](url) links to Contentful inline nodes
     const nodes = [];
     // Split on bold, italic, and markdown links
-    const parts = String(text||'').split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g);
+    const parts = String(text || '').split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g);
     for (const part of parts) {
       if (!part) continue;
       if (part.startsWith('**') && part.endsWith('**')) {
-        nodes.push({ nodeType:'text', value: part.slice(2,-2), marks:[{type:'bold'}], data:{} });
+        nodes.push({ nodeType: 'text', value: part.slice(2, -2), marks: [{ type: 'bold' }], data: {} });
       } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-        nodes.push({ nodeType:'text', value: part.slice(1,-1), marks:[{type:'italic'}], data:{} });
+        nodes.push({ nodeType: 'text', value: part.slice(1, -1), marks: [{ type: 'italic' }], data: {} });
       } else if (/^\[[^\]]+\]\([^)]+\)$/.test(part)) {
         // Markdown link — convert to Contentful hyperlink node
         const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
@@ -3761,14 +3814,14 @@ function markdownToContentfulRichText(md){
           nodes.push({
             nodeType: 'hyperlink',
             data: { uri: linkUrl },
-            content: [{ nodeType:'text', value: linkText, marks:[], data:{} }]
+            content: [{ nodeType: 'text', value: linkText, marks: [], data: {} }]
           });
         }
       } else {
-        if (part) nodes.push({ nodeType:'text', value: part, marks:[], data:{} });
+        if (part) nodes.push({ nodeType: 'text', value: part, marks: [], data: {} });
       }
     }
-    return nodes.length ? nodes : [{ nodeType:'text', value: String(text||''), marks:[], data:{} }];
+    return nodes.length ? nodes : [{ nodeType: 'text', value: String(text || ''), marks: [], data: {} }];
   }
 
   for (const raw of lines) {
@@ -3790,34 +3843,34 @@ function markdownToContentfulRichText(md){
     if (h) {
       flushList();
       const level = Math.min(6, h[1].length);
-      blocks.push({ nodeType: 'heading-'+level, data:{}, content: inlineNodes(h[2]) });
+      blocks.push({ nodeType: 'heading-' + level, data: {}, content: inlineNodes(h[2]) });
       continue;
     }
 
     // Unordered list
     const ul = line.match(/^[-*]\s+(.+)$/);
-    if (ul) { inList=true; inOl=false; listItems.push(ul[1]); continue; }
+    if (ul) { inList = true; inOl = false; listItems.push(ul[1]); continue; }
 
     // Ordered list
     const ol = line.match(/^\d+[.)]\s+(.+)$/);
-    if (ol) { inList=true; inOl=true; listItems.push(ol[1]); continue; }
+    if (ol) { inList = true; inOl = true; listItems.push(ol[1]); continue; }
 
     // Horizontal rule — skip
     if (/^[-*_]{3,}$/.test(line)) { flushList(); continue; }
 
     // Paragraph
     flushList();
-    blocks.push({ nodeType:'paragraph', data:{}, content: inlineNodes(line) });
+    blocks.push({ nodeType: 'paragraph', data: {}, content: inlineNodes(line) });
   }
 
   flushList();
   if (inTable) flushTable();
-  if (!blocks.length) blocks.push({ nodeType:'paragraph', data:{}, content:[{ nodeType:'text', value:'', marks:[], data:{} }] });
-  return { nodeType:'document', data:{}, content: blocks };
+  if (!blocks.length) blocks.push({ nodeType: 'paragraph', data: {}, content: [{ nodeType: 'text', value: '', marks: [], data: {} }] });
+  return { nodeType: 'document', data: {}, content: blocks };
 }
-function bodyForContentful(article){
-  const format=String(process.env.PUBLISH_BODY_FORMAT||'richtext').toLowerCase();
-  const body=article.body || article.content || '';
+function bodyForContentful(article) {
+  const format = String(process.env.PUBLISH_BODY_FORMAT || 'richtext').toLowerCase();
+  const body = article.body || article.content || '';
   if (format === 'markdown') {
     // Markdown formats in CF get JSON-LD as an HTML comment fence — most markdown
     // renderers pass raw HTML through, so the <script> tag will survive to the page.
@@ -3842,14 +3895,14 @@ function bodyForContentful(article){
   return markdownToContentfulRichText(body);
 }
 
-function mimeTypeFromUrl(url='') {
-  const lower = String(url||'').toLowerCase().split('?')[0];
+function mimeTypeFromUrl(url = '') {
+  const lower = String(url || '').toLowerCase().split('?')[0];
   if (lower.endsWith('.png')) return 'image/png';
   if (lower.endsWith('.webp')) return 'image/webp';
   if (lower.endsWith('.gif')) return 'image/gif';
   return 'image/jpeg';
 }
-function fileNameFromUrl(url='', fallback='featured-image.jpg') {
+function fileNameFromUrl(url = '', fallback = 'featured-image.jpg') {
   try {
     const last = new URL(url, 'https://local.invalid').pathname.split('/').pop();
     return (last && /\.[a-z0-9]{2,5}$/i.test(last)) ? last : fallback;
@@ -3858,61 +3911,61 @@ function fileNameFromUrl(url='', fallback='featured-image.jpg') {
 async function createContentfulAssetFromArticleAsset(asset) {
   if (!asset || asset.contentful_asset_id) return asset?.contentful_asset_id || '';
   if (!contentfulReady()) return '';
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
   let uploadUrl = normalizeImageUrl(asset.asset_url || '');
   if (!uploadUrl) return '';
   if (uploadUrl.startsWith('/uploads/')) {
     const localPath = path.join(uploadDir, path.basename(uploadUrl));
     if (!fs.existsSync(localPath)) return '';
-    const uploadResp = await axios.post(`https://upload.contentful.com/spaces/${space}/uploads`, fs.readFileSync(localPath), { headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/octet-stream'} });
-    uploadUrl = { sys:{ type:'Link', linkType:'Upload', id: uploadResp.data.sys.id } };
+    const uploadResp = await axios.post(`https://upload.contentful.com/spaces/${space}/uploads`, fs.readFileSync(localPath), { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/octet-stream' } });
+    uploadUrl = { sys: { type: 'Link', linkType: 'Upload', id: uploadResp.data.sys.id } };
   }
   const file = typeof uploadUrl === 'string'
     ? { contentType: mimeTypeFromUrl(uploadUrl), fileName: fileNameFromUrl(uploadUrl, `${slugify(asset.label || 'featured-image')}.jpg`), upload: uploadUrl }
     : { contentType: mimeTypeFromUrl(asset.asset_url), fileName: fileNameFromUrl(asset.asset_url, `${slugify(asset.label || 'featured-image')}.jpg`), uploadFrom: uploadUrl };
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const headers={Authorization:`Bearer ${token}`,'Content-Type':'application/vnd.contentful.management.v1+json'};
-  const created=await axios.post(`${base}/assets`, { fields:{ title:{[locale]:asset.label || 'Article featured image'}, description:{[locale]:asset.alt_text || ''}, file:{[locale]:file} } }, {headers});
-  const assetId=created.data.sys.id;
-  let version=created.data.sys.version;
-  await axios.put(`${base}/assets/${assetId}/files/${locale}/process`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':version}});
-  for (let i=0;i<10;i++) {
-    await new Promise(r=>setTimeout(r, 900));
-    const check=await axios.get(`${base}/assets/${assetId}`, {headers:{Authorization:`Bearer ${token}`}});
-    version=check.data.sys.version;
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json' };
+  const created = await axios.post(`${base}/assets`, { fields: { title: { [locale]: asset.label || 'Article featured image' }, description: { [locale]: asset.alt_text || '' }, file: { [locale]: file } } }, { headers });
+  const assetId = created.data.sys.id;
+  let version = created.data.sys.version;
+  await axios.put(`${base}/assets/${assetId}/files/${locale}/process`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': version } });
+  for (let i = 0; i < 10; i++) {
+    await new Promise(r => setTimeout(r, 900));
+    const check = await axios.get(`${base}/assets/${assetId}`, { headers: { Authorization: `Bearer ${token}` } });
+    version = check.data.sys.version;
     if (check.data.fields?.file?.[locale]?.url) break;
   }
-  await axios.put(`${base}/assets/${assetId}/published`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':version}});
-  if (asset.id) await q('UPDATE article_assets SET contentful_asset_id=? WHERE id=?',[assetId, asset.id]);
+  await axios.put(`${base}/assets/${assetId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': version } });
+  if (asset.id) await q('UPDATE article_assets SET contentful_asset_id=? WHERE id=?', [assetId, asset.id]);
   return assetId;
 }
 async function ensureArticleHasContentfulAsset(article) {
   let asset = null;
-  if (article.featured_image_id) asset = await one('SELECT * FROM article_assets WHERE id=?',[article.featured_image_id]);
-  if (!asset && article.featured_image_url) asset = { id:null, label: article.title || 'Article image', alt_text: article.featured_image_alt || '', asset_url: article.featured_image_url };
+  if (article.featured_image_id) asset = await one('SELECT * FROM article_assets WHERE id=?', [article.featured_image_id]);
+  if (!asset && article.featured_image_url) asset = { id: null, label: article.title || 'Article image', alt_text: article.featured_image_alt || '', asset_url: article.featured_image_url };
   if (!asset) return '';
   return article.contentful_asset_id || asset.contentful_asset_id || await createContentfulAssetFromArticleAsset(asset);
 }
-function contentfulEnabledField(id='') {
+function contentfulEnabledField(id = '') {
   const v = String(id || '').trim();
   if (!v) return '';
   if (/^(not_present|none|null|false|disabled)$/i.test(v)) return '';
   return v;
 }
 async function getContentfulTypeDefinition(typeId) {
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const res = await axios.get(`${base}/content_types/${typeId}`, {headers:{Authorization:`Bearer ${token}`}});
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const res = await axios.get(`${base}/content_types/${typeId}`, { headers: { Authorization: `Bearer ${token}` } });
   return res.data;
 }
 
 async function findFirstContentfulEntryForContentType(typeId) {
   typeId = contentfulEnabledField(typeId);
   if (!typeId) return '';
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const res = await axios.get(`${base}/entries`, {headers:{Authorization:`Bearer ${token}`}, params:{content_type:typeId, limit:1, order:'-sys.updatedAt'}});
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const res = await axios.get(`${base}/entries`, { headers: { Authorization: `Bearer ${token}` }, params: { content_type: typeId, limit: 1, order: '-sys.updatedAt' } });
   return res.data?.items?.[0]?.sys?.id || '';
 }
 function contentfulLinkContentType(fieldDef) {
@@ -3933,18 +3986,18 @@ function symbolMaxLength(fieldDef, fallback) {
 function contentfulFieldHasUniqueValidation(fieldDef) {
   return Array.isArray(fieldDef?.validations) && fieldDef.validations.some(v => v && v.unique === true);
 }
-function makeContentfulSafeUniqueSuffix(parts=[]) {
-  const raw = parts.filter(Boolean).map(v=>String(v)).join('-') || Date.now().toString();
-  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
+function makeContentfulSafeUniqueSuffix(parts = []) {
+  const raw = parts.filter(Boolean).map(v => String(v)).join('-') || Date.now().toString();
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
   return cleaned || Date.now().toString(36);
 }
-function appendContentfulUniqueSuffix(value, suffix, maxLen=255) {
+function appendContentfulUniqueSuffix(value, suffix, maxLen = 255) {
   value = String(value || '').trim() || 'SEO fields';
   suffix = String(suffix || '').trim() || Date.now().toString(36);
   const tag = ' [auto-' + suffix + ']';
   if (value.endsWith(tag)) return truncate(value, maxLen);
   const room = Math.max(1, Number(maxLen || 255) - tag.length);
-  return truncate(value, room).replace(/\s+$/,'') + tag;
+  return truncate(value, room).replace(/\s+$/, '') + tag;
 }
 
 function makeLocalized(locale, value) { return { [locale]: value }; }
@@ -3952,60 +4005,60 @@ function fieldHasValue(fields, id, locale) {
   return fields[id] && fields[id][locale] !== undefined && fields[id][locale] !== null && fields[id][locale] !== '';
 }
 async function waitForProcessedAsset(base, token, assetId, locale) {
-  for (let attempt=0; attempt<12; attempt++) {
-    const got = await axios.get(`${base}/assets/${assetId}`, {headers:{Authorization:`Bearer ${token}`}});
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const got = await axios.get(`${base}/assets/${assetId}`, { headers: { Authorization: `Bearer ${token}` } });
     const file = got.data?.fields?.file?.[locale];
     if (file?.url) return got.data;
-    await new Promise(r=>setTimeout(r, 900));
+    await new Promise(r => setTimeout(r, 900));
   }
-  return (await axios.get(`${base}/assets/${assetId}`, {headers:{Authorization:`Bearer ${token}`}})).data;
+  return (await axios.get(`${base}/assets/${assetId}`, { headers: { Authorization: `Bearer ${token}` } })).data;
 }
 async function createEntryComponentForAsset(componentType, assetId, altText) {
   componentType = contentfulEnabledField(componentType);
   if (!componentType || !assetId) return '';
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
   const def = await getContentfulTypeDefinition(componentType);
   const fields = {};
   for (const fd of (def.fields || [])) {
     const id = fd.id;
     if (!id) continue;
     const lower = id.toLowerCase();
-    if (fd.type === 'Link' && fd.linkType === 'Asset') fields[id] = makeLocalized(locale,{sys:{type:'Link',linkType:'Asset',id:assetId}});
+    if (fd.type === 'Link' && fd.linkType === 'Asset') fields[id] = makeLocalized(locale, { sys: { type: 'Link', linkType: 'Asset', id: assetId } });
     else if (fd.required && (fd.type === 'Symbol' || fd.type === 'Text')) fields[id] = makeLocalized(locale, truncate(lower.includes('alt') ? (altText || 'Game server hosting image') : (altText || 'Featured image'), symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000)));
     else if (fd.required && fd.type === 'Boolean') fields[id] = makeLocalized(locale, true);
     else if (fd.required && fd.type === 'Date') fields[id] = makeLocalized(locale, new Date().toISOString());
   }
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const headers={Authorization:`Bearer ${token}`,'Content-Type':'application/vnd.contentful.management.v1+json','X-Contentful-Content-Type':componentType};
-  const created = await axios.post(`${base}/entries`, {fields}, {headers});
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Content-Type': componentType };
+  const created = await axios.post(`${base}/entries`, { fields }, { headers });
   const entryId = created.data.sys.id;
-  await axios.put(`${base}/entries/${entryId}/published`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':created.data.sys.version}});
+  await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': created.data.sys.version } });
   return entryId;
 }
-async function fillMissingRequiredContentfulFields({fields, fieldDefs, locale, article, publishTitle}) {
+async function fillMissingRequiredContentfulFields({ fields, fieldDefs, locale, article, publishTitle }) {
   for (const fd of fieldDefs) {
     if (!fd || !fd.id || !fd.required || fieldHasValue(fields, fd.id, locale)) continue;
     const id = fd.id, type = fd.type;
     const fallbackText = id === 'internalName' ? publishTitle : (id.toLowerCase().includes('title') ? publishTitle : (article.excerpt || article.meta_description || publishTitle));
-    if (['Symbol','Text'].includes(type)) { fields[id] = {[locale]: truncate(fallbackText, symbolMaxLength(fd, type === 'Symbol' ? 255 : 5000))}; continue; }
-    if (type === 'Date') { fields[id] = {[locale]: new Date().toISOString()}; continue; }
-    if (type === 'Boolean') { fields[id] = {[locale]: true}; continue; }
-    if (type === 'Integer' || type === 'Number') { fields[id] = {[locale]: 0}; continue; }
-    if (type === 'RichText') { fields[id] = {[locale]: bodyForContentful(article)}; continue; }
+    if (['Symbol', 'Text'].includes(type)) { fields[id] = { [locale]: truncate(fallbackText, symbolMaxLength(fd, type === 'Symbol' ? 255 : 5000)) }; continue; }
+    if (type === 'Date') { fields[id] = { [locale]: new Date().toISOString() }; continue; }
+    if (type === 'Boolean') { fields[id] = { [locale]: true }; continue; }
+    if (type === 'Integer' || type === 'Number') { fields[id] = { [locale]: 0 }; continue; }
+    if (type === 'RichText') { fields[id] = { [locale]: bodyForContentful(article) }; continue; }
     if (type === 'Link' && fd.linkType === 'Asset') {
       const assetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
-      if (assetId) fields[id] = {[locale]:{sys:{type:'Link',linkType:'Asset',id:assetId}}};
+      if (assetId) fields[id] = { [locale]: { sys: { type: 'Link', linkType: 'Asset', id: assetId } } };
       continue;
     }
     if (type === 'Link' && fd.linkType === 'Entry') {
       let entryId = '';
       if (id === contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || '')) entryId = contentfulEnabledField(process.env.CONTENTFUL_DEFAULT_AUTHOR_ENTRY_ID || '');
       if (!entryId) entryId = await findFirstContentfulEntryForContentType(contentfulLinkContentType(fd));
-      if (entryId) fields[id] = {[locale]:{sys:{type:'Link',linkType:'Entry',id:entryId}}};
+      if (entryId) fields[id] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: entryId } } };
       continue;
     }
-    if (type === 'Array') { fields[id] = {[locale]:[]}; continue; }
+    if (type === 'Array') { fields[id] = { [locale]: [] }; continue; }
   }
 }
 function missingRequiredContentfulFields(fields, fieldDefs) {
@@ -4029,21 +4082,21 @@ async function findContentfulEntryByLocalizedField(typeId, fieldId, value) {
   fieldId = contentfulEnabledField(fieldId);
   value = String(value || '').trim();
   if (!typeId || !fieldId || !value) return null;
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
 
-  const exactParams = {content_type:typeId, limit:1};
+  const exactParams = { content_type: typeId, limit: 1 };
   exactParams[`fields.${fieldId}`] = value;
   try {
-    const exact = await axios.get(`${base}/entries`, {headers:{Authorization:`Bearer ${token}`}, params:exactParams});
+    const exact = await axios.get(`${base}/entries`, { headers: { Authorization: `Bearer ${token}` }, params: exactParams });
     if (exact.data?.items?.[0]?.sys?.id) return exact.data.items[0];
-  } catch (_) {}
+  } catch (_) { }
 
   try {
     let skip = 0;
-    for (let page=0; page<20; page++) {
-      const res = await axios.get(`${base}/entries`, {headers:{Authorization:`Bearer ${token}`}, params:{content_type:typeId, limit:100, skip, order:'-sys.updatedAt'}});
+    for (let page = 0; page < 20; page++) {
+      const res = await axios.get(`${base}/entries`, { headers: { Authorization: `Bearer ${token}` }, params: { content_type: typeId, limit: 100, skip, order: '-sys.updatedAt' } });
       const items = res.data?.items || [];
       for (const item of items) {
         const got = localizedValue(item.fields || {}, fieldId, locale);
@@ -4052,7 +4105,7 @@ async function findContentfulEntryByLocalizedField(typeId, fieldId, value) {
       if (!items.length || items.length < 100) break;
       skip += 100;
     }
-  } catch (_) {}
+  } catch (_) { }
   return null;
 }
 
@@ -4067,7 +4120,7 @@ function uniqueValidationFieldValues(err) {
     const m = rawPath.match(/fields\.([^\.]+)\./);
     const fieldId = m ? m[1] : (e.field || e.fieldId || '');
     const value = e.value !== undefined ? e.value : e.details?.value;
-    if (fieldId && value !== undefined && value !== null && String(value).trim()) out.push({fieldId, value:String(value).trim()});
+    if (fieldId && value !== undefined && value !== null && String(value).trim()) out.push({ fieldId, value: String(value).trim() });
   }
   return out;
 }
@@ -4080,16 +4133,16 @@ async function findContentfulEntryFromUniqueError(typeId, err) {
   return null;
 }
 
-async function updateAndPublishContentfulEntry({entryId, fields, contentType}) {
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const get = await axios.get(`${base}/entries/${entryId}`, {headers:{Authorization:`Bearer ${token}`}});
-  const merged = {...(get.data.fields || {})};
-  for (const [k,v] of Object.entries(fields || {})) merged[k] = v;
-  const headers={Authorization:`Bearer ${token}`,'Content-Type':'application/vnd.contentful.management.v1+json','X-Contentful-Version':get.data.sys.version};
+async function updateAndPublishContentfulEntry({ entryId, fields, contentType }) {
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const get = await axios.get(`${base}/entries/${entryId}`, { headers: { Authorization: `Bearer ${token}` } });
+  const merged = { ...(get.data.fields || {}) };
+  for (const [k, v] of Object.entries(fields || {})) merged[k] = v;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Version': get.data.sys.version };
   if (contentType) headers['X-Contentful-Content-Type'] = contentType;
-  const updated = await axios.put(`${base}/entries/${entryId}`, {fields: merged}, {headers});
-  await axios.put(`${base}/entries/${entryId}/published`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':updated.data.sys.version}});
+  const updated = await axios.put(`${base}/entries/${entryId}`, { fields: merged }, { headers });
+  await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': updated.data.sys.version } });
   return updated.data;
 }
 
@@ -4098,11 +4151,11 @@ async function ensureContentfulAuthorEntry(authorFieldDef) {
   const desiredName = String(process.env.CONTENTFUL_DEFAULT_AUTHOR_NAME || 'NativPost Team').trim() || 'NativPost Team';
   const authorType = contentfulEnabledField(process.env.CONTENTFUL_AUTHOR_CONTENT_TYPE || contentfulLinkContentType(authorFieldDef));
   if (!authorType) return explicitId || '';
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
   const def = await getContentfulTypeDefinition(authorType);
   const fieldDefs = def.fields || [];
-  const candidateNameFields = ['name','fullName','displayName','title','internalName'];
+  const candidateNameFields = ['name', 'fullName', 'displayName', 'title', 'internalName'];
 
   for (const fieldId of candidateNameFields) {
     if (fieldDefs.some(f => f.id === fieldId)) {
@@ -4113,10 +4166,10 @@ async function ensureContentfulAuthorEntry(authorFieldDef) {
 
   if (explicitId) {
     try {
-      const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-      const got = await axios.get(`${base}/entries/${explicitId}`, {headers:{Authorization:`Bearer ${token}`}});
+      const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+      const got = await axios.get(`${base}/entries/${explicitId}`, { headers: { Authorization: `Bearer ${token}` } });
       if (got?.data?.sys?.id) return explicitId;
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const fields = {};
@@ -4125,27 +4178,27 @@ async function ensureContentfulAuthorEntry(authorFieldDef) {
     const id = fd.id;
     const lower = id.toLowerCase();
     const isLikelyName = candidateNameFields.includes(id) || lower.includes('name') || lower.includes('author');
-    if ((fd.required || isLikelyName) && ['Symbol','Text'].includes(fd.type)) {
+    if ((fd.required || isLikelyName) && ['Symbol', 'Text'].includes(fd.type)) {
       let value = isLikelyName ? desiredName : desiredName;
       if (contentfulFieldHasUniqueValidation(fd)) value = appendContentfulUniqueSuffix(value, makeContentfulSafeUniqueSuffix(['author', desiredName]), symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000));
       else value = truncate(value, symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000));
-      fields[id] = {[locale]: value};
+      fields[id] = { [locale]: value };
       continue;
     }
-    if (fd.required && fd.type === 'Boolean') fields[id] = {[locale]: true};
-    else if (fd.required && fd.type === 'Date') fields[id] = {[locale]: new Date().toISOString()};
-    else if (fd.required && (fd.type === 'Integer' || fd.type === 'Number')) fields[id] = {[locale]: 0};
-    else if (fd.required && fd.type === 'Array') fields[id] = {[locale]: []};
+    if (fd.required && fd.type === 'Boolean') fields[id] = { [locale]: true };
+    else if (fd.required && fd.type === 'Date') fields[id] = { [locale]: new Date().toISOString() };
+    else if (fd.required && (fd.type === 'Integer' || fd.type === 'Number')) fields[id] = { [locale]: 0 };
+    else if (fd.required && fd.type === 'Array') fields[id] = { [locale]: [] };
   }
 
   if (!Object.keys(fields).length) return explicitId || await findFirstContentfulEntryForContentType(authorType);
 
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const headers={Authorization:`Bearer ${token}`,'Content-Type':'application/vnd.contentful.management.v1+json','X-Contentful-Content-Type':authorType};
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Content-Type': authorType };
   try {
-    const created = await axios.post(`${base}/entries`, {fields}, {headers});
+    const created = await axios.post(`${base}/entries`, { fields }, { headers });
     const entryId = created.data.sys.id;
-    await axios.put(`${base}/entries/${entryId}/published`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':created.data.sys.version}});
+    await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': created.data.sys.version } });
     return entryId;
   } catch (err) {
     const existing = await findContentfulEntryFromUniqueError(authorType, err);
@@ -4155,14 +4208,14 @@ async function ensureContentfulAuthorEntry(authorFieldDef) {
   }
 }
 
-async function createSeoComponentEntry({title, description, articleId, slug}) {
+async function createSeoComponentEntry({ title, description, articleId, slug }) {
   const seoType = contentfulEnabledField(process.env.CONTENTFUL_SEO_COMPONENT_CONTENT_TYPE);
   if (!seoType) return '';
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
   const seoDef = await getContentfulTypeDefinition(seoType);
   const fieldDefs = seoDef.fields || [];
-  const allowed = new Set(fieldDefs.map(f=>f.id));
+  const allowed = new Set(fieldDefs.map(f => f.id));
   const titleField = contentfulEnabledField(process.env.CONTENTFUL_SEO_COMPONENT_FIELD_META_TITLE || 'pageTitle');
   const descField = contentfulEnabledField(process.env.CONTENTFUL_SEO_COMPONENT_FIELD_META_DESCRIPTION || 'pageDescription');
   const baseTitle = String(title || 'SEO fields').trim();
@@ -4171,67 +4224,67 @@ async function createSeoComponentEntry({title, description, articleId, slug}) {
   const existingCandidates = [];
   if (titleField && allowed.has(titleField)) existingCandidates.push(await findContentfulEntryByLocalizedField(seoType, titleField, baseTitle));
   if (allowed.has('internalName')) existingCandidates.push(await findContentfulEntryByLocalizedField(seoType, 'internalName', baseTitle));
-  const existing = existingCandidates.find(x=>x?.sys?.id);
+  const existing = existingCandidates.find(x => x?.sys?.id);
   if (existing?.sys?.id) return existing.sys.id;
 
   const uniqueSuffix = makeContentfulSafeUniqueSuffix([articleId, slug, Date.now().toString(36)]);
   const fields = {};
 
   if (titleField && allowed.has(titleField)) {
-    const fd = fieldDefs.find(f=>f.id===titleField);
+    const fd = fieldDefs.find(f => f.id === titleField);
     const max = symbolMaxLength(fd, 255);
     const value = contentfulFieldHasUniqueValidation(fd) ? appendContentfulUniqueSuffix(baseTitle, uniqueSuffix, max) : truncate(baseTitle, max);
-    fields[titleField] = {[locale]: value};
+    fields[titleField] = { [locale]: value };
   }
   if (descField && allowed.has(descField)) {
-    const fd = fieldDefs.find(f=>f.id===descField);
-    fields[descField] = {[locale]: truncate(baseDescription, symbolMaxLength(fd, 255))};
+    const fd = fieldDefs.find(f => f.id === descField);
+    fields[descField] = { [locale]: truncate(baseDescription, symbolMaxLength(fd, 255)) };
   }
 
   for (const fd of fieldDefs) {
     if (!fd?.id || !fd.required || fieldHasValue(fields, fd.id, locale)) continue;
     const id = fd.id;
-    if (['Symbol','Text'].includes(fd.type)) {
+    if (['Symbol', 'Text'].includes(fd.type)) {
       const max = symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000);
       let fallback = id === 'internalName' ? baseTitle : (id.toLowerCase().includes('title') ? baseTitle : (baseDescription || baseTitle));
       if (contentfulFieldHasUniqueValidation(fd)) fallback = appendContentfulUniqueSuffix(fallback, uniqueSuffix, max);
       else fallback = truncate(fallback, max);
-      fields[id] = {[locale]: fallback};
+      fields[id] = { [locale]: fallback };
       continue;
     }
-    if (fd.type === 'Date') { fields[id] = {[locale]: new Date().toISOString()}; continue; }
+    if (fd.type === 'Date') { fields[id] = { [locale]: new Date().toISOString() }; continue; }
     if (fd.type === 'Boolean') {
       // For SEO component boolean fields: noindex/noFollow/excludeFromSitemap must be FALSE
       // Setting these to true tells Google to ignore the page — the opposite of what we want
       const fieldLower = id.toLowerCase();
       const isNoindexField = /noindex|nofollow|exclude|hide|robot|disallow/.test(fieldLower);
-      fields[id] = {[locale]: !isNoindexField}; // noindex fields = false, others = true
+      fields[id] = { [locale]: !isNoindexField }; // noindex fields = false, others = true
       continue;
     }
-    if (fd.type === 'Integer' || fd.type === 'Number') { fields[id] = {[locale]: 0}; continue; }
-    if (fd.type === 'RichText') { fields[id] = {[locale]: bodyForContentful({body: baseDescription, content: baseDescription})}; continue; }
+    if (fd.type === 'Integer' || fd.type === 'Number') { fields[id] = { [locale]: 0 }; continue; }
+    if (fd.type === 'RichText') { fields[id] = { [locale]: bodyForContentful({ body: baseDescription, content: baseDescription }) }; continue; }
   }
 
   if (!Object.keys(fields).length) return '';
-  const base='https://api.contentful.com/spaces/' + space + '/environments/' + env;
-  const headers={Authorization:'Bearer ' + token,'Content-Type':'application/vnd.contentful.management.v1+json','X-Contentful-Content-Type':seoType};
+  const base = 'https://api.contentful.com/spaces/' + space + '/environments/' + env;
+  const headers = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Content-Type': seoType };
   try {
-    const created = await axios.post(base + '/entries', {fields}, {headers});
+    const created = await axios.post(base + '/entries', { fields }, { headers });
     const entryId = created.data.sys.id;
     const version = created.data.sys.version;
-    await axios.put(base + '/entries/' + entryId + '/published', {}, {headers:{Authorization:'Bearer ' + token,'X-Contentful-Version':version}});
+    await axios.put(base + '/entries/' + entryId + '/published', {}, { headers: { Authorization: 'Bearer ' + token, 'X-Contentful-Version': version } });
     return entryId;
   } catch (err) {
     if (isContentfulUniqueValidationError(err)) {
       for (const pair of uniqueValidationFieldValues(err)) {
-        const fd = fieldDefs.find(f=>f.id===pair.fieldId);
-        if (fd && ['Symbol','Text'].includes(fd.type)) {
-          fields[pair.fieldId] = {[locale]: appendContentfulUniqueSuffix(pair.value, makeContentfulSafeUniqueSuffix([articleId, slug, Date.now().toString(36), pair.fieldId]), symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000))};
+        const fd = fieldDefs.find(f => f.id === pair.fieldId);
+        if (fd && ['Symbol', 'Text'].includes(fd.type)) {
+          fields[pair.fieldId] = { [locale]: appendContentfulUniqueSuffix(pair.value, makeContentfulSafeUniqueSuffix([articleId, slug, Date.now().toString(36), pair.fieldId]), symbolMaxLength(fd, fd.type === 'Symbol' ? 255 : 5000)) };
         }
       }
-      const retry = await axios.post(base + '/entries', {fields}, {headers});
+      const retry = await axios.post(base + '/entries', { fields }, { headers });
       const entryId = retry.data.sys.id;
-      await axios.put(base + '/entries/' + entryId + '/published', {}, {headers:{Authorization:'Bearer ' + token,'X-Contentful-Version':retry.data.sys.version}});
+      await axios.put(base + '/entries/' + entryId + '/published', {}, { headers: { Authorization: 'Bearer ' + token, 'X-Contentful-Version': retry.data.sys.version } });
       return entryId;
     }
     throw err;
@@ -4245,16 +4298,16 @@ async function createSeoComponentEntry({title, description, articleId, slug}) {
 // link into the old body and re-publish.
 
 // Build candidate match phrases for a target article, ordered most specific first.
-function internalLinkMatchPhrases(article={}) {
+function internalLinkMatchPhrases(article = {}) {
   const phrases = new Set();
-  const pk = String(article.primary_keyword||'').trim().toLowerCase();
+  const pk = String(article.primary_keyword || '').trim().toLowerCase();
   if (pk && pk.length >= 5) phrases.add(pk);
   // Drop common suffixes to also match shorter forms
   if (pk) {
-    const shorter = pk.replace(/\b(hosting|server hosting|dedicated server|servers?)\b/g,'').replace(/\s+/g,' ').trim();
+    const shorter = pk.replace(/\b(hosting|server hosting|dedicated server|servers?)\b/g, '').replace(/\s+/g, ' ').trim();
     if (shorter && shorter.length >= 5 && shorter !== pk) phrases.add(shorter);
   }
-  const detectedGame = detectGame(`${article.title||''} ${pk}`);
+  const detectedGame = detectGame(`${article.title || ''} ${pk}`);
   if (detectedGame) {
     const gameLabel = gameDisplay(detectedGame).toLowerCase();
     // Pair the game with hosting-relevant nouns — these are the high-intent phrases
@@ -4264,16 +4317,16 @@ function internalLinkMatchPhrases(article={}) {
     phrases.add(`${gameLabel} server`);
     phrases.add(`host ${gameLabel}`);
   }
-  return [...phrases].filter(p => p && p.length >= 5 && p.length <= 80).sort((a,b) => b.length - a.length);
+  return [...phrases].filter(p => p && p.length >= 5 && p.length <= 80).sort((a, b) => b.length - a.length);
 }
 
 // Does the body already link to this url (absolute or relative slug)?
-function bodyAlreadyLinksTo(body='', targetUrl='', slug='') {
-  const b = String(body||'');
+function bodyAlreadyLinksTo(body = '', targetUrl = '', slug = '') {
+  const b = String(body || '');
   if (targetUrl && b.includes(targetUrl)) return true;
   // Match markdown link targets that end with the slug segment.
   if (slug) {
-    const re = new RegExp('\\]\\([^)]*' + slug.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&') + '[^)]*\\)', 'i');
+    const re = new RegExp('\\]\\([^)]*' + slug.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '[^)]*\\)', 'i');
     if (re.test(b)) return true;
   }
   return false;
@@ -4282,9 +4335,9 @@ function bodyAlreadyLinksTo(body='', targetUrl='', slug='') {
 // Find the first occurrence of `phrase` in `body` that sits in a regular paragraph
 // (not inside a heading, list item, code block, table row, or existing markdown link).
 // Returns {index, matched} or null. Case-insensitive, whole-phrase match.
-function findLinkablePhraseOccurrence(body='', phrase='') {
-  const text = String(body||'');
-  const needle = String(phrase||'').trim();
+function findLinkablePhraseOccurrence(body = '', phrase = '') {
+  const text = String(body || '');
+  const needle = String(phrase || '').trim();
   if (!needle) return null;
   // Word-boundary case-insensitive regex over the full body.
   const safe = needle.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -4347,7 +4400,7 @@ async function findInternalLinkOpportunities(targetArticle) {
     try {
       await q(
         'INSERT IGNORE INTO internal_link_suggestions (source_article_id, target_article_id, match_phrase, anchor_text, target_url, status, reason) VALUES (?,?,?,?,?,?,?)',
-        [src.id, targetArticle.id, chosen.phrase.slice(0,250), chosen.hit.matched.slice(0,250), targetUrl || ('/blog/' + targetSlug), 'pending', reason.slice(0,250)]
+        [src.id, targetArticle.id, chosen.phrase.slice(0, 250), chosen.hit.matched.slice(0, 250), targetUrl || ('/blog/' + targetSlug), 'pending', reason.slice(0, 250)]
       );
       created++;
     } catch (_) { /* unique constraint — already suggested */ }
@@ -4359,22 +4412,22 @@ async function findInternalLinkOpportunities(targetArticle) {
 // the first linkable occurrence, update the article, and re-publish to Contentful.
 async function applyInternalLinkSuggestion(suggestionId) {
   const s = await one('SELECT * FROM internal_link_suggestions WHERE id=?', [suggestionId]);
-  if (!s) return { ok:false, error:'Suggestion not found' };
-  if (s.status === 'applied') return { ok:false, error:'Already applied' };
+  if (!s) return { ok: false, error: 'Suggestion not found' };
+  if (s.status === 'applied') return { ok: false, error: 'Already applied' };
   const source = await one('SELECT * FROM articles WHERE id=?', [s.source_article_id]);
   const target = await one('SELECT * FROM articles WHERE id=?', [s.target_article_id]);
-  if (!source) return { ok:false, error:'Source article missing' };
-  if (!target) return { ok:false, error:'Target article missing' };
+  if (!source) return { ok: false, error: 'Source article missing' };
+  if (!target) return { ok: false, error: 'Target article missing' };
   const body = String(source.body || source.content || '');
   const hit = findLinkablePhraseOccurrence(body, s.match_phrase);
   if (!hit) {
     await q("UPDATE internal_link_suggestions SET status='stale' WHERE id=?", [suggestionId]);
-    return { ok:false, error:'Match phrase no longer found in source body (it may have been edited).' };
+    return { ok: false, error: 'Match phrase no longer found in source body (it may have been edited).' };
   }
   // Build link URL — prefer the live published_url, fall back to slug path.
   let linkUrl = s.target_url || target.published_url || '';
   if (!linkUrl && target.slug) linkUrl = '/blog/' + target.slug;
-  if (!linkUrl) return { ok:false, error:'No target URL available' };
+  if (!linkUrl) return { ok: false, error: 'No target URL available' };
   const anchor = hit.matched;
   const before = body.slice(0, hit.index);
   const after = body.slice(hit.index + anchor.length);
@@ -4392,24 +4445,24 @@ async function applyInternalLinkSuggestion(suggestionId) {
       await q('UPDATE articles SET review_notes=? WHERE id=?', ['Internal link applied locally but Contentful re-publish failed: ' + e.message, source.id]);
     }
   }
-  return { ok:true, republished, sourceId: source.id, targetId: target.id, anchor, linkUrl };
+  return { ok: true, republished, sourceId: source.id, targetId: target.id, anchor, linkUrl };
 }
 
 async function publishToContentful(article) {
   if (!contentfulReady()) throw new Error('Contentful env vars are missing. Add CONTENTFUL_SPACE_ID, CONTENTFUL_CMA_TOKEN or CONTENTFUL_MANAGEMENT_TOKEN, and CONTENTFUL_BLOG_CONTENT_TYPE_ID or CONTENTFUL_CONTENT_TYPE.');
-  const space=process.env.CONTENTFUL_SPACE_ID, env=process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token=contentfulToken(), contentType=contentfulContentType();
-  const locale=process.env.CONTENTFUL_LOCALE || 'en-US';
+  const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken(), contentType = contentfulContentType();
+  const locale = process.env.CONTENTFUL_LOCALE || 'en-US';
   const typeDef = await getContentfulTypeDefinition(contentType);
   const fieldDefs = typeDef.fields || [];
-  const allowed = new Set(fieldDefs.map(f=>f.id));
-  const fields={};
-  const setField = (id, value) => { id = contentfulEnabledField(id); if (id && allowed.has(id) && value !== undefined && value !== null && value !== '') fields[id] = {[locale]: value}; };
-  const publishTitle=safeArticleTitle(article.title, articleTitleFor(article.primary_keyword||'ai social media content'));
+  const allowed = new Set(fieldDefs.map(f => f.id));
+  const fields = {};
+  const setField = (id, value) => { id = contentfulEnabledField(id); if (id && allowed.has(id) && value !== undefined && value !== null && value !== '') fields[id] = { [locale]: value }; };
+  const publishTitle = safeArticleTitle(article.title, articleTitleFor(article.primary_keyword || 'ai social media content'));
   setField(process.env.CONTENTFUL_FIELD_TITLE || 'title', publishTitle);
   setField(process.env.CONTENTFUL_FIELD_SLUG || 'slug', article.slug || slugify(publishTitle));
   // Rebuild schema now that we know the final URL and publish time — this version
   // carries the true published_url into mainEntityOfPage and Product.offers.url.
-  const siteUrlForSchema = originOf((await one('SELECT url FROM sites WHERE id=?',[article.site_id]))?.url || process.env.PUBLIC_SITE_URL || 'https://nativpost.com');
+  const siteUrlForSchema = originOf((await one('SELECT url FROM sites WHERE id=?', [article.site_id]))?.url || process.env.PUBLIC_SITE_URL || 'https://nativpost.com');
   const freshSchema = buildArticleSchema({
     ...article,
     site_url: siteUrlForSchema,
@@ -4428,50 +4481,50 @@ async function publishToContentful(article) {
   setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || '', new Date().toISOString());
   const contentfulAssetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
   const fieldImage = contentfulEnabledField(process.env.CONTENTFUL_FIELD_FEATURED_IMAGE || 'featuredImage');
-  const imageDef = fieldDefs.find(f=>f.id===fieldImage);
+  const imageDef = fieldDefs.find(f => f.id === fieldImage);
   if (contentfulAssetId && fieldImage && allowed.has(fieldImage)) {
     if (imageDef?.type === 'Link' && imageDef?.linkType === 'Entry') {
       const componentId = await createEntryComponentForAsset(contentfulLinkContentType(imageDef), contentfulAssetId, article.featured_image_alt || article.title || publishTitle);
-      if (componentId) fields[fieldImage]={[locale]:{sys:{type:'Link',linkType:'Entry',id:componentId}}};
+      if (componentId) fields[fieldImage] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: componentId } } };
     } else {
-      fields[fieldImage]={[locale]:{sys:{type:'Link',linkType:'Asset',id:contentfulAssetId}}};
+      fields[fieldImage] = { [locale]: { sys: { type: 'Link', linkType: 'Asset', id: contentfulAssetId } } };
     }
   }
   const seoRefField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SEO_REFERENCE || '');
   if (seoRefField && allowed.has(seoRefField)) {
-    const seoId = await createSeoComponentEntry({title: article.meta_title || publishTitle, description: article.meta_description || article.excerpt || '', articleId: article.id, slug: article.slug || slugify(publishTitle)});
-    if (seoId) fields[seoRefField] = {[locale]:{sys:{type:'Link',linkType:'Entry',id:seoId}}};
+    const seoId = await createSeoComponentEntry({ title: article.meta_title || publishTitle, description: article.meta_description || article.excerpt || '', articleId: article.id, slug: article.slug || slugify(publishTitle) });
+    if (seoId) fields[seoRefField] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: seoId } } };
   }
   const authorField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || '');
   if (authorField && allowed.has(authorField)) {
     const authorDef = fieldDefs.find(f => f.id === authorField);
     const authorId = await ensureContentfulAuthorEntry(authorDef);
-    if (authorId) fields[authorField] = {[locale]:{sys:{type:'Link',linkType:'Entry',id:authorId}}};
+    if (authorId) fields[authorField] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: authorId } } };
   }
-  await fillMissingRequiredContentfulFields({fields, fieldDefs, locale, article, publishTitle});
+  await fillMissingRequiredContentfulFields({ fields, fieldDefs, locale, article, publishTitle });
   const missing = missingRequiredContentfulFields(fields, fieldDefs);
   if (missing.length) throw new Error('Contentful publish blocked because required fields are missing and could not be auto-filled: ' + missing.join(', ') + '. Add env mappings/default entry IDs for these fields.');
   if (!Object.keys(fields).length) throw new Error('No Contentful fields were set. Check CONTENTFUL_FIELD_* env mappings against the pageBlogPost content type.');
-  const base=`https://api.contentful.com/spaces/${space}/environments/${env}`;
-  const headers={Authorization:`Bearer ${token}`,'Content-Type':'application/vnd.contentful.management.v1+json','X-Contentful-Content-Type':contentType};
+  const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Content-Type': contentType };
   const slugField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SLUG || 'slug');
   const slugValue = article.slug || slugify(publishTitle);
   const existingBySlug = slugField ? await findContentfulEntryByLocalizedField(contentType, slugField, slugValue) : null;
   let entryId;
   if (existingBySlug?.sys?.id) {
-    await updateAndPublishContentfulEntry({entryId: existingBySlug.sys.id, fields, contentType});
+    await updateAndPublishContentfulEntry({ entryId: existingBySlug.sys.id, fields, contentType });
     entryId = existingBySlug.sys.id;
   } else {
     try {
-      const created=await axios.post(`${base}/entries`, {fields}, {headers});
-      entryId=created.data.sys.id; const version=created.data.sys.version;
-      await axios.put(`${base}/entries/${entryId}/published`, {}, {headers:{Authorization:`Bearer ${token}`,'X-Contentful-Version':version}});
+      const created = await axios.post(`${base}/entries`, { fields }, { headers });
+      entryId = created.data.sys.id; const version = created.data.sys.version;
+      await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': version } });
     } catch (err) {
       if (isContentfulUniqueValidationError(err)) {
         const existingFromError = await findContentfulEntryFromUniqueError(contentType, err);
         const existing = existingFromError || (slugField ? await findContentfulEntryByLocalizedField(contentType, slugField, slugValue) : null);
         if (existing?.sys?.id) {
-          await updateAndPublishContentfulEntry({entryId: existing.sys.id, fields, contentType});
+          await updateAndPublishContentfulEntry({ entryId: existing.sys.id, fields, contentType });
           entryId = existing.sys.id;
         } else {
           throw new Error(err.message + ' | v60 note: Contentful says one or more fields must be unique, but the duplicate entry could not be found by slug/internalName/title. Rename the local article or remove the duplicate in Contentful.');
@@ -4479,7 +4532,7 @@ async function publishToContentful(article) {
       } else throw err;
     }
   }
-  const siteUrl = originOf((await one('SELECT url FROM sites WHERE id=?',[article.site_id]))?.url || process.env.PUBLIC_SITE_URL || 'https://nativpost.com');
+  const siteUrl = originOf((await one('SELECT url FROM sites WHERE id=?', [article.site_id]))?.url || process.env.PUBLIC_SITE_URL || 'https://nativpost.com');
   const publishedUrl = article.published_url || `${siteUrl}/blog/${article.slug || slugify(article.title)}`;
   // Ping IndexNow to request fast indexing by Bing/Yandex/DuckDuckGo/Yahoo.
   // To activate: add INDEXNOW_KEY=your-key to .env.local
@@ -4491,7 +4544,7 @@ async function publishToContentful(article) {
       `https://api.indexnow.org/indexnow?url=${pingUrl}&key=${indexNowKey}`,
     ];
     for (const ping of indexNowPings) {
-      axios.get(ping, { timeout: 5000 }).catch(() => {});
+      axios.get(ping, { timeout: 5000 }).catch(() => { });
     }
     console.log(`[IndexNow] Pinged Bing/Yandex for: ${publishedUrl}`);
   }
@@ -4509,7 +4562,7 @@ async function publishToContentful(article) {
         );
         console.log(`[GSC] Requested Google index for: ${publishedUrl}`);
       }
-    } catch(e) {
+    } catch (e) {
       // Non-fatal — Google will crawl it naturally, this just speeds it up
       console.log(`[GSC] Index ping skipped: ${e.message}`);
     }
@@ -4522,7 +4575,7 @@ async function publishToContentful(article) {
         const count = await findInternalLinkOpportunities({ ...fullArticle, published_url: publishedUrl });
         if (count > 0) console.log(`[InternalLinks] Generated ${count} suggestions for "${article.title}"`);
       }
-    } catch(e) { console.error('[InternalLinks] post-publish scan failed:', e.message); }
+    } catch (e) { console.error('[InternalLinks] post-publish scan failed:', e.message); }
   });
   return { entryId, publishedUrl };
 }
@@ -4537,7 +4590,7 @@ function isArticleDueForAutoPublish(row = {}) {
 
 function tzDayKey(dateLike) {
   const d = dateLike ? new Date(dateLike) : new Date();
-  return new Intl.DateTimeFormat('en-CA', { timeZone: APP_TIMEZONE, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: APP_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
 async function countPublishedToday() {
   const rows = await q("SELECT published_at FROM articles WHERE published_at IS NOT NULL ORDER BY published_at DESC LIMIT 200");
@@ -4548,27 +4601,27 @@ async function autoPublishApproved(options = {}) {
   const candidates = await q("SELECT a.*, aa.contentful_asset_id, s.url site_url FROM articles a LEFT JOIN article_assets aa ON aa.id=a.featured_image_id LEFT JOIN sites s ON s.id=a.site_id WHERE a.status IN ('approved','queued') ORDER BY COALESCE(a.scheduled_for,a.updated_at) ASC LIMIT 200");
   const futureRows = candidates.filter(a => !isArticleDueForAutoPublish(a));
   const rows = candidates.filter(isArticleDueForAutoPublish).slice(0, 25);
-  const results=[];
+  const results = [];
   let publishedToday = await countPublishedToday();
-  for (const skipped of futureRows) results.push({id: skipped.id, title: skipped.title, status: 'skipped', reason: 'scheduled_for_future', scheduled_for: scheduledValueFromRow(skipped)});
+  for (const skipped of futureRows) results.push({ id: skipped.id, title: skipped.title, status: 'skipped', reason: 'scheduled_for_future', scheduled_for: scheduledValueFromRow(skipped) });
   for (const a of rows) {
     const breakdown = qualityBreakdown(a);
     if (breakdown.score < MIN_QUALITY_SCORE) {
       await q("UPDATE articles SET status='review', review_notes=? WHERE id=?", [`Quality gate ${breakdown.score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), a.id]);
-      results.push({id:a.id,title:a.title,status:'failed',error:'quality_gate'});
+      results.push({ id: a.id, title: a.title, status: 'failed', error: 'quality_gate' });
       continue;
     }
     if (publishedToday >= AUTO_PUBLISH_DAILY_LIMIT && !options.force) {
-      results.push({id:a.id,title:a.title,status:'skipped',reason:'daily_cap'});
+      results.push({ id: a.id, title: a.title, status: 'skipped', reason: 'daily_cap' });
       continue;
     }
     try {
-      let publishedUrl=a.published_url;
-      if (publishModeAllowsContentful()) { const r=await publishToContentful(a); publishedUrl=r.publishedUrl; await q("UPDATE articles SET contentful_entry_id=?, status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?) WHERE id=?",[r.entryId,publishedUrl,buildArticleSchema(a),a.id]); }
-      else { publishedUrl = publishedUrl || `${originOf((await one('SELECT url FROM sites WHERE id=?',[a.site_id]))?.url || '')}/blog/${a.slug || slugify(a.title)}`; await q("UPDATE articles SET status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?) WHERE id=?",[publishedUrl,buildArticleSchema(a),a.id]); }
+      let publishedUrl = a.published_url;
+      if (publishModeAllowsContentful()) { const r = await publishToContentful(a); publishedUrl = r.publishedUrl; await q("UPDATE articles SET contentful_entry_id=?, status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?) WHERE id=?", [r.entryId, publishedUrl, buildArticleSchema(a), a.id]); }
+      else { publishedUrl = publishedUrl || `${originOf((await one('SELECT url FROM sites WHERE id=?', [a.site_id]))?.url || '')}/blog/${a.slug || slugify(a.title)}`; await q("UPDATE articles SET status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?) WHERE id=?", [publishedUrl, buildArticleSchema(a), a.id]); }
       await q("UPDATE content_calendar SET status='published' WHERE article_id=?", [a.id]);
       publishedToday += 1;
-      results.push({id:a.id,title:a.title,status:'published'});
+      results.push({ id: a.id, title: a.title, status: 'published' });
       // Scan for internal link opportunities from older articles to this newly published one.
       try {
         const fresh = await one('SELECT id, title, slug, primary_keyword, published_url FROM articles WHERE id=?', [a.id]);
@@ -4577,7 +4630,7 @@ async function autoPublishApproved(options = {}) {
           if (count > 0) console.log(`[InternalLinks] Auto-publish created ${count} suggestion(s) for article #${fresh.id}`);
         }
       } catch (e) { console.warn('[InternalLinks] auto-publish scan failed:', e.message); }
-    } catch(e) { await q('UPDATE articles SET review_notes=? WHERE id=?',[`Auto-publish failed: ${e.message}`,a.id]); results.push({id:a.id,title:a.title,status:'failed',error:e.message}); }
+    } catch (e) { await q('UPDATE articles SET review_notes=? WHERE id=?', [`Auto-publish failed: ${e.message}`, a.id]); results.push({ id: a.id, title: a.title, status: 'failed', error: e.message }); }
   }
   return results;
 }
@@ -4588,19 +4641,19 @@ function startWeeklyGSCSync() {
   let running = false;
   async function runGSCSyncTick() {
     if (running) return;
-    const connected = await googleConnected().catch(()=>false);
+    const connected = await googleConnected().catch(() => false);
     if (!connected) return;
     running = true;
     try {
       const sites = await q('SELECT * FROM sites WHERE active=1');
       let total = 0;
       for (const site of sites) {
-        const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'_')] || process.env.GSC_PROPERTY_NATIVPOST;
+        const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_')] || process.env.GSC_PROPERTY_NATIVPOST;
         if (prop && prop !== 'NOT_SET_YET') {
-          try { total += await syncGSCData(site.id, prop); } catch(e) { console.error('Auto GSC sync error:', e.message); }
+          try { total += await syncGSCData(site.id, prop); } catch (e) { console.error('Auto GSC sync error:', e.message); }
         }
         if (site.ga4_property_id && site.ga4_property_id !== 'NOT_SET_YET') {
-          try { await syncGA4Data(site.id, site.ga4_property_id); } catch(e) { console.error('Auto GA4 sync error:', e.message); }
+          try { await syncGA4Data(site.id, site.ga4_property_id); } catch (e) { console.error('Auto GA4 sync error:', e.message); }
         }
       }
       if (total > 0) {
@@ -4615,15 +4668,15 @@ function startWeeklyGSCSync() {
               [clusterName(k.keyword), intentOf(k.keyword), k.id]);
           }
           console.log(`Auto recluster complete. ${allKws.length} keywords updated.`);
-        } catch(e) { console.error('Auto recluster failed:', e.message); }
+        } catch (e) { console.error('Auto recluster failed:', e.message); }
         // NativPost: no live game refresh needed
         try {
           const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url: 'https://nativpost.com' };
           const { confirmed, debug } = await refreshLiveGamesFromIGH(site.url);
           if (confirmed.length) console.log(`Auto live-game refresh: ${confirmed.join(', ')}`);
-        } catch(e) { console.error('Auto live-game refresh failed:', e.message); }
+        } catch (e) { console.error('Auto live-game refresh failed:', e.message); }
       }
-    } catch(e) { console.error('Auto GSC/GA4 sync failed:', e.message); }
+    } catch (e) { console.error('Auto GSC/GA4 sync failed:', e.message); }
     finally { running = false; }
   }
   // Run first sync after 5 minutes (give app time to fully start), then every 24h
@@ -4666,15 +4719,15 @@ app.use(requireAuth);
 app.use(injectUserTheme);
 
 // Login page
-app.get('/login', async (req,res) => {
+app.get('/login', async (req, res) => {
   const user = await getSessionUser(req);
   if (user) return res.redirect('/');
   const error = req.query.error || '';
-  res.send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NativPost SEO — Login</title><link rel="stylesheet" href="/static/styles.css"><style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(circle at top left,#1e1b4b 0,#070b16 38%,#050712 100%)}.login-box{background:rgba(16,24,39,.95);border:1px solid #253147;border-radius:28px;padding:40px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.4)}.login-logo{width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,#7c3aed,#00d4ff);display:grid;place-items:center;font-weight:900;font-size:1.2rem;color:#fff;margin:0 auto 20px}.login-title{text-align:center;color:#ecf3ff;font-size:1.5rem;font-weight:800;margin-bottom:6px}.login-sub{text-align:center;color:#9fb0c8;font-size:.85rem;margin-bottom:28px}.login-field{margin-bottom:16px}label{display:block;color:#9fb0c8;font-size:.8rem;margin-bottom:6px}input[type=text],input[type=password]{width:100%;background:#0b1220;border:1px solid #253147;border-radius:13px;color:#ecf3ff;padding:12px 14px;font-size:.95rem;box-sizing:border-box}.login-btn{width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px}.login-btn:hover{opacity:.9}.error-msg{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;text-align:center}.forgot{text-align:center;margin-top:14px;font-size:.8rem;color:#9fb0c8}<\/style><\/head><body><div class="login-box"><div class="login-logo">NP<\/div><div class="login-title">NativPost SEO<\/div><div class="login-sub">AI Content Pipeline<\/div>${error ? '<div class="error-msg">'+error+'<\/div>' : ''}<form method="post" action="/auth/login"><div class="login-field"><label>Username<\/label><input type="text" name="username" autocomplete="username" required autofocus><\/div><div class="login-field"><label>Password<\/label><input type="password" name="password" autocomplete="current-password" required><\/div><button class="login-btn" type="submit">Sign in<\/button><\/form><div class="forgot"><a href="/auth/reset-password" style="color:#93c5fd">Forgot password?<\/a><\/div><\/div><\/body><\/html>`);
+  res.send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NativPost SEO — Login</title><link rel="stylesheet" href="/static/styles.css"><style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(circle at top left,#1e1b4b 0,#070b16 38%,#050712 100%)}.login-box{background:rgba(16,24,39,.95);border:1px solid #253147;border-radius:28px;padding:40px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.4)}.login-logo{width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,#7c3aed,#00d4ff);display:grid;place-items:center;font-weight:900;font-size:1.2rem;color:#fff;margin:0 auto 20px}.login-title{text-align:center;color:#ecf3ff;font-size:1.5rem;font-weight:800;margin-bottom:6px}.login-sub{text-align:center;color:#9fb0c8;font-size:.85rem;margin-bottom:28px}.login-field{margin-bottom:16px}label{display:block;color:#9fb0c8;font-size:.8rem;margin-bottom:6px}input[type=text],input[type=password]{width:100%;background:#0b1220;border:1px solid #253147;border-radius:13px;color:#ecf3ff;padding:12px 14px;font-size:.95rem;box-sizing:border-box}.login-btn{width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px}.login-btn:hover{opacity:.9}.error-msg{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;text-align:center}.forgot{text-align:center;margin-top:14px;font-size:.8rem;color:#9fb0c8}<\/style><\/head><body><div class="login-box"><div class="login-logo">NP<\/div><div class="login-title">NativPost SEO<\/div><div class="login-sub">AI Content Pipeline<\/div>${error ? '<div class="error-msg">' + error + '<\/div>' : ''}<form method="post" action="/auth/login"><div class="login-field"><label>Username<\/label><input type="text" name="username" autocomplete="username" required autofocus><\/div><div class="login-field"><label>Password<\/label><input type="password" name="password" autocomplete="current-password" required><\/div><button class="login-btn" type="submit">Sign in<\/button><\/form><div class="forgot"><a href="/auth/reset-password" style="color:#93c5fd">Forgot password?<\/a><\/div><\/div><\/body><\/html>`);
 });
 
 // Login POST
-app.post('/auth/login', async (req,res) => {
+app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.redirect('/login?error=Username+and+password+required');
   try {
@@ -4685,24 +4738,24 @@ app.post('/auth/login', async (req,res) => {
     if (!valid) return res.redirect('/login?error=Invalid+username+or+password');
     const sid = generateSessionId();
     const expires = new Date(Date.now() + SESSION_DURATION_MS);
-    await q('INSERT INTO auth_sessions (id,user_id,expires_at) VALUES (?,?,?)', [sid, user.id, expires.toISOString().slice(0,19).replace('T',' ')]);
+    await q('INSERT INTO auth_sessions (id,user_id,expires_at) VALUES (?,?,?)', [sid, user.id, expires.toISOString().slice(0, 19).replace('T', ' ')]);
     setSessionCookie(res, sid);
     res.redirect('/');
-  } catch(e) { res.redirect('/login?error=' + encodeURIComponent('Login error: ' + e.message)); }
+  } catch (e) { res.redirect('/login?error=' + encodeURIComponent('Login error: ' + e.message)); }
 });
 
 // Logout
-app.get('/auth/logout', async (req,res) => {
+app.get('/auth/logout', async (req, res) => {
   const cookies = parseCookies(req);
   const sid = cookies['np_seo_session'];
-  if (sid) await q('DELETE FROM auth_sessions WHERE id=?', [sid]).catch(()=>{});
+  if (sid) await q('DELETE FROM auth_sessions WHERE id=?', [sid]).catch(() => { });
   clearSessionCookie(res);
   res.redirect('/login');
 });
-app.post('/auth/logout', async (req,res) => {
+app.post('/auth/logout', async (req, res) => {
   const cookies = parseCookies(req);
   const sid = cookies['np_seo_session'];
-  if (sid) await q('DELETE FROM auth_sessions WHERE id=?', [sid]).catch(()=>{});
+  if (sid) await q('DELETE FROM auth_sessions WHERE id=?', [sid]).catch(() => { });
   clearSessionCookie(res);
   res.redirect('/login');
 });
@@ -4718,22 +4771,22 @@ app.post('/auth/logout', async (req,res) => {
 // If no email provider is configured, the code is logged to the server
 // console (for local/dev or emergency admin recovery).
 
-app.get('/auth/reset-password', (req,res) => {
+app.get('/auth/reset-password', (req, res) => {
   // Backward-compat redirect for any old bookmarks
   res.redirect('/auth/forgot-password' + (req.query.msg ? '?msg=' + encodeURIComponent(req.query.msg) : ''));
 });
 
-app.get('/auth/forgot-password', (req,res) => {
+app.get('/auth/forgot-password', (req, res) => {
   const msg = req.query.msg || '';
   const error = req.query.error || '';
-  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Forgot password — NativPost SEO</title><link rel="stylesheet" href="/static/styles.css"></head><body class="auth-page"><div class="auth-box"><div class="auth-logo">NP</div><h2>Forgot your password?</h2><p class="auth-sub">Enter your username. We'll email a 6-digit verification code to the address on file.</p>${msg?'<div class="auth-msg good">'+msg+'</div>':''}${error?'<div class="auth-msg bad">'+error+'</div>':''}<form method="post" action="/auth/forgot-password"><input type="text" name="username" placeholder="Your username" required autofocus><button type="submit">Send verification code</button></form><a href="/login" class="auth-back">Back to login</a></div></body></html>`);
+  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Forgot password — NativPost SEO</title><link rel="stylesheet" href="/static/styles.css"></head><body class="auth-page"><div class="auth-box"><div class="auth-logo">NP</div><h2>Forgot your password?</h2><p class="auth-sub">Enter your username. We'll email a 6-digit verification code to the address on file.</p>${msg ? '<div class="auth-msg good">' + msg + '</div>' : ''}${error ? '<div class="auth-msg bad">' + error + '</div>' : ''}<form method="post" action="/auth/forgot-password"><input type="text" name="username" placeholder="Your username" required autofocus><button type="submit">Send verification code</button></form><a href="/login" class="auth-back">Back to login</a></div></body></html>`);
 });
 
-app.post('/auth/forgot-password', async (req,res) => {
+app.post('/auth/forgot-password', async (req, res) => {
   try {
     const username = String(req.body.username || '').trim();
     if (!username) return res.redirect('/auth/forgot-password?error=Username+required');
-    const user = await one('SELECT * FROM auth_users WHERE LOWER(username)=LOWER(?)', [username]).catch(()=>null);
+    const user = await one('SELECT * FROM auth_users WHERE LOWER(username)=LOWER(?)', [username]).catch(() => null);
     // To prevent username-enumeration, always tell the user "if that username exists, an email was sent" —
     // but only actually send if the user exists AND has an email on file.
     if (user && user.email) {
@@ -4744,7 +4797,7 @@ app.post('/auth/forgot-password', async (req,res) => {
       await execSafe("UPDATE auth_reset_codes SET used=1 WHERE user_id=? AND used=0", [user.id]);
       await q(
         'INSERT INTO auth_reset_codes (user_id, code_hash, email, expires_at) VALUES (?,?,?,?)',
-        [user.id, codeHash, user.email, expires.toISOString().slice(0,19).replace('T',' ')]
+        [user.id, codeHash, user.email, expires.toISOString().slice(0, 19).replace('T', ' ')]
       );
       const subject = 'NativPost SEO — password reset code';
       const text = `Your password reset code is: ${code}\n\nThis code expires in 15 minutes. If you did not request this, you can ignore this email.\n\n— NativPost SEO`;
@@ -4764,14 +4817,14 @@ app.post('/auth/forgot-password', async (req,res) => {
   }
 });
 
-app.get('/auth/verify-reset-code', (req,res) => {
+app.get('/auth/verify-reset-code', (req, res) => {
   const u = req.query.u || '';
   const msg = req.query.msg || '';
   const error = req.query.error || '';
-  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Enter code — NativPost SEO</title><link rel="stylesheet" href="/static/styles.css"></head><body class="auth-page"><div class="auth-box"><div class="auth-logo">NP</div><h2>Enter your verification code</h2><p class="auth-sub">Check your email for a 6-digit code, then set a new password.</p>${msg?'<div class="auth-msg good">'+msg+'</div>':''}${error?'<div class="auth-msg bad">'+error+'</div>':''}<form method="post" action="/auth/do-reset"><input type="hidden" name="u" value="${u}"><label>6-digit code</label><input type="text" name="code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required autofocus placeholder="000000"><label>New password (min 8 chars)</label><input type="password" name="password" minlength="8" required placeholder="New password"><button type="submit">Reset password</button></form><a href="/auth/forgot-password" class="auth-back">Resend code</a></div></body></html>`);
+  res.send(`<!doctype html><html><head><meta charset="utf-8"><title>Enter code — NativPost SEO</title><link rel="stylesheet" href="/static/styles.css"></head><body class="auth-page"><div class="auth-box"><div class="auth-logo">NP</div><h2>Enter your verification code</h2><p class="auth-sub">Check your email for a 6-digit code, then set a new password.</p>${msg ? '<div class="auth-msg good">' + msg + '</div>' : ''}${error ? '<div class="auth-msg bad">' + error + '</div>' : ''}<form method="post" action="/auth/do-reset"><input type="hidden" name="u" value="${u}"><label>6-digit code</label><input type="text" name="code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required autofocus placeholder="000000"><label>New password (min 8 chars)</label><input type="password" name="password" minlength="8" required placeholder="New password"><button type="submit">Reset password</button></form><a href="/auth/forgot-password" class="auth-back">Resend code</a></div></body></html>`);
 });
 
-app.post('/auth/do-reset', async (req,res) => {
+app.post('/auth/do-reset', async (req, res) => {
   try {
     const uToken = String(req.body.u || '');
     const code = String(req.body.code || '').trim();
@@ -4786,9 +4839,9 @@ app.post('/auth/do-reset', async (req,res) => {
       return res.redirect('/auth/verify-reset-code?u=' + encodeURIComponent(uToken) + '&error=Password+must+be+at+least+8+characters');
     }
     let username = '';
-    try { username = Buffer.from(uToken, 'base64url').toString('utf8'); } catch {}
+    try { username = Buffer.from(uToken, 'base64url').toString('utf8'); } catch { }
     if (!username) return res.redirect('/auth/forgot-password?error=Invalid+request');
-    const user = await one('SELECT * FROM auth_users WHERE LOWER(username)=LOWER(?)', [username]).catch(()=>null);
+    const user = await one('SELECT * FROM auth_users WHERE LOWER(username)=LOWER(?)', [username]).catch(() => null);
     if (!user) {
       // Don't reveal whether the user exists — just say the code is invalid
       return res.redirect('/auth/verify-reset-code?u=' + encodeURIComponent(uToken) + '&error=Invalid+or+expired+code');
@@ -4797,7 +4850,7 @@ app.post('/auth/do-reset', async (req,res) => {
     const record = await one(
       "SELECT * FROM auth_reset_codes WHERE user_id=? AND used=0 AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
       [user.id]
-    ).catch(()=>null);
+    ).catch(() => null);
     if (!record) {
       return res.redirect('/auth/verify-reset-code?u=' + encodeURIComponent(uToken) + '&error=No+active+code.+Request+a+new+one.');
     }
@@ -4808,7 +4861,7 @@ app.post('/auth/do-reset', async (req,res) => {
     if (record.code_hash !== codeHash) {
       await q("UPDATE auth_reset_codes SET attempts=attempts+1 WHERE id=?", [record.id]);
       const left = 5 - (Number(record.attempts) + 1);
-      return res.redirect('/auth/verify-reset-code?u=' + encodeURIComponent(uToken) + '&error=Invalid+code.+' + Math.max(0,left) + '+attempts+remaining.');
+      return res.redirect('/auth/verify-reset-code?u=' + encodeURIComponent(uToken) + '&error=Invalid+code.+' + Math.max(0, left) + '+attempts+remaining.');
     }
     // Code is valid — reset the password
     const salt = crypto.randomBytes(32).toString('hex');
@@ -4824,142 +4877,162 @@ app.post('/auth/do-reset', async (req,res) => {
   }
 });
 
-app.get('/', async (req,res,next)=>{ try { render(res,'dashboard',{ currentPath:'/', ...(await dashboardData()) }); } catch(e){ next(e); } });
+app.get('/', async (req, res, next) => { try { render(res, 'dashboard', { currentPath: '/', ...(await dashboardData()) }); } catch (e) { next(e); } });
 
-app.get('/sites', async (req,res,next)=>{ try { render(res,'sites',{ currentPath:'/sites', sites: await q('SELECT * FROM sites WHERE active=1 ORDER BY name ASC'), pages: await q('SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY sp.last_scanned_at DESC, FIELD(sp.page_type,\'money\',\'game\',\'blog\',\'support\',\'page\'), sp.word_count DESC LIMIT 120') }); } catch(e){ next(e); } });
-app.post('/sites', async (req,res,next)=>{ try { const url=normalizeUrl(req.body.url); const existing=await one('SELECT id FROM sites WHERE LOWER(TRIM(TRAILING \'/\' FROM url))=LOWER(TRIM(TRAILING \'/\' FROM ?))',[url]); if(existing) await q('UPDATE sites SET name=?,url=?,gsc_property=?,ga4_property_id=?,cms_type=?,active=1 WHERE id=?',[req.body.name,url,req.body.gsc_property||null,req.body.ga4_property_id||null,req.body.cms_type||'contentful',existing.id]); else await q('INSERT INTO sites (name,url,gsc_property,ga4_property_id,cms_type) VALUES (?,?,?,?,?)',[req.body.name,url,req.body.gsc_property||null,req.body.ga4_property_id||null,req.body.cms_type||'contentful']); res.redirect('/sites'); } catch(e){ next(e); } });
-app.post('/sites/:id', async (req,res,next)=>{ try { await q('UPDATE sites SET name=?,url=?,gsc_property=?,ga4_property_id=?,cms_type=? WHERE id=?',[req.body.name,normalizeUrl(req.body.url),req.body.gsc_property||null,req.body.ga4_property_id||null,req.body.cms_type||'contentful',req.params.id]); res.redirect('/sites'); } catch(e){ next(e); } });
-app.post('/sites/:id/delete', async (req,res,next)=>{ try { await q('UPDATE sites SET active=0 WHERE id=?',[req.params.id]); res.redirect('/sites'); } catch(e){ next(e); } });
-app.post('/sites/:id/scan', async (req,res,next)=>{ try { const site=await one('SELECT * FROM sites WHERE id=?',[req.params.id]); const crawlUrl = resolveCrawlUrl(site.url); console.log(`[Scan] Starting crawl for site ${site.id}: ${crawlUrl}`); const scan=await crawlWebsite(crawlUrl, Number(req.body.limit || process.env.CRAWL_PAGE_LIMIT || 80)); console.log(`[Scan] Crawl complete: ${(scan.pages||[]).length} pages found`); await saveOwnSiteScan(site.id, scan); res.redirect('/sites'); } catch(e){ console.error('[Scan] Error:', e.message); next(e); } });
-app.post('/sites/scan-all', async (req,res,next)=>{ try { const sites=await q('SELECT * FROM sites WHERE active=1'); for (const s of sites) { try { await saveOwnSiteScan(s.id, await crawlWebsite(resolveCrawlUrl(s.url), Number(process.env.CRAWL_PAGE_LIMIT || 80))); } catch(err){} } res.redirect('/sites'); } catch(e){ next(e); } });
+app.get('/sites', async (req, res, next) => { try { render(res, 'sites', { currentPath: '/sites', sites: await q('SELECT * FROM sites WHERE active=1 ORDER BY name ASC'), pages: await q('SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY sp.last_scanned_at DESC, FIELD(sp.page_type,\'money\',\'game\',\'blog\',\'support\',\'page\'), sp.word_count DESC LIMIT 120') }); } catch (e) { next(e); } });
+app.post('/sites', async (req, res, next) => { try { const url = normalizeUrl(req.body.url); const existing = await one('SELECT id FROM sites WHERE LOWER(TRIM(TRAILING \'/\' FROM url))=LOWER(TRIM(TRAILING \'/\' FROM ?))', [url]); if (existing) await q('UPDATE sites SET name=?,url=?,gsc_property=?,ga4_property_id=?,cms_type=?,active=1 WHERE id=?', [req.body.name, url, req.body.gsc_property || null, req.body.ga4_property_id || null, req.body.cms_type || 'contentful', existing.id]); else await q('INSERT INTO sites (name,url,gsc_property,ga4_property_id,cms_type) VALUES (?,?,?,?,?)', [req.body.name, url, req.body.gsc_property || null, req.body.ga4_property_id || null, req.body.cms_type || 'contentful']); res.redirect('/sites'); } catch (e) { next(e); } });
+app.post('/sites/:id', async (req, res, next) => { try { await q('UPDATE sites SET name=?,url=?,gsc_property=?,ga4_property_id=?,cms_type=? WHERE id=?', [req.body.name, normalizeUrl(req.body.url), req.body.gsc_property || null, req.body.ga4_property_id || null, req.body.cms_type || 'contentful', req.params.id]); res.redirect('/sites'); } catch (e) { next(e); } });
+app.post('/sites/:id/delete', async (req, res, next) => { try { await q('UPDATE sites SET active=0 WHERE id=?', [req.params.id]); res.redirect('/sites'); } catch (e) { next(e); } });
+app.post('/sites/:id/scan', async (req, res, next) => { try { const site = await one('SELECT * FROM sites WHERE id=?', [req.params.id]); const crawlUrl = resolveCrawlUrl(site.url); console.log(`[Scan] Starting crawl for site ${site.id}: ${crawlUrl}`); const scan = await crawlWebsite(crawlUrl, Number(req.body.limit || process.env.CRAWL_PAGE_LIMIT || 80)); console.log(`[Scan] Crawl complete: ${(scan.pages || []).length} pages found`); await saveOwnSiteScan(site.id, scan); res.redirect('/sites'); } catch (e) { console.error('[Scan] Error:', e.message); next(e); } });
+app.post('/sites/scan-all', async (req, res, next) => { try { const sites = await q('SELECT * FROM sites WHERE active=1'); for (const s of sites) { try { await saveOwnSiteScan(s.id, await crawlWebsite(resolveCrawlUrl(s.url), Number(process.env.CRAWL_PAGE_LIMIT || 80))); } catch (err) { } } res.redirect('/sites'); } catch (e) { next(e); } });
 
-app.get('/competitors', async (req,res,next)=>{ try { render(res,'competitors',{ currentPath:'/competitors', sites: await siteOptions(), competitors: await q('SELECT c.id,c.site_id,COALESCE(c.name,c.competitor_name) name,COALESCE(c.url,c.competitor_url) url,c.homepage_title,c.audit_score,c.last_audited_at,c.snapshot_json,s.name site_name FROM competitors c LEFT JOIN sites s ON s.id=c.site_id WHERE c.active=1 ORDER BY c.audit_score DESC,c.id DESC') }); } catch(e){ next(e); } });
-app.post('/competitors', async (req,res,next)=>{ try {
-  const url=normalizeUrl(req.body.url); const name=req.body.name || hostOf(url); const sid=(req.body.site_id && req.body.site_id !== 'all') ? req.body.site_id : null;
-  const existing=await one("SELECT id FROM competitors WHERE LOWER(TRIM(TRAILING '/' FROM COALESCE(url,competitor_url)))=LOWER(TRIM(TRAILING '/' FROM ?))",[url]);
-  const id = existing?.id || (await q('INSERT INTO competitors (site_id,name,url,competitor_name,competitor_url) VALUES (?,?,?,?,?)',[sid,name,url,name,url])).insertId;
-  if (existing) await q('UPDATE competitors SET site_id=?,name=?,url=?,competitor_name=?,competitor_url=?,active=1 WHERE id=?',[sid,name,url,name,url,id]);
-  try { const audit=await auditCompetitor(url); await saveCompetitorAudit(id,audit); } catch(err){ await q('UPDATE competitors SET snapshot_json=?, last_audited_at=NOW() WHERE id=?',[JSON.stringify({error:err.message,url}),id]); }
-  res.redirect(`/competitors/${id}`);
-} catch(e){ next(e); } });
-app.post('/competitors/:id/audit', async (req,res,next)=>{ try { const c=await one('SELECT COALESCE(url,competitor_url) url FROM competitors WHERE id=?',[req.params.id]); const audit=await auditCompetitor(c.url); await saveCompetitorAudit(req.params.id,audit); res.redirect(`/competitors/${req.params.id}`); } catch(e){ next(e); } });
-app.post('/competitors/audit-all', async (req,res,next)=>{ try { const rows=await q('SELECT id,COALESCE(url,competitor_url) url FROM competitors WHERE active=1'); for (const c of rows) { try { await saveCompetitorAudit(c.id, await auditCompetitor(c.url)); } catch(err){ await q('UPDATE competitors SET snapshot_json=?,last_audited_at=NOW() WHERE id=?',[JSON.stringify({error:err.message,url:c.url}),c.id]); } } res.redirect('/competitors'); } catch(e){ next(e); } });
-app.post('/competitors/:id/delete', async (req,res,next)=>{ try { await q('UPDATE competitors SET active=0 WHERE id=?',[req.params.id]); res.redirect('/competitors'); } catch(e){ next(e); } });
-app.get('/competitors/:id', async (req,res,next)=>{ try { const competitor=await one('SELECT c.*,COALESCE(c.name,c.competitor_name) display_name,COALESCE(c.url,c.competitor_url) display_url,s.name site_name FROM competitors c LEFT JOIN sites s ON s.id=c.site_id WHERE c.id=?',[req.params.id]); if(!competitor) return res.status(404).render('error',{message:'Competitor not found', currentPath:'/competitors'}); let audit=null; try{ audit=competitor.snapshot_json?JSON.parse(competitor.snapshot_json):null; }catch{} const pages=await q('SELECT * FROM competitor_pages WHERE competitor_id=? ORDER BY page_type, word_count DESC',[req.params.id]); render(res,'competitor-view',{ currentPath:'/competitors', competitor, audit, pages }); } catch(e){ next(e); } });
+app.get('/competitors', async (req, res, next) => { try { render(res, 'competitors', { currentPath: '/competitors', sites: await siteOptions(), competitors: await q('SELECT c.id,c.site_id,COALESCE(c.name,c.competitor_name) name,COALESCE(c.url,c.competitor_url) url,c.homepage_title,c.audit_score,c.last_audited_at,c.snapshot_json,s.name site_name FROM competitors c LEFT JOIN sites s ON s.id=c.site_id WHERE c.active=1 ORDER BY c.audit_score DESC,c.id DESC') }); } catch (e) { next(e); } });
+app.post('/competitors', async (req, res, next) => {
+  try {
+    const url = normalizeUrl(req.body.url); const name = req.body.name || hostOf(url); const sid = (req.body.site_id && req.body.site_id !== 'all') ? req.body.site_id : null;
+    const existing = await one("SELECT id FROM competitors WHERE LOWER(TRIM(TRAILING '/' FROM COALESCE(url,competitor_url)))=LOWER(TRIM(TRAILING '/' FROM ?))", [url]);
+    const id = existing?.id || (await q('INSERT INTO competitors (site_id,name,url,competitor_name,competitor_url) VALUES (?,?,?,?,?)', [sid, name, url, name, url])).insertId;
+    if (existing) await q('UPDATE competitors SET site_id=?,name=?,url=?,competitor_name=?,competitor_url=?,active=1 WHERE id=?', [sid, name, url, name, url, id]);
+    try { const audit = await auditCompetitor(url); await saveCompetitorAudit(id, audit); } catch (err) { await q('UPDATE competitors SET snapshot_json=?, last_audited_at=NOW() WHERE id=?', [JSON.stringify({ error: err.message, url }), id]); }
+    res.redirect(`/competitors/${id}`);
+  } catch (e) { next(e); }
+});
+app.post('/competitors/:id/audit', async (req, res, next) => { try { const c = await one('SELECT COALESCE(url,competitor_url) url FROM competitors WHERE id=?', [req.params.id]); const audit = await auditCompetitor(c.url); await saveCompetitorAudit(req.params.id, audit); res.redirect(`/competitors/${req.params.id}`); } catch (e) { next(e); } });
+app.post('/competitors/audit-all', async (req, res, next) => { try { const rows = await q('SELECT id,COALESCE(url,competitor_url) url FROM competitors WHERE active=1'); for (const c of rows) { try { await saveCompetitorAudit(c.id, await auditCompetitor(c.url)); } catch (err) { await q('UPDATE competitors SET snapshot_json=?,last_audited_at=NOW() WHERE id=?', [JSON.stringify({ error: err.message, url: c.url }), c.id]); } } res.redirect('/competitors'); } catch (e) { next(e); } });
+app.post('/competitors/:id/delete', async (req, res, next) => { try { await q('UPDATE competitors SET active=0 WHERE id=?', [req.params.id]); res.redirect('/competitors'); } catch (e) { next(e); } });
+app.get('/competitors/:id', async (req, res, next) => { try { const competitor = await one('SELECT c.*,COALESCE(c.name,c.competitor_name) display_name,COALESCE(c.url,c.competitor_url) display_url,s.name site_name FROM competitors c LEFT JOIN sites s ON s.id=c.site_id WHERE c.id=?', [req.params.id]); if (!competitor) return res.status(404).render('error', { message: 'Competitor not found', currentPath: '/competitors' }); let audit = null; try { audit = competitor.snapshot_json ? JSON.parse(competitor.snapshot_json) : null; } catch { } const pages = await q('SELECT * FROM competitor_pages WHERE competitor_id=? ORDER BY page_type, word_count DESC', [req.params.id]); render(res, 'competitor-view', { currentPath: '/competitors', competitor, audit, pages }); } catch (e) { next(e); } });
 
-app.get('/articles', async (req,res,next)=>{ try { res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate'); await cleanupBrokenArticleImageRefs(); const status=req.query.status||''; const where=status?'WHERE a.status=?':'WHERE 1=1'; const articles=await q(`SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id ${where} AND a.title IS NOT NULL ORDER BY a.updated_at DESC,a.id DESC`,status?[status]:[]); render(res,'articles',{ currentPath:'/articles', articles, status, message:req.query.message||null, query:req.query }); } catch(e){ next(e); } });
+app.get('/articles', async (req, res, next) => { try { res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); await cleanupBrokenArticleImageRefs(); const status = req.query.status || ''; const where = status ? 'WHERE a.status=?' : 'WHERE 1=1'; const articles = await q(`SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id ${where} AND a.title IS NOT NULL ORDER BY a.updated_at DESC,a.id DESC`, status ? [status] : []); render(res, 'articles', { currentPath: '/articles', articles, status, message: req.query.message || null, query: req.query }); } catch (e) { next(e); } });
 
 // IMPORTANT: this static bulk-delete route must stay BEFORE /articles/:id POST routes.
 // Otherwise Express treats "delete-drafts" as an article id and the delete button appears to do nothing.
-app.post('/articles/delete-drafts', async (req,res,next)=>{ try {
-  const before = await one("SELECT COUNT(*) count FROM articles WHERE status IN ('draft','review','rejected')");
-  await q("UPDATE content_calendar c JOIN articles a ON a.id=c.article_id SET c.article_id=NULL,c.status='planned' WHERE a.status IN ('draft','review','rejected')");
-  await q("DELETE FROM articles WHERE status IN ('draft','review','rejected')");
-  res.redirect('/articles?message=' + encodeURIComponent(`Deleted ${Number(before?.count||0)} draft/review/rejected article(s).`));
-} catch(e){ next(e); } });
+app.post('/articles/delete-drafts', async (req, res, next) => {
+  try {
+    const before = await one("SELECT COUNT(*) count FROM articles WHERE status IN ('draft','review','rejected')");
+    await q("UPDATE content_calendar c JOIN articles a ON a.id=c.article_id SET c.article_id=NULL,c.status='planned' WHERE a.status IN ('draft','review','rejected')");
+    await q("DELETE FROM articles WHERE status IN ('draft','review','rejected')");
+    res.redirect('/articles?message=' + encodeURIComponent(`Deleted ${Number(before?.count || 0)} draft/review/rejected article(s).`));
+  } catch (e) { next(e); }
+});
 
-app.get('/articles/new', async (req,res,next)=>{ try { render(res,'article-edit',{ currentPath:'/articles', article:null, sites:await siteOptions(), assets:await assetOptions() }); } catch(e){ next(e); } });
-app.post('/articles/new', upload.any(), async (req,res,next)=>{ try {
-  const asset=req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?',[req.body.featured_image_id]) : null;
-  const body=repairOfferClaims(req.body.body||'');
-  const title=safeArticleTitle(req.body.title, articleTitleFor(req.body.primary_keyword || 'ai social media content'));
-  const slug=req.body.slug || slugify(title);
-  const status=['draft','review','approved','queued','published'].includes(String(req.body.status||'')) ? req.body.status : 'draft';
-  const result=await q('INSERT INTO articles (site_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,quality_score,scheduled_for) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[req.body.site_id||null,title,slug,status,req.body.primary_keyword||null,safeArticleTitle(req.body.meta_title,title),repairOfferClaims(req.body.meta_description||'')||null,repairOfferClaims(req.body.excerpt||'')||null,body,body,asset?.id||null,normalizeImageUrl(asset?.asset_url||req.body.featured_image_url)||null,req.body.featured_image_alt||asset?.alt_text||null,req.body.review_notes||null,0,req.body.scheduled_for||null]);
-  const article=await one('SELECT * FROM articles WHERE id=?',[result.insertId]); await q('UPDATE articles SET quality_score=? WHERE id=?',[contentQuality(article),result.insertId]); res.redirect(`/articles/${result.insertId}/edit`);
-} catch(e){ next(e); } });
-app.get('/articles/:id', async (req,res,next)=>{ try { const article=await one('SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name,aa.contentful_asset_id FROM articles a LEFT JOIN sites s ON s.id=a.site_id LEFT JOIN article_assets aa ON aa.id=a.featured_image_id WHERE a.id=?',[req.params.id]); if(!article) return res.status(404).render('error',{message:'Article not found', currentPath:'/articles'}); article.featured_image_url = normalizeImageUrl(article.featured_image_url); return res.send(articlePreviewHtml(article)); } catch(e){ next(e); } });
-app.get('/articles/:id/edit', async (req,res,next)=>{ try { const article=await one('SELECT *,COALESCE(body,content) body FROM articles WHERE id=?',[req.params.id]); if(!article) return res.status(404).render('error',{message:'Article not found', currentPath:'/articles'}); render(res,'article-edit',{ currentPath:'/articles', article, sites:await siteOptions(), assets:await assetOptions(article.site_id, `${article.primary_keyword||''} ${article.title||''}`) }); } catch(e){ next(e); } });
-app.post('/articles/:id', upload.any(), async (req,res,next)=>{ try {
-  const existing=await one('SELECT * FROM articles WHERE id=?',[req.params.id]);
-  if(!existing) return res.status(404).render('error',{message:'Article not found', currentPath:'/articles'});
-  const asset=req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?',[req.body.featured_image_id]) : null;
-  const body=repairOfferClaims(req.body.body ?? existing.body ?? existing.content ?? '');
-  const title=safeArticleTitle(req.body.title, existing.title || articleTitleFor(req.body.primary_keyword || existing.primary_keyword || 'ai social media content'));
-  const slug=req.body.slug || existing.slug || slugify(title);
-  const status=['draft','review','approved','queued','published','rejected'].includes(String(req.body.status||'')) ? req.body.status : (existing.status || 'draft');
-  const scheduledFor=req.body.scheduled_for || existing.scheduled_for || null;
-  const articleTemp={...existing,...req.body,title,slug,status,body,featured_image_url:normalizeImageUrl(asset?.asset_url||req.body.featured_image_url||existing.featured_image_url), featured_image_alt:req.body.featured_image_alt||asset?.alt_text||existing.featured_image_alt};
-  await q('UPDATE articles SET site_id=?,title=?,slug=?,status=?,primary_keyword=?,meta_title=?,meta_description=?,excerpt=?,body=?,content=?,featured_image_id=?,featured_image_url=?,featured_image_alt=?,review_notes=?,scheduled_for=?,quality_score=? WHERE id=?',[req.body.site_id||existing.site_id||null,title,slug,status,req.body.primary_keyword||existing.primary_keyword||null,safeArticleTitle(req.body.meta_title,title),repairOfferClaims(req.body.meta_description ?? existing.meta_description ?? '')||null,repairOfferClaims(req.body.excerpt ?? existing.excerpt ?? '')||null,body,body,asset?.id||req.body.current_featured_image_id||existing.featured_image_id||null,normalizeImageUrl(asset?.asset_url||req.body.featured_image_url||existing.featured_image_url)||null,req.body.featured_image_alt||asset?.alt_text||existing.featured_image_alt||null,req.body.review_notes ?? existing.review_notes ?? null,scheduledFor,contentQuality(articleTemp),req.params.id]);
-  res.redirect(`/articles/${req.params.id}`);
-} catch(e){ next(e); } });
-app.post('/articles/:id/status', upload.any(), async (req,res,next)=>{ try {
-  const allowed = new Set(['draft','review','approved','queued','published']);
-  const statusRaw = Array.isArray(req.body.status) ? req.body.status[req.body.status.length-1] : req.body.status;
-  const status = allowed.has(String(statusRaw||'')) ? String(statusRaw) : 'draft';
-  const current = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?',[req.params.id]);
-  if (!current) return res.redirect('/articles');
-  const score = contentQuality(current);
-  const breakdown = qualityBreakdown(current);
-  const cal = await one('SELECT COALESCE(scheduled_for,scheduled_date) scheduled_for FROM content_calendar WHERE article_id=? ORDER BY id DESC LIMIT 1',[req.params.id]);
-  if (['approved','queued','published'].includes(status) && score < MIN_QUALITY_SCORE) {
-    await q("UPDATE articles SET `status`='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
-    return res.redirect('/review');
-  }
-  if (status === 'approved') await q('UPDATE articles SET `status`=?, reviewed_at=NOW(), scheduled_for=COALESCE(scheduled_for,?), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?',['queued',cal?.scheduled_for||null,score,buildArticleSchema(current),req.params.id]);
-  else if (status === 'queued') await q('UPDATE articles SET `status`=?, scheduled_for=COALESCE(scheduled_for,?), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?',[status,cal?.scheduled_for||null,score,buildArticleSchema(current),req.params.id]);
-  else if (status === 'published') await q('UPDATE articles SET `status`=?, published_at=NOW(), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?',[status,score,buildArticleSchema(current),req.params.id]);
-  else await q('UPDATE articles SET `status`=?, quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?',[status,score,buildArticleSchema(current),req.params.id]);
-  if (status === 'approved' || status === 'queued' || status === 'published') return res.redirect('/publish');
-  if (status === 'review') return res.redirect('/review');
-  res.redirect(req.get('referer')||`/articles/${req.params.id}`);
-} catch(e){ next(e); } });
-app.post('/articles/:id/delete', async (req,res,next)=>{ try {
-  const articleId = Number(req.params.id);
-  if (!Number.isFinite(articleId)) return res.redirect('/articles?message=' + encodeURIComponent('Delete skipped: invalid article id.'));
-  await q("UPDATE content_calendar SET article_id=NULL,status='planned' WHERE article_id=?",[articleId]);
-  const result = await q('DELETE FROM articles WHERE id=?',[articleId]);
-  const deleted = Number(result?.affectedRows || 0);
-  res.redirect('/articles?message=' + encodeURIComponent(deleted ? 'Article deleted.' : 'Article was already gone.'));
-} catch(e){ next(e); } });
-app.post('/articles/:id/reject-regenerate', upload.any(), async (req,res,next)=>{ try {
-  const a = await one('SELECT * FROM articles WHERE id=?',[req.params.id]);
-  if (!a) return res.redirect('/review');
-  const oldId = req.params.id;
-  const keyword = a.primary_keyword || a.title || 'ai social media content';
-  const siteId = a.site_id || null;
-  // Generate replacement first
-  const newId = await makeDraftFromKeyword({ id:null, site_id:siteId, keyword }, siteId);
-  // Update calendar to point to new article
-  await q("UPDATE content_calendar SET article_id=?, status='draft-created' WHERE article_id=?", [newId, oldId]);
-  // Delete the old article entirely so it doesn't clutter the list
-  await q('DELETE FROM articles WHERE id=?', [oldId]);
-  res.redirect(`/articles/${newId}/edit`);
-} catch(e){ next(e); } });
-app.post('/articles/regenerate-low-quality', async (req,res,next)=>{ try {
-  const rows = await q("SELECT id,site_id,primary_keyword,title FROM articles WHERE status IN ('draft','review') AND COALESCE(quality_score,0) < ? ORDER BY id ASC LIMIT 30", [Number(req.body.threshold || MIN_QUALITY_SCORE)]);
-  for (const a of rows) {
-    await q("UPDATE articles SET status='rejected', review_notes=CONCAT(COALESCE(review_notes,''), '\nRejected by bulk low-quality regeneration.') WHERE id=?", [a.id]);
-    const newId = await makeDraftFromKeyword({ id:null, site_id:a.site_id||null, keyword:a.primary_keyword || a.title || 'ai social media content' }, a.site_id || null);
-    await q("UPDATE content_calendar SET article_id=?, status='draft-created' WHERE article_id=?", [newId, a.id]);
-  }
-  res.redirect('/review');
-} catch(e){ next(e); } });
-app.post('/articles/approve-all-waiting', async (req,res,next)=>{ try {
-  await q("UPDATE articles a LEFT JOIN content_calendar c ON c.article_id=a.id SET a.status='queued', a.reviewed_at=NOW(), a.scheduled_for=COALESCE(a.scheduled_for,c.scheduled_for,c.scheduled_date) WHERE a.status IN ('draft','review') AND COALESCE(a.quality_score,0)>=?", [MIN_QUALITY_SCORE]);
-  res.redirect('/publish');
-} catch(e){ next(e); } });
-app.post('/articles/:id/upload-image', upload.single('image'), async (req,res,next)=>{ try {
-  const a = await one('SELECT * FROM articles WHERE id=?',[req.params.id]);
-  if (!a) return res.redirect('/articles');
-  if (!req.file) throw new Error('Choose an image file first.');
-  const ext = path.extname(req.file.originalname || '').toLowerCase().replace(/[^.a-z0-9]/g, '') || '.jpg';
-  const finalName = `${Date.now()}-${crypto.randomBytes(5).toString('hex')}${ext}`;
-  const finalPath = path.join(uploadDir, finalName);
-  fs.renameSync(req.file.path, finalPath);
-  const game = detectGame(`${req.body.game_slug || ''} ${a.primary_keyword || ''} ${a.title || ''}`) || req.body.game_slug || null;
-  const assetUrl = `/uploads/${finalName}`;
-  const label = req.body.label || `${a.title || 'Article'} image`;
-  const alt = req.body.alt_text || `${a.primary_keyword || a.title || 'NativPost social media content'} image`;
-  const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)',[a.site_id||null,label,game,game || 'article-images',assetUrl,alt]);
-  await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?',[result.insertId,assetUrl,alt,req.params.id]);
-  res.redirect(`/articles/${req.params.id}/edit`);
-} catch(e){ next(e); } });
+app.get('/articles/new', async (req, res, next) => { try { render(res, 'article-edit', { currentPath: '/articles', article: null, sites: await siteOptions(), assets: await assetOptions() }); } catch (e) { next(e); } });
+app.post('/articles/new', upload.any(), async (req, res, next) => {
+  try {
+    const asset = req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?', [req.body.featured_image_id]) : null;
+    const body = repairOfferClaims(req.body.body || '');
+    const title = safeArticleTitle(req.body.title, articleTitleFor(req.body.primary_keyword || 'ai social media content'));
+    const slug = req.body.slug || slugify(title);
+    const status = ['draft', 'review', 'approved', 'queued', 'published'].includes(String(req.body.status || '')) ? req.body.status : 'draft';
+    const result = await q('INSERT INTO articles (site_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,quality_score,scheduled_for) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [req.body.site_id || null, title, slug, status, req.body.primary_keyword || null, safeArticleTitle(req.body.meta_title, title), repairOfferClaims(req.body.meta_description || '') || null, repairOfferClaims(req.body.excerpt || '') || null, body, body, asset?.id || null, normalizeImageUrl(asset?.asset_url || req.body.featured_image_url) || null, req.body.featured_image_alt || asset?.alt_text || null, req.body.review_notes || null, 0, req.body.scheduled_for || null]);
+    const article = await one('SELECT * FROM articles WHERE id=?', [result.insertId]); await q('UPDATE articles SET quality_score=? WHERE id=?', [contentQuality(article), result.insertId]); res.redirect(`/articles/${result.insertId}/edit`);
+  } catch (e) { next(e); }
+});
+app.get('/articles/:id', async (req, res, next) => { try { const article = await one('SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name,aa.contentful_asset_id FROM articles a LEFT JOIN sites s ON s.id=a.site_id LEFT JOIN article_assets aa ON aa.id=a.featured_image_id WHERE a.id=?', [req.params.id]); if (!article) return res.status(404).render('error', { message: 'Article not found', currentPath: '/articles' }); article.featured_image_url = normalizeImageUrl(article.featured_image_url); return res.send(articlePreviewHtml(article)); } catch (e) { next(e); } });
+app.get('/articles/:id/edit', async (req, res, next) => { try { const article = await one('SELECT *,COALESCE(body,content) body FROM articles WHERE id=?', [req.params.id]); if (!article) return res.status(404).render('error', { message: 'Article not found', currentPath: '/articles' }); render(res, 'article-edit', { currentPath: '/articles', article, sites: await siteOptions(), assets: await assetOptions(article.site_id, `${article.primary_keyword || ''} ${article.title || ''}`) }); } catch (e) { next(e); } });
+app.post('/articles/:id', upload.any(), async (req, res, next) => {
+  try {
+    const existing = await one('SELECT * FROM articles WHERE id=?', [req.params.id]);
+    if (!existing) return res.status(404).render('error', { message: 'Article not found', currentPath: '/articles' });
+    const asset = req.body.featured_image_id ? await one('SELECT * FROM article_assets WHERE id=?', [req.body.featured_image_id]) : null;
+    const body = repairOfferClaims(req.body.body ?? existing.body ?? existing.content ?? '');
+    const title = safeArticleTitle(req.body.title, existing.title || articleTitleFor(req.body.primary_keyword || existing.primary_keyword || 'ai social media content'));
+    const slug = req.body.slug || existing.slug || slugify(title);
+    const status = ['draft', 'review', 'approved', 'queued', 'published', 'rejected'].includes(String(req.body.status || '')) ? req.body.status : (existing.status || 'draft');
+    const scheduledFor = req.body.scheduled_for || existing.scheduled_for || null;
+    const articleTemp = { ...existing, ...req.body, title, slug, status, body, featured_image_url: normalizeImageUrl(asset?.asset_url || req.body.featured_image_url || existing.featured_image_url), featured_image_alt: req.body.featured_image_alt || asset?.alt_text || existing.featured_image_alt };
+    await q('UPDATE articles SET site_id=?,title=?,slug=?,status=?,primary_keyword=?,meta_title=?,meta_description=?,excerpt=?,body=?,content=?,featured_image_id=?,featured_image_url=?,featured_image_alt=?,review_notes=?,scheduled_for=?,quality_score=? WHERE id=?', [req.body.site_id || existing.site_id || null, title, slug, status, req.body.primary_keyword || existing.primary_keyword || null, safeArticleTitle(req.body.meta_title, title), repairOfferClaims(req.body.meta_description ?? existing.meta_description ?? '') || null, repairOfferClaims(req.body.excerpt ?? existing.excerpt ?? '') || null, body, body, asset?.id || req.body.current_featured_image_id || existing.featured_image_id || null, normalizeImageUrl(asset?.asset_url || req.body.featured_image_url || existing.featured_image_url) || null, req.body.featured_image_alt || asset?.alt_text || existing.featured_image_alt || null, req.body.review_notes ?? existing.review_notes ?? null, scheduledFor, contentQuality(articleTemp), req.params.id]);
+    res.redirect(`/articles/${req.params.id}`);
+  } catch (e) { next(e); }
+});
+app.post('/articles/:id/status', upload.any(), async (req, res, next) => {
+  try {
+    const allowed = new Set(['draft', 'review', 'approved', 'queued', 'published']);
+    const statusRaw = Array.isArray(req.body.status) ? req.body.status[req.body.status.length - 1] : req.body.status;
+    const status = allowed.has(String(statusRaw || '')) ? String(statusRaw) : 'draft';
+    const current = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?', [req.params.id]);
+    if (!current) return res.redirect('/articles');
+    const score = contentQuality(current);
+    const breakdown = qualityBreakdown(current);
+    const cal = await one('SELECT COALESCE(scheduled_for,scheduled_date) scheduled_for FROM content_calendar WHERE article_id=? ORDER BY id DESC LIMIT 1', [req.params.id]);
+    if (['approved', 'queued', 'published'].includes(status) && score < MIN_QUALITY_SCORE) {
+      await q("UPDATE articles SET `status`='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
+      return res.redirect('/review');
+    }
+    if (status === 'approved') await q('UPDATE articles SET `status`=?, reviewed_at=NOW(), scheduled_for=COALESCE(scheduled_for,?), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?', ['queued', cal?.scheduled_for || null, score, buildArticleSchema(current), req.params.id]);
+    else if (status === 'queued') await q('UPDATE articles SET `status`=?, scheduled_for=COALESCE(scheduled_for,?), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?', [status, cal?.scheduled_for || null, score, buildArticleSchema(current), req.params.id]);
+    else if (status === 'published') await q('UPDATE articles SET `status`=?, published_at=NOW(), quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?', [status, score, buildArticleSchema(current), req.params.id]);
+    else await q('UPDATE articles SET `status`=?, quality_score=?, schema_json=COALESCE(schema_json,?) WHERE id=?', [status, score, buildArticleSchema(current), req.params.id]);
+    if (status === 'approved' || status === 'queued' || status === 'published') return res.redirect('/publish');
+    if (status === 'review') return res.redirect('/review');
+    res.redirect(req.get('referer') || `/articles/${req.params.id}`);
+  } catch (e) { next(e); }
+});
+app.post('/articles/:id/delete', async (req, res, next) => {
+  try {
+    const articleId = Number(req.params.id);
+    if (!Number.isFinite(articleId)) return res.redirect('/articles?message=' + encodeURIComponent('Delete skipped: invalid article id.'));
+    await q("UPDATE content_calendar SET article_id=NULL,status='planned' WHERE article_id=?", [articleId]);
+    const result = await q('DELETE FROM articles WHERE id=?', [articleId]);
+    const deleted = Number(result?.affectedRows || 0);
+    res.redirect('/articles?message=' + encodeURIComponent(deleted ? 'Article deleted.' : 'Article was already gone.'));
+  } catch (e) { next(e); }
+});
+app.post('/articles/:id/reject-regenerate', upload.any(), async (req, res, next) => {
+  try {
+    const a = await one('SELECT * FROM articles WHERE id=?', [req.params.id]);
+    if (!a) return res.redirect('/review');
+    const oldId = req.params.id;
+    const keyword = a.primary_keyword || a.title || 'ai social media content';
+    const siteId = a.site_id || null;
+    // Generate replacement first
+    const newId = await makeDraftFromKeyword({ id: null, site_id: siteId, keyword }, siteId);
+    // Update calendar to point to new article
+    await q("UPDATE content_calendar SET article_id=?, status='draft-created' WHERE article_id=?", [newId, oldId]);
+    // Delete the old article entirely so it doesn't clutter the list
+    await q('DELETE FROM articles WHERE id=?', [oldId]);
+    res.redirect(`/articles/${newId}/edit`);
+  } catch (e) { next(e); }
+});
+app.post('/articles/regenerate-low-quality', async (req, res, next) => {
+  try {
+    const rows = await q("SELECT id,site_id,primary_keyword,title FROM articles WHERE status IN ('draft','review') AND COALESCE(quality_score,0) < ? ORDER BY id ASC LIMIT 30", [Number(req.body.threshold || MIN_QUALITY_SCORE)]);
+    for (const a of rows) {
+      await q("UPDATE articles SET status='rejected', review_notes=CONCAT(COALESCE(review_notes,''), '\nRejected by bulk low-quality regeneration.') WHERE id=?", [a.id]);
+      const newId = await makeDraftFromKeyword({ id: null, site_id: a.site_id || null, keyword: a.primary_keyword || a.title || 'ai social media content' }, a.site_id || null);
+      await q("UPDATE content_calendar SET article_id=?, status='draft-created' WHERE article_id=?", [newId, a.id]);
+    }
+    res.redirect('/review');
+  } catch (e) { next(e); }
+});
+app.post('/articles/approve-all-waiting', async (req, res, next) => {
+  try {
+    await q("UPDATE articles a LEFT JOIN content_calendar c ON c.article_id=a.id SET a.status='queued', a.reviewed_at=NOW(), a.scheduled_for=COALESCE(a.scheduled_for,c.scheduled_for,c.scheduled_date) WHERE a.status IN ('draft','review') AND COALESCE(a.quality_score,0)>=?", [MIN_QUALITY_SCORE]);
+    res.redirect('/publish');
+  } catch (e) { next(e); }
+});
+app.post('/articles/:id/upload-image', upload.single('image'), async (req, res, next) => {
+  try {
+    const a = await one('SELECT * FROM articles WHERE id=?', [req.params.id]);
+    if (!a) return res.redirect('/articles');
+    if (!req.file) throw new Error('Choose an image file first.');
+    const ext = path.extname(req.file.originalname || '').toLowerCase().replace(/[^.a-z0-9]/g, '') || '.jpg';
+    const finalName = `${Date.now()}-${crypto.randomBytes(5).toString('hex')}${ext}`;
+    const finalPath = path.join(uploadDir, finalName);
+    fs.renameSync(req.file.path, finalPath);
+    const game = detectGame(`${req.body.game_slug || ''} ${a.primary_keyword || ''} ${a.title || ''}`) || req.body.game_slug || null;
+    const assetUrl = `/uploads/${finalName}`;
+    const label = req.body.label || `${a.title || 'Article'} image`;
+    const alt = req.body.alt_text || `${a.primary_keyword || a.title || 'NativPost social media content'} image`;
+    const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)', [a.site_id || null, label, game, game || 'article-images', assetUrl, alt]);
+    await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?', [result.insertId, assetUrl, alt, req.params.id]);
+    res.redirect(`/articles/${req.params.id}/edit`);
+  } catch (e) { next(e); }
+});
 
 
 
 
-function addPlanCandidate(map, keyword, reason, score=50, siteId=null) {
+function addPlanCandidate(map, keyword, reason, score = 50, siteId = null) {
   const ck = cleanKeyword(keyword);
   if (!ck) return;
   const key = ck.toLowerCase();
@@ -4967,7 +5040,7 @@ function addPlanCandidate(map, keyword, reason, score=50, siteId=null) {
   const item = { keyword: ck, site_id: siteId || null, title: articleTitleFor(ck), reason: reason || 'SEO opportunity', score: Number(score || 0) };
   if (!current || item.score > current.score) map.set(key, item);
 }
-function keywordsFromPageForPlan(page={}) {
+function keywordsFromPageForPlan(page = {}) {
   // NativPost: Extract social media / AI content keywords from competitor pages only.
   // Game hosting keywords are NEVER generated regardless of page content.
   const raw = `${page.page_title || ''} ${page.h1_text || ''} ${page.meta_description || ''} ${page.page_url || ''}`.toLowerCase();
@@ -5018,7 +5091,7 @@ function keywordsFromPageForPlan(page={}) {
   return [...new Set(out)];
 }
 
-async function supportedGamesForSite(siteId=null) {
+async function supportedGamesForSite(siteId = null) {
   // Priority order for supported games:
   // 1. live_games table (admin-managed, most reliable)
   // 2. Explicit env config (SUPPORTED_GAMES_EXACT)
@@ -5033,10 +5106,10 @@ async function supportedGamesForSite(siteId=null) {
       const g = detectGame(r.game_key) || r.game_key;
       if (g) supported.add(g);
     }
-  } catch(e) {}
+  } catch (e) { }
 
   const site = siteId
-    ? await one('SELECT * FROM sites WHERE id=?',[siteId])
+    ? await one('SELECT * FROM sites WHERE id=?', [siteId])
     : (await one("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id LIMIT 1") || await one('SELECT * FROM sites WHERE active=1 ORDER BY id LIMIT 1'));
   const sid = site?.id || siteId || null;
 
@@ -5046,33 +5119,33 @@ async function supportedGamesForSite(siteId=null) {
   }
 
   // 3. site_pages — previously crawled game URLs
-  const rows = await q(`SELECT sp.*, s.url site_url FROM site_pages sp LEFT JOIN sites s ON s.id=sp.site_id WHERE (? IS NULL OR sp.site_id<=>?) LIMIT 1200`,[sid, sid]);
+  const rows = await q(`SELECT sp.*, s.url site_url FROM site_pages sp LEFT JOIN sites s ON s.id=sp.site_id WHERE (? IS NULL OR sp.site_id<=>?) LIMIT 1200`, [sid, sid]);
   for (const p of rows) {
-    const url = String(p.page_url||'');
+    const url = String(p.page_url || '');
     if (!looksLikeOwnGameUrl(url)) continue;
-    const g = gameFromGameUrl(url) || detectGame(`${p.page_title||''} ${p.h1_text||''}`);
+    const g = gameFromGameUrl(url) || detectGame(`${p.page_title || ''} ${p.h1_text || ''}`);
     if (g) supported.add(g);
   }
   return supported;
 }
-async function saveGameRecommendation({site_id=null, game='', source_url='', source_title='', reason='', score=80}={}) {
-  const g = detectGame(game) || String(game||'').toLowerCase().trim();
+async function saveGameRecommendation({ site_id = null, game = '', source_url = '', source_title = '', reason = '', score = 80 } = {}) {
+  const g = detectGame(game) || String(game || '').toLowerCase().trim();
   if (!g) return;
   const title = `Consider adding ${gameDisplay(g)} server hosting`;
   await q(`INSERT INTO game_recommendations (site_id,game,title,source_url,source_title,reason,opportunity_score,status)
            VALUES (?,?,?,?,?,?,?, 'recommended')
            ON DUPLICATE KEY UPDATE source_url=VALUES(source_url), source_title=VALUES(source_title), reason=VALUES(reason), opportunity_score=GREATEST(opportunity_score, VALUES(opportunity_score)), status='recommended'`,
-          [site_id||null, g, title, source_url||null, source_title||null, reason||`Competitors have content for ${gameDisplay(g)}, but NativPost has not yet published content for this keyword.`, Number(score||80)]);
+    [site_id || null, g, title, source_url || null, source_title || null, reason || `Competitors have content for ${gameDisplay(g)}, but NativPost has not yet published content for this keyword.`, Number(score || 80)]);
 }
-function candidateAllowedForSupportedGames(keyword='', supportedGames=new Set()) {
+function candidateAllowedForSupportedGames(keyword = '', supportedGames = new Set()) {
   // NativPost: All non-game keywords are allowed. Game hosting keywords are always blocked.
-  const kw = String(keyword||'').toLowerCase();
+  const kw = String(keyword || '').toLowerCase();
   const isGameKeyword = /server hosting|game server|\bark\b|\brust\b|valheim|minecraft|palworld|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|vrising|v rising|hytale|everwind|eco server/i.test(kw);
   if (isGameKeyword) return false;
   return true;
 }
-function supportedFallbackTopics(supported=new Set()) {
-  const base = ['best ai social media content','ai social media content with ddos protection','high performance ai social media content','affordable ai social media content'];
+function supportedFallbackTopics(supported = new Set()) {
+  const base = ['best ai social media content', 'ai social media content with ddos protection', 'high performance ai social media content', 'affordable ai social media content'];
   for (const g of supported) {
     const label = gameKeywordName(g);
     base.push(`${label} server hosting`, `best ${label} server hosting`, `${label} server setup guide`);
@@ -5080,18 +5153,18 @@ function supportedFallbackTopics(supported=new Set()) {
   return [...new Set(base)];
 }
 
-async function buildStrategicPlanCandidates(siteId=null, limit=30) {
+async function buildStrategicPlanCandidates(siteId = null, limit = 30) {
   const site = siteId
-    ? await one('SELECT * FROM sites WHERE id=?',[siteId])
+    ? await one('SELECT * FROM sites WHERE id=?', [siteId])
     : (await one("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id LIMIT 1") || await one('SELECT * FROM sites WHERE active=1 ORDER BY id LIMIT 1'));
   const sid = site?.id || null;
   const candidates = [];
   const seen = new Set();
 
   // Block duplicates
-  const existingArticles = await q('SELECT LOWER(COALESCE(primary_keyword,title)) k FROM articles WHERE (? IS NULL OR site_id<=>?)',[sid,sid]);
-  const existingCalendar = await q('SELECT LOWER(COALESCE(target_keyword,title)) k FROM content_calendar WHERE (? IS NULL OR site_id<=>?)',[sid,sid]);
-  const blocked = new Set([...existingArticles, ...existingCalendar].map(x => String(x.k||'').toLowerCase().trim()).filter(Boolean));
+  const existingArticles = await q('SELECT LOWER(COALESCE(primary_keyword,title)) k FROM articles WHERE (? IS NULL OR site_id<=>?)', [sid, sid]);
+  const existingCalendar = await q('SELECT LOWER(COALESCE(target_keyword,title)) k FROM content_calendar WHERE (? IS NULL OR site_id<=>?)', [sid, sid]);
+  const blocked = new Set([...existingArticles, ...existingCalendar].map(x => String(x.k || '').toLowerCase().trim()).filter(Boolean));
 
   function addCandidate(keyword, title, reason, score) {
     const kw = cleanKeyword(keyword);
@@ -5105,10 +5178,10 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
   // TIER 1: SERP-researched keywords with real volume (highest priority)
   const serpCached = await q(
     'SELECT keyword, search_volume, keyword_difficulty FROM serp_cache ORDER BY search_volume DESC, fetched_at DESC LIMIT 100'
-  ).catch(()=>[]);
+  ).catch(() => []);
   for (const row of serpCached) {
-    const vol = Number(row.search_volume||0);
-    const diff = Number(row.keyword_difficulty||50);
+    const vol = Number(row.search_volume || 0);
+    const diff = Number(row.keyword_difficulty || 50);
     const score = vol > 0 ? (vol / 10) - (diff * 0.5) + 200 : 150;
     addCandidate(row.keyword, null, `High-volume SERP keyword (${vol.toLocaleString()} searches/mo, difficulty ${diff})`, score);
   }
@@ -5134,8 +5207,8 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
     [sid, sid]
   );
   for (const k of keywords) {
-    const score = Number(k.priority_score||0) + Number(k.volume||0)/100 + 100;
-    addCandidate(k.keyword, null, `Tracked keyword — ${k.intent||'mixed'} intent, source: ${k.source||'manual'}`, score);
+    const score = Number(k.priority_score || 0) + Number(k.volume || 0) / 100 + 100;
+    addCandidate(k.keyword, null, `Tracked keyword — ${k.intent || 'mixed'} intent, source: ${k.source || 'manual'}`, score);
   }
 
   // TIER 3: Competitor gap keywords (from actual competitor page crawls)
@@ -5148,11 +5221,11 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
   );
   for (const p of compPages) {
     // Only use competitor pages relevant to social media / AI content tools
-    const text = ((p.page_url||'') + ' ' + (p.page_title||'') + ' ' + (p.meta_description||'')).toLowerCase();
+    const text = ((p.page_url || '') + ' ' + (p.page_title || '') + ' ' + (p.meta_description || '')).toLowerCase();
     const isRelevant = /social media|brand voice|content|caption|ai|scheduling|instagram|linkedin|tiktok|marketing|publish|agency|small business/.test(text);
     if (!isRelevant) continue;
     for (const kw of keywordsFromPageForPlan(p)) {
-      addCandidate(kw, null, `Competitor gap from ${p.competitor_name}: "${p.page_title||p.page_url}"`, 90 + Math.min(40, Number(p.word_count||0)/30));
+      addCandidate(kw, null, `Competitor gap from ${p.competitor_name}: "${p.page_title || p.page_url}"`, 90 + Math.min(40, Number(p.word_count || 0) / 30));
     }
   }
 
@@ -5208,7 +5281,7 @@ async function buildStrategicPlanCandidates(siteId=null, limit=30) {
   ];
   for (const t of coreTopics) addCandidate(t.kw, null, t.reason, t.score);
 
-  candidates.sort((a,b) => b.score - a.score);
+  candidates.sort((a, b) => b.score - a.score);
   return candidates.slice(0, limit);
 }
 function scheduledDateForPlan(offsetDays) {
@@ -5231,24 +5304,24 @@ function scheduledDateForPlan(offsetDays) {
   return d.toISOString().slice(0, 19).replace('T', ' ');
 }
 
-function buildContentMonth(calendarRows=[]) {
+function buildContentMonth(calendarRows = []) {
   const now = new Date();
   const year = now.getFullYear();
   const monthIndex = now.getMonth();
   const first = new Date(year, monthIndex, 1);
   const last = new Date(year, monthIndex + 1, 0);
   const label = first.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const cells = [];
   for (let i = 0; i < first.getDay(); i++) cells.push({ empty: true, day: '', items: [] });
   for (let day = 1; day <= last.getDate(); day++) {
-    const key = `${year}-${String(monthIndex+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const key = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const items = (calendarRows || []).filter(row => {
       const raw = row.scheduled_for || row.scheduled_date || row.created_at;
       if (!raw) return false;
       const d = new Date(raw);
       if (Number.isNaN(d.getTime())) return false;
-      return d.toISOString().slice(0,10) === key;
+      return d.toISOString().slice(0, 10) === key;
     });
     cells.push({ empty: false, day, items });
   }
@@ -5258,18 +5331,18 @@ function buildContentMonth(calendarRows=[]) {
 async function loadContentCalendar() {
   await repairContentCalendarSchema();
   const rows = await q('SELECT c.*, a.status article_status, s.name site_name FROM content_calendar c LEFT JOIN articles a ON a.id=c.article_id LEFT JOIN sites s ON s.id=c.site_id LIMIT 200');
-  return rows.sort((a,b)=>{
+  return rows.sort((a, b) => {
     const ad = new Date(a.scheduled_for || a.scheduled_date || a.created_at || 0).getTime();
     const bd = new Date(b.scheduled_for || b.scheduled_date || b.created_at || 0).getTime();
-    return (ad-bd) || ((a.id||0)-(b.id||0));
-  }).slice(0,90);
+    return (ad - bd) || ((a.id || 0) - (b.id || 0));
+  }).slice(0, 90);
 }
 
-app.get('/daily-brief', async (req,res,next) => {
+app.get('/daily-brief', async (req, res, next) => {
   try {
     const brief = await generateDailyBrief(null);
-    const today = new Date().toISOString().slice(0,10);
-    const briefRow = await one('SELECT * FROM daily_brief WHERE brief_date=?', [today]).catch(()=>null);
+    const today = new Date().toISOString().slice(0, 10);
+    const briefRow = await one('SELECT * FROM daily_brief WHERE brief_date=?', [today]).catch(() => null);
     render(res, 'daily-brief', {
       currentPath: '/daily-brief',
       brief,
@@ -5277,19 +5350,19 @@ app.get('/daily-brief', async (req,res,next) => {
       generatedAt: briefRow?.generated_at || new Date(),
       today
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/daily-brief/refresh', async (req,res,next) => {
+app.post('/daily-brief/refresh', async (req, res, next) => {
   try {
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toISOString().slice(0, 10);
     await execSafe('DELETE FROM daily_brief WHERE brief_date=?', [today]);
     await generateDailyBrief(null);
     res.redirect('/daily-brief?refreshed=1');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/daily-brief/generate/:index', async (req,res,next) => {
+app.post('/daily-brief/generate/:index', async (req, res, next) => {
   try {
     const brief = await generateDailyBrief(null);
     const idx = parseInt(req.params.index);
@@ -5307,7 +5380,7 @@ app.post('/daily-brief/generate/:index', async (req,res,next) => {
     );
 
     // Invalidate today's brief cache so it regenerates fresh on next visit
-    const today = new Date().toISOString().slice(0,10);
+    const today = new Date().toISOString().slice(0, 10);
     await execSafe('DELETE FROM daily_brief WHERE brief_date=?', [today]);
 
     // Redirect immediately — generation runs in background
@@ -5323,7 +5396,7 @@ app.post('/daily-brief/generate/:index', async (req,res,next) => {
           `DELETE FROM articles WHERE primary_keyword=? AND title=? AND (body IS NULL OR body='') AND status='draft'`,
           [rec.keyword, `[Generating] ${rec.keyword}`]
         );
-      } catch(e) {
+      } catch (e) {
         console.error('[DailyBrief] Generation failed:', e.message);
         // On failure, remove placeholder so the brief can recommend it again
         await execSafe(
@@ -5332,89 +5405,103 @@ app.post('/daily-brief/generate/:index', async (req,res,next) => {
         );
       }
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.get('/content-studio', async (req,res,next)=>{ try {
-  const calendar = await loadContentCalendar();
-  const month = buildContentMonth(calendar);
-  const supportedGames = await supportedGamesForSite(null);
-  const rawGameRecommendations = await q("SELECT gr.*,s.name site_name FROM game_recommendations gr LEFT JOIN sites s ON s.id=gr.site_id WHERE gr.status='recommended' ORDER BY gr.opportunity_score DESC, gr.id DESC LIMIT 200");
-  const gameRecommendations = rawGameRecommendations.filter(r => !supportedGames.has(detectGame(r.game || r.title || r.reason || ''))).slice(0,60);
-  render(res,'content-studio',{ currentPath:'/content-studio', aiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected:!!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites:await siteOptions(), assets:await assetOptions(), calendar, month, supportedGames:[...supportedGames].map(gameDisplay).sort(), keywords:await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors:await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps:await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC LIMIT 50`) });
-} catch(e){ next(e); } });
-app.post('/content-studio/refresh-supported-games', async (req,res,next)=>{ try {
-  const sites = await q("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id");
-  for (const s of sites) {
-    const games = await discoverSupportedGamesFromGamesPage(s.url);
-    for (const g of games) {
-      const url = `${originOf(s.url)}/game/${gameKeywordName(g).replace(/\s+/g,'-')}-server-hosting`;
-      await execSafe('INSERT INTO site_pages (site_id,page_url,page_title,page_type,word_count,status_code,last_scanned_at) VALUES (?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), page_type=VALUES(page_type), last_scanned_at=NOW()', [s.id, url, `${gameDisplay(g)} Server Hosting`, 'game', 0, 200]);
+app.get('/content-studio', async (req, res, next) => {
+  try {
+    const calendar = await loadContentCalendar();
+    const month = buildContentMonth(calendar);
+    const supportedGames = await supportedGamesForSite(null);
+    const rawGameRecommendations = await q("SELECT gr.*,s.name site_name FROM game_recommendations gr LEFT JOIN sites s ON s.id=gr.site_id WHERE gr.status='recommended' ORDER BY gr.opportunity_score DESC, gr.id DESC LIMIT 200");
+    const gameRecommendations = rawGameRecommendations.filter(r => !supportedGames.has(detectGame(r.game || r.title || r.reason || ''))).slice(0, 60);
+    render(res, 'content-studio', { currentPath: '/content-studio', aiConnected: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), openaiConnected: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), sites: await siteOptions(), assets: await assetOptions(), calendar, month, supportedGames: [...supportedGames].map(gameDisplay).sort(), keywords: await q("SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id WHERE k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC, k.volume DESC LIMIT 200"), competitors: await q('SELECT id,COALESCE(name,competitor_name) name,audit_score FROM competitors WHERE active=1 ORDER BY audit_score DESC LIMIT 100'), gameRecommendations, gaps: await q(`SELECT k.* FROM keywords k LEFT JOIN articles a ON a.site_id<=>k.site_id AND LOWER(a.primary_keyword)=LOWER(k.keyword) WHERE a.id IS NULL AND k.keyword NOT REGEXP 'nitrado|gportal|gameserver|spieleserver' ORDER BY k.priority_score DESC LIMIT 50`) });
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/refresh-supported-games', async (req, res, next) => {
+  try {
+    const sites = await q("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id");
+    for (const s of sites) {
+      const games = await discoverSupportedGamesFromGamesPage(s.url);
+      for (const g of games) {
+        const url = `${originOf(s.url)}/game/${gameKeywordName(g).replace(/\s+/g, '-')}-server-hosting`;
+        await execSafe('INSERT INTO site_pages (site_id,page_url,page_title,page_type,word_count,status_code,last_scanned_at) VALUES (?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE page_title=VALUES(page_title), page_type=VALUES(page_type), last_scanned_at=NOW()', [s.id, url, `${gameDisplay(g)} Server Hosting`, 'game', 0, 200]);
+      }
     }
-  }
-  await cleanupDuplicates();
-  res.redirect('/content-studio?supportedRefreshed=1');
-} catch(e){ next(e); } });
-app.post('/content-studio/generate', async (req,res,next)=>{ try { const keyword={ id:null, site_id:req.body.site_id||null, keyword:req.body.keyword||'ai social media content' }; const id=await makeDraftFromKeyword(keyword, req.body.site_id); res.redirect(`/articles/${id}/edit`); } catch(e){ next(e); } });
-app.post('/content-studio/generate-gap/:keywordId', async (req,res,next)=>{ try { const k=await one('SELECT * FROM keywords WHERE id=?',[req.params.keywordId]); if(!k || !cleanKeyword(k.keyword)) return res.redirect('/content-studio'); const id=await makeDraftFromKeyword(k,k.site_id); res.redirect(`/articles/${id}/edit`); } catch(e){ next(e); } });
-app.post('/content-studio/generate-top', async (req,res,next)=>{ try {
-  let planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
-  if (!planned.length) {
-    const candidates = await buildStrategicPlanCandidates(null, 30);
+    await cleanupDuplicates();
+    res.redirect('/content-studio?supportedRefreshed=1');
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/generate', async (req, res, next) => { try { const keyword = { id: null, site_id: req.body.site_id || null, keyword: req.body.keyword || 'ai social media content' }; const id = await makeDraftFromKeyword(keyword, req.body.site_id); res.redirect(`/articles/${id}/edit`); } catch (e) { next(e); } });
+app.post('/content-studio/generate-gap/:keywordId', async (req, res, next) => { try { const k = await one('SELECT * FROM keywords WHERE id=?', [req.params.keywordId]); if (!k || !cleanKeyword(k.keyword)) return res.redirect('/content-studio'); const id = await makeDraftFromKeyword(k, k.site_id); res.redirect(`/articles/${id}/edit`); } catch (e) { next(e); } });
+app.post('/content-studio/generate-top', async (req, res, next) => {
+  try {
+    let planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
+    if (!planned.length) {
+      const candidates = await buildStrategicPlanCandidates(null, 30);
+      let day = 1;
+      for (const c of candidates) {
+        await insertCalendarItem({ site_id: c.site_id || null, title: c.title || articleTitleFor(c.keyword || 'ai social media content'), target_keyword: c.keyword || c.title || 'ai social media content', reason: c.reason || null, status: 'planned', scheduled_for: scheduledDateForPlan(day) });
+        day += 1;
+      }
+      planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
+    }
+    for (const row of planned.slice(0, 5)) {
+      const articleId = await makeDraftFromKeyword({ id: null, site_id: row.site_id || null, keyword: row.target_keyword || row.title }, row.site_id || null);
+      await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]);
+      await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?', [articleId, 'draft-created', row.id]);
+    }
+    res.redirect('/review');
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/build-plan', async (req, res, next) => {
+  try {
+    const rawSiteId = req.body.site_id || null;
+    const siteId = rawSiteId && rawSiteId !== 'all' ? rawSiteId : null;
+    await repairContentCalendarSchema();
+    await q("DELETE FROM content_calendar WHERE status='planned' AND article_id IS NULL AND (? IS NULL OR site_id<=>?)", [siteId, siteId]);
+    const candidates = await buildStrategicPlanCandidates(siteId, 30);
     let day = 1;
     for (const c of candidates) {
-      await insertCalendarItem({ site_id:c.site_id||null, title:c.title||articleTitleFor(c.keyword||'ai social media content'), target_keyword:c.keyword||c.title||'ai social media content', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
+      await insertCalendarItem({ site_id: c.site_id || siteId || null, title: c.title || articleTitleFor(c.keyword || 'ai social media content'), target_keyword: c.keyword || c.title || 'ai social media content', reason: c.reason || null, status: 'planned', scheduled_for: scheduledDateForPlan(day) });
       day += 1;
     }
-    planned = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status='planned' ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 5");
-  }
-  for (const row of planned.slice(0,5)) {
-    const articleId = await makeDraftFromKeyword({ id:null, site_id:row.site_id||null, keyword:row.target_keyword||row.title }, row.site_id||null);
-    await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]);
-    await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?',[articleId,'draft-created',row.id]);
-  }
-  res.redirect('/review');
-} catch(e){ next(e); } });
-app.post('/content-studio/build-plan', async (req,res,next)=>{ try {
-  const rawSiteId = req.body.site_id || null;
-  const siteId = rawSiteId && rawSiteId !== 'all' ? rawSiteId : null;
-  await repairContentCalendarSchema();
-  await q("DELETE FROM content_calendar WHERE status='planned' AND article_id IS NULL AND (? IS NULL OR site_id<=>?)",[siteId,siteId]);
-  const candidates = await buildStrategicPlanCandidates(siteId, 30);
-  let day = 1;
-  for (const c of candidates) {
-    await insertCalendarItem({ site_id:c.site_id||siteId||null, title:c.title||articleTitleFor(c.keyword||'ai social media content'), target_keyword:c.keyword||c.title||'ai social media content', reason:c.reason||null, status:'planned', scheduled_for:scheduledDateForPlan(day) });
-    day += 1;
-  }
-  res.redirect('/content-studio?planned=' + candidates.length);
-} catch(e){ next(e); } });
-app.post('/content-studio/approve-plan', async (req,res,next)=>{ try {
-  await repairContentCalendarSchema();
-  await q("UPDATE content_calendar SET status='approved-plan' WHERE article_id IS NULL AND status='planned'");
-  res.redirect('/content-studio');
-} catch(e){ next(e); } });
-app.post('/content-studio/generate-month', async (req,res,next)=>{ try {
-  await repairContentCalendarSchema();
-  const rows = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status IN ('planned','approved-plan') ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 30");
-  for (const row of rows) {
-    const articleId = await makeDraftFromKeyword({ id:null, site_id:row.site_id||null, keyword:row.target_keyword||row.title }, row.site_id||null);
-    await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]);
-    await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?',[articleId,'draft-created',row.id]);
-  }
-  res.redirect('/review');
-} catch(e){ next(e); } });
-app.post('/content-studio/calendar/:id/generate', async (req,res,next)=>{ try { const row=await one('SELECT * FROM content_calendar WHERE id=?',[req.params.id]); if(!row) return res.redirect('/content-studio'); const keyword={id:null, site_id:row.site_id||null, keyword:row.target_keyword||row.title||'ai social media content'}; const articleId=await makeDraftFromKeyword(keyword,row.site_id||null); await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]); await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?',[articleId,'draft-created',req.params.id]); res.redirect(`/articles/${articleId}/edit`); } catch(e){ next(e); } });
-app.post('/content-studio/calendar/delete-all', async (req,res,next)=>{ try {
-  await repairContentCalendarSchema();
-  await q('DELETE FROM content_calendar');
-  res.redirect('/content-studio?planDeleted=1');
-} catch(e){ next(e); } });
-app.post('/content-studio/calendar/:id/delete', async (req,res,next)=>{ try { await q('DELETE FROM content_calendar WHERE id=?',[req.params.id]); res.redirect('/content-studio'); } catch(e){ next(e); } });
+    res.redirect('/content-studio?planned=' + candidates.length);
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/approve-plan', async (req, res, next) => {
+  try {
+    await repairContentCalendarSchema();
+    await q("UPDATE content_calendar SET status='approved-plan' WHERE article_id IS NULL AND status='planned'");
+    res.redirect('/content-studio');
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/generate-month', async (req, res, next) => {
+  try {
+    await repairContentCalendarSchema();
+    const rows = await q("SELECT * FROM content_calendar WHERE article_id IS NULL AND status IN ('planned','approved-plan') ORDER BY COALESCE(scheduled_for,scheduled_date,created_at), id LIMIT 30");
+    for (const row of rows) {
+      const articleId = await makeDraftFromKeyword({ id: null, site_id: row.site_id || null, keyword: row.target_keyword || row.title }, row.site_id || null);
+      await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]);
+      await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?', [articleId, 'draft-created', row.id]);
+    }
+    res.redirect('/review');
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/calendar/:id/generate', async (req, res, next) => { try { const row = await one('SELECT * FROM content_calendar WHERE id=?', [req.params.id]); if (!row) return res.redirect('/content-studio'); const keyword = { id: null, site_id: row.site_id || null, keyword: row.target_keyword || row.title || 'ai social media content' }; const articleId = await makeDraftFromKeyword(keyword, row.site_id || null); await q("UPDATE articles SET status='review', scheduled_for=COALESCE(scheduled_for,?) WHERE id=?", [scheduledValueFromRow(row), articleId]); await q('UPDATE content_calendar SET article_id=?, status=? WHERE id=?', [articleId, 'draft-created', req.params.id]); res.redirect(`/articles/${articleId}/edit`); } catch (e) { next(e); } });
+app.post('/content-studio/calendar/delete-all', async (req, res, next) => {
+  try {
+    await repairContentCalendarSchema();
+    await q('DELETE FROM content_calendar');
+    res.redirect('/content-studio?planDeleted=1');
+  } catch (e) { next(e); }
+});
+app.post('/content-studio/calendar/:id/delete', async (req, res, next) => { try { await q('DELETE FROM content_calendar WHERE id=?', [req.params.id]); res.redirect('/content-studio'); } catch (e) { next(e); } });
 
-app.get('/review', async (req,res,next)=>{ try { render(res,'review',{ currentPath:'/review', articles: await q("SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.status IN ('draft','review') ORDER BY a.quality_score DESC,a.updated_at DESC") }); } catch(e){ next(e); } });
-app.post('/review/approve-ready', async (req,res,next)=>{ try { await q("UPDATE articles a LEFT JOIN content_calendar c ON c.article_id=a.id SET a.status='queued', a.reviewed_at=NOW(), a.scheduled_for=COALESCE(a.scheduled_for,c.scheduled_for,c.scheduled_date) WHERE a.status IN ('draft','review') AND COALESCE(a.quality_score,0)>=?", [MIN_QUALITY_SCORE]); res.redirect('/publish'); } catch(e){ next(e); } });
-app.get('/publish', async (req,res,next)=>{ try { render(res,'publish',{ currentPath:'/publish', published:Number(req.query.published || 0), failed:Number(req.query.failed || 0), skipped:Number(req.query.skipped || 0), articles: await q("SELECT a.*,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.status IN ('approved','queued','published') ORDER BY FIELD(a.status,'queued','approved','published'), COALESCE(a.scheduled_for,a.updated_at) DESC") }); } catch(e){ next(e); } });
-app.post('/publish/auto', async (req,res,next)=>{
+app.get('/review', async (req, res, next) => { try { render(res, 'review', { currentPath: '/review', articles: await q("SELECT a.*,COALESCE(a.body,a.content) body,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.status IN ('draft','review') ORDER BY a.quality_score DESC,a.updated_at DESC") }); } catch (e) { next(e); } });
+app.post('/review/approve-ready', async (req, res, next) => { try { await q("UPDATE articles a LEFT JOIN content_calendar c ON c.article_id=a.id SET a.status='queued', a.reviewed_at=NOW(), a.scheduled_for=COALESCE(a.scheduled_for,c.scheduled_for,c.scheduled_date) WHERE a.status IN ('draft','review') AND COALESCE(a.quality_score,0)>=?", [MIN_QUALITY_SCORE]); res.redirect('/publish'); } catch (e) { next(e); } });
+app.get('/publish', async (req, res, next) => { try { render(res, 'publish', { currentPath: '/publish', published: Number(req.query.published || 0), failed: Number(req.query.failed || 0), skipped: Number(req.query.skipped || 0), articles: await q("SELECT a.*,s.name site_name FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.status IN ('approved','queued','published') ORDER BY FIELD(a.status,'queued','approved','published'), COALESCE(a.scheduled_for,a.updated_at) DESC") }); } catch (e) { next(e); } });
+app.post('/publish/auto', async (req, res, next) => {
   try {
     const results = await autoPublishApproved({ force: false });
     const published = results.filter(r => r.status === 'published').length;
@@ -5422,98 +5509,106 @@ app.post('/publish/auto', async (req,res,next)=>{
     const future = results.filter(r => r.reason === 'scheduled_for_future').length;
     const skipped = published === 0 && failed === 0 ? 1 : 0;
     res.redirect('/publish?published=' + published + '&failed=' + failed + '&skipped=' + skipped + '&future=' + future);
-  } catch(e){ next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/publish/:id', async (req,res,next)=>{ try {
-  if (String(req.params.id) === 'auto') return res.redirect('/publish');
-  const a=await one('SELECT a.*, aa.contentful_asset_id FROM articles a LEFT JOIN article_assets aa ON aa.id=a.featured_image_id WHERE a.id=?',[req.params.id]);
-  if(!a) return res.status(404).render('error',{message:'Article not found', currentPath:'/publish'});
-  const score = contentQuality(a);
-  const breakdown = qualityBreakdown(a);
-  // Manual publish: quality gate still applies but daily cap does NOT — human explicitly chose to publish
-  if (score < MIN_QUALITY_SCORE) {
-    await q("UPDATE articles SET status='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
-    return res.redirect('/review');
-  }
-  let finalUrl = req.body.published_url || a.published_url || '';
-  if (publishModeAllowsContentful()) {
-    const r = await publishToContentful(a);
-    finalUrl = finalUrl || r.publishedUrl;
-    await q("UPDATE articles SET contentful_entry_id=?, status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?), quality_score=? WHERE id=?",[r.entryId, finalUrl, buildArticleSchema(a), score, req.params.id]);
-    await q("UPDATE content_calendar SET status='published' WHERE article_id=?", [req.params.id]);
-  } else {
-    let siteUrl = '';
-    if (a.site_id) {
-      const site = await one('SELECT url FROM sites WHERE id=?',[a.site_id]);
-      siteUrl = site?.url || '';
-    }
-    const base = originOf(siteUrl || process.env.PUBLIC_SITE_URL || process.env.DEFAULT_SITE_URL || 'https://nativpost.com');
-    finalUrl = finalUrl || base + '/blog/' + (a.slug || slugify(a.title || 'article'));
-    await q("UPDATE articles SET status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?), quality_score=? WHERE id=?",[finalUrl,buildArticleSchema(a),score,req.params.id]);
-    await q("UPDATE content_calendar SET status='published' WHERE article_id=?", [req.params.id]);
-  }
-  // Scan for internal link opportunities from older articles to this one.
-  // Non-blocking — errors here never fail the publish response.
+app.post('/publish/:id', async (req, res, next) => {
   try {
-    const fresh = await one('SELECT id, title, slug, primary_keyword, published_url FROM articles WHERE id=?', [req.params.id]);
-    if (fresh) {
-      const count = await findInternalLinkOpportunities(fresh);
-      if (count > 0) console.log(`[InternalLinks] Created ${count} suggestion(s) for article #${fresh.id} "${fresh.title}"`);
+    if (String(req.params.id) === 'auto') return res.redirect('/publish');
+    const a = await one('SELECT a.*, aa.contentful_asset_id FROM articles a LEFT JOIN article_assets aa ON aa.id=a.featured_image_id WHERE a.id=?', [req.params.id]);
+    if (!a) return res.status(404).render('error', { message: 'Article not found', currentPath: '/publish' });
+    const score = contentQuality(a);
+    const breakdown = qualityBreakdown(a);
+    // Manual publish: quality gate still applies but daily cap does NOT — human explicitly chose to publish
+    if (score < MIN_QUALITY_SCORE) {
+      await q("UPDATE articles SET status='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
+      return res.redirect('/review');
     }
-  } catch (e) { console.warn('[InternalLinks] scan failed:', e.message); }
-  res.redirect('/publish?published=1');
-} catch(e){
-  try { await q('UPDATE articles SET review_notes=? WHERE id=?',[`Publish failed: ${e.message}`, req.params.id]); } catch {}
-  res.redirect('/publish?published=0&failed=1&failed_id=' + encodeURIComponent(req.params.id));
-} });
-
-
-app.post('/articles/repair-images', async (req,res,next)=>{ try {
-  await cleanupBrokenLocalPressKitAssets();
-  await cleanupBrokenArticleImageRefs();
-  const rows = await q("SELECT * FROM articles WHERE status IN ('draft','review','queued','approved') ORDER BY id DESC LIMIT 300");
-  let fixed = 0;
-  let checked = 0;
-  for (const a of rows) {
-    const game = detectGame(`${a.primary_keyword || ''} ${a.title || ''} ${a.slug || ''}`);
-    if (!game) continue;
-    checked++;
-    const currentOk = a.featured_image_url && isLocalUploadUrl(a.featured_image_url) && localUploadFileOk(a.featured_image_url, Number(process.env.PRESS_KIT_MIN_LOCAL_BYTES || 12000));
-    if (currentOk && a.featured_image_id) continue;
-    const asset = await ensurePressKitAssetForGame(game, a.site_id || null);
-    if (!asset) continue;
-    await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?', [asset.id, normalizeImageUrl(asset.asset_url), asset.alt_text || `${gameDisplay(game)} official press kit image`, a.id]);
-    fixed++;
+    let finalUrl = req.body.published_url || a.published_url || '';
+    if (publishModeAllowsContentful()) {
+      const r = await publishToContentful(a);
+      finalUrl = finalUrl || r.publishedUrl;
+      await q("UPDATE articles SET contentful_entry_id=?, status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?), quality_score=? WHERE id=?", [r.entryId, finalUrl, buildArticleSchema(a), score, req.params.id]);
+      await q("UPDATE content_calendar SET status='published' WHERE article_id=?", [req.params.id]);
+    } else {
+      let siteUrl = '';
+      if (a.site_id) {
+        const site = await one('SELECT url FROM sites WHERE id=?', [a.site_id]);
+        siteUrl = site?.url || '';
+      }
+      const base = originOf(siteUrl || process.env.PUBLIC_SITE_URL || process.env.DEFAULT_SITE_URL || 'https://nativpost.com');
+      finalUrl = finalUrl || base + '/blog/' + (a.slug || slugify(a.title || 'article'));
+      await q("UPDATE articles SET status='published', published_at=NOW(), published_url=?, review_notes=NULL, schema_json=COALESCE(schema_json,?), quality_score=? WHERE id=?", [finalUrl, buildArticleSchema(a), score, req.params.id]);
+      await q("UPDATE content_calendar SET status='published' WHERE article_id=?", [req.params.id]);
+    }
+    // Scan for internal link opportunities from older articles to this one.
+    // Non-blocking — errors here never fail the publish response.
+    try {
+      const fresh = await one('SELECT id, title, slug, primary_keyword, published_url FROM articles WHERE id=?', [req.params.id]);
+      if (fresh) {
+        const count = await findInternalLinkOpportunities(fresh);
+        if (count > 0) console.log(`[InternalLinks] Created ${count} suggestion(s) for article #${fresh.id} "${fresh.title}"`);
+      }
+    } catch (e) { console.warn('[InternalLinks] scan failed:', e.message); }
+    res.redirect('/publish?published=1');
+  } catch (e) {
+    try { await q('UPDATE articles SET review_notes=? WHERE id=?', [`Publish failed: ${e.message}`, req.params.id]); } catch { }
+    res.redirect('/publish?published=0&failed=1&failed_id=' + encodeURIComponent(req.params.id));
   }
-  res.redirect('/articles?message=' + encodeURIComponent(`Checked ${checked} game article(s). Repaired ${fixed} missing/broken image(s).`));
-} catch(e){ next(e); } });
-
-app.post('/assets/import-press-kits', async (req,res,next)=>{ try {
-  const games = String(req.body.games || '').split(',').map(x=>detectGame(x) || normalizeGameName(x)).filter(Boolean);
-  const targets = games.length ? games : GAME_ALIASES.map(g=>g.key);
-  const siteId = req.body.site_id || null;
-  let saved = 0;
-  for (const game of targets) {
-    const rows = await importPressKitAssets(game, siteId, Number(req.body.limit || (game === 'minecraft' ? 12 : 6)));
-    saved += rows.length;
-  }
-  await dedupeExistingLocalPressKitAssets();
-  res.redirect('/assets?imported=' + saved);
-} catch(e){ next(e); } });
+});
 
 
+app.post('/articles/repair-images', async (req, res, next) => {
+  try {
+    await cleanupBrokenLocalPressKitAssets();
+    await cleanupBrokenArticleImageRefs();
+    const rows = await q("SELECT * FROM articles WHERE status IN ('draft','review','queued','approved') ORDER BY id DESC LIMIT 300");
+    let fixed = 0;
+    let checked = 0;
+    for (const a of rows) {
+      const game = detectGame(`${a.primary_keyword || ''} ${a.title || ''} ${a.slug || ''}`);
+      if (!game) continue;
+      checked++;
+      const currentOk = a.featured_image_url && isLocalUploadUrl(a.featured_image_url) && localUploadFileOk(a.featured_image_url, Number(process.env.PRESS_KIT_MIN_LOCAL_BYTES || 12000));
+      if (currentOk && a.featured_image_id) continue;
+      const asset = await ensurePressKitAssetForGame(game, a.site_id || null);
+      if (!asset) continue;
+      await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?', [asset.id, normalizeImageUrl(asset.asset_url), asset.alt_text || `${gameDisplay(game)} official press kit image`, a.id]);
+      fixed++;
+    }
+    res.redirect('/articles?message=' + encodeURIComponent(`Checked ${checked} game article(s). Repaired ${fixed} missing/broken image(s).`));
+  } catch (e) { next(e); }
+});
 
-app.get(['/api/press-kit/diagnostics','/press-kit/diagnostics'], async (req,res)=>{ try {
-  const game = detectGame(req.query.game || '') || normalizeGameName(req.query.game || '');
-  if (!game) return res.status(400).json({ ok:false, error:'Add ?game=palworld, ?game=icarus, ?game=hytale, etc.' });
-  const seeds = pressKitSeedsForGame(game);
-  const discovered = await discoverPressKitImages(game, { limit: Number(req.query.limit || 12) });
-  const local = await q("SELECT id,label,game_slug,asset_url,alt_text FROM article_assets WHERE game_slug=? AND asset_url LIKE '/uploads/%' ORDER BY id DESC LIMIT 50", [game]);
-  res.json({ ok:true, game, display:gameDisplay(game), seeds, discovered_count:discovered.length, discovered:discovered.slice(0,12).map(x=>({url:x.url, sourcePage:x.sourcePage, score:x.score, alt:x.alt})), local_count:local.length, local:local.map(x=>({...x, file_ok:localUploadFileOk(x.asset_url, Number(process.env.PRESS_KIT_MIN_LOCAL_BYTES || 12000))})) });
-} catch(e){ res.status(500).json({ ok:false, error:e.message }); } });
+app.post('/assets/import-press-kits', async (req, res, next) => {
+  try {
+    const games = String(req.body.games || '').split(',').map(x => detectGame(x) || normalizeGameName(x)).filter(Boolean);
+    const targets = games.length ? games : GAME_ALIASES.map(g => g.key);
+    const siteId = req.body.site_id || null;
+    let saved = 0;
+    for (const game of targets) {
+      const rows = await importPressKitAssets(game, siteId, Number(req.body.limit || (game === 'minecraft' ? 12 : 6)));
+      saved += rows.length;
+    }
+    await dedupeExistingLocalPressKitAssets();
+    res.redirect('/assets?imported=' + saved);
+  } catch (e) { next(e); }
+});
 
-app.get(['/api/contentful/diagnostics','/contentful/diagnostics'], async (req,res)=>{
+
+
+app.get(['/api/press-kit/diagnostics', '/press-kit/diagnostics'], async (req, res) => {
+  try {
+    const game = detectGame(req.query.game || '') || normalizeGameName(req.query.game || '');
+    if (!game) return res.status(400).json({ ok: false, error: 'Add ?game=palworld, ?game=icarus, ?game=hytale, etc.' });
+    const seeds = pressKitSeedsForGame(game);
+    const discovered = await discoverPressKitImages(game, { limit: Number(req.query.limit || 12) });
+    const local = await q("SELECT id,label,game_slug,asset_url,alt_text FROM article_assets WHERE game_slug=? AND asset_url LIKE '/uploads/%' ORDER BY id DESC LIMIT 50", [game]);
+    res.json({ ok: true, game, display: gameDisplay(game), seeds, discovered_count: discovered.length, discovered: discovered.slice(0, 12).map(x => ({ url: x.url, sourcePage: x.sourcePage, score: x.score, alt: x.alt })), local_count: local.length, local: local.map(x => ({ ...x, file_ok: localUploadFileOk(x.asset_url, Number(process.env.PRESS_KIT_MIN_LOCAL_BYTES || 12000)) })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get(['/api/contentful/diagnostics', '/contentful/diagnostics'], async (req, res) => {
   const rawToken = contentfulToken();
   const cleanedToken = String(rawToken || '').trim().replace(/^['\"]|['\"]$/g, '').replace(/^Bearer\s+/i, '').replace(/[\u200B-\u200D\uFEFF]/g, '');
   const space = process.env.CONTENTFUL_SPACE_ID || '';
@@ -5539,7 +5634,7 @@ app.get(['/api/contentful/diagnostics','/contentful/diagnostics'], async (req,re
         details: r.data?.details || null
       };
     } catch (e) {
-      return { label, ok:false, status:0, message:e.message };
+      return { label, ok: false, status: 0, message: e.message };
     }
   }
   const probes = [];
@@ -5560,189 +5655,212 @@ app.get(['/api/contentful/diagnostics','/contentful/diagnostics'], async (req,re
     next_step: probes.some(r => r.status === 401) ? '401 means Contentful rejected the token. The app loaded a token, but Contentful says it is not valid for Management API access.' : 'If all probes are OK, retry publishing and send the publish error if it fails.'
   }, null, 2));
 });
-app.get('/assets', async (req,res,next)=>{ try {
-  const assets = await q('SELECT a.*,s.name site_name FROM article_assets a LEFT JOIN sites s ON s.id=a.site_id ORDER BY a.game_slug,a.folder_name,a.label');
-  // Build per-game press-kit diagnostics
-  const gameStats = {};
-  for (const a of assets) {
-    const g = a.game_slug || 'unknown';
-    if (!gameStats[g]) gameStats[g] = { game: g, count: 0, saved: 0, sourceUrls: new Set(), lastImport: null, failed: 0 };
-    gameStats[g].count++;
-    if (a.local_path || a.asset_url) gameStats[g].saved++;
-    if (a.source_url) gameStats[g].sourceUrls.add(a.source_url);
-    if (a.created_at) { const d = new Date(a.created_at); if (!gameStats[g].lastImport || d > gameStats[g].lastImport) gameStats[g].lastImport = d; }
-  }
-  const pressKitDiagnostics = Object.values(gameStats).map(g => ({ ...g, sourceUrls: [...g.sourceUrls].slice(0,3) })).sort((a,b)=>b.count-a.count);
-  render(res,'assets',{ currentPath:'/assets', imported:Number(req.query.imported || 0), sites:await siteOptions(), assets, pressKitDiagnostics });
-} catch(e){ next(e); } });
-app.post('/assets', upload.single('image'), async (req,res,next)=>{ try {
-  let assetUrl = normalizeImageUrl(req.body.asset_url);
-  if (req.file) {
-    const ext = path.extname(req.file.originalname || '').toLowerCase().replace(/[^.a-z0-9]/g, '') || '.jpg';
-    const finalName = `${Date.now()}-${crypto.randomBytes(5).toString('hex')}${ext}`;
-    const finalPath = path.join(uploadDir, finalName);
-    fs.renameSync(req.file.path, finalPath);
-    assetUrl = `/uploads/${finalName}`;
-  }
-  if (!assetUrl) throw new Error('Paste an image URL or choose an image file.');
-  const game = req.body.game_slug || detectGame(`${req.body.label || ''} ${req.body.alt_text || ''}`) || null;
-  await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text,contentful_asset_id) VALUES (?,?,?,?,?,?,?)',[req.body.site_id||null,req.body.label || 'Uploaded image',game,req.body.folder_name||game||null,assetUrl,req.body.alt_text||null,req.body.contentful_asset_id||null]);
-  res.redirect('/assets');
-} catch(e){ next(e); } });
-app.post('/assets/:id/delete', async (req,res,next)=>{ try { await q('DELETE FROM article_assets WHERE id=?',[req.params.id]); res.redirect('/assets'); } catch(e){ next(e); } });
-
-app.get('/keywords', async (req,res,next)=>{ try { render(res,'keywords',{ currentPath:'/keywords', sites:await siteOptions(), keywords:await q('SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id ORDER BY k.priority_score DESC,k.volume DESC,k.id DESC') }); } catch(e){ next(e); } });
-app.post('/keywords', async (req,res,next)=>{ try { const p=priorityScore({volume:req.body.volume,difficulty:req.body.difficulty,position:req.body.position||50}); await q('INSERT INTO keywords (site_id,keyword,cluster_name,volume,difficulty,priority_score,source,intent,last_updated) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE volume=VALUES(volume),difficulty=VALUES(difficulty),priority_score=VALUES(priority_score),cluster_name=VALUES(cluster_name),intent=VALUES(intent),last_updated=NOW()',[req.body.site_id||null,req.body.keyword,req.body.cluster_name||clusterName(req.body.keyword),req.body.volume||0,req.body.difficulty||35,p,req.body.source||'manual',req.body.intent||intentOf(req.body.keyword)]); res.redirect('/keywords'); } catch(e){ next(e); } });
-app.post('/keywords/cluster', async (req,res,next)=>{ try { const rows=await q('SELECT * FROM keywords'); for (const k of rows) await q('UPDATE keywords SET cluster_name=?,intent=?,priority_score=GREATEST(priority_score,?) WHERE id=?',[clusterName(k.keyword),intentOf(k.keyword),priorityScore({volume:k.volume,difficulty:k.difficulty,position:50}),k.id]); res.redirect('/keywords'); } catch(e){ next(e); } });
-
-app.get('/backlinks', async (req,res,next)=>{ try { render(res,'backlinks',{ currentPath:'/backlinks', sites:await siteOptions(), competitors:await q('SELECT id,COALESCE(name,competitor_name) name FROM competitors WHERE active=1 ORDER BY name'), backlinks:await q('SELECT b.*,s.name site_name,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN sites s ON s.id=b.site_id LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY FIELD(b.status,\'opportunity\',\'competitor-opportunity\',\'outreach\',\'earned\'), b.authority_score DESC,b.id DESC') }); } catch(e){ next(e); } });
-app.post('/backlinks', async (req,res,next)=>{ try { await q('INSERT INTO backlinks (site_id,competitor_id,source_domain,source_url,target_url,anchor_text,authority_score,status) VALUES (?,?,?,?,?,?,?,?)',[req.body.site_id||null,req.body.competitor_id||null,req.body.source_domain||hostOf(req.body.source_url),req.body.source_url||null,req.body.target_url||null,req.body.anchor_text||null,req.body.authority_score||0,req.body.status||'opportunity']); res.redirect('/backlinks'); } catch(e){ next(e); } });
-app.post('/backlinks/:id/status', async (req,res,next)=>{ try { await q('UPDATE backlinks SET status=? WHERE id=?',[req.body.status,req.params.id]); res.redirect('/backlinks'); } catch(e){ next(e); } });
-app.post('/backlinks/:id/notes', async (req,res,next)=>{ try {
-  await q('UPDATE backlinks SET outreach_notes=?, last_contacted_at=CASE WHEN ? IS NOT NULL AND ? != \'\' THEN NOW() ELSE last_contacted_at END WHERE id=?',
-    [req.body.outreach_notes||null, req.body.outreach_notes, req.body.outreach_notes, req.params.id]);
-  res.redirect('/backlinks');
-} catch(e){ next(e); } });
-app.post('/backlinks/score-all', async (req,res,next)=>{ try {
-  const rows = await q('SELECT id, source_domain FROM backlinks WHERE domain_rating=0 OR domain_rating IS NULL');
-  for (const r of rows) {
-    const score = scoreBacklinkOpportunity(r.source_domain||'');
-    await execSafe('UPDATE backlinks SET authority_score=GREATEST(authority_score,?), domain_rating=? WHERE id=?', [score, score, r.id]);
-  }
-  res.redirect('/backlinks?scored=1');
-} catch(e){ next(e); } });
-
-app.get('/reports', async (req,res,next)=>{ try {
-  const siteId = req.query.site_id || null;
-  const [techIssues, rankingTop, weeklyChange, decayPages, positionHistory] = await Promise.all([
-    runTechnicalSEOAudit(siteId || null),
-    q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(()=>[]),
-    buildWeeklyChangeReport(siteId || null),
-    detectContentDecay(siteId || null),
-    getPositionHistory(siteId || null, 8)
-  ]);
-  render(res,'reports',{
-    currentPath:'/reports',
-    reports:   await q('SELECT r.*,s.name site_name FROM seo_report_snapshots r LEFT JOIN sites s ON s.id=r.site_id ORDER BY r.recorded_on DESC,r.id DESC LIMIT 100'),
-    metrics:   await q('SELECT p.*,s.name site_name FROM page_metrics p LEFT JOIN sites s ON s.id=p.site_id ORDER BY p.report_date DESC,p.views DESC LIMIT 100'),
-    pages:     await q("SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY FIELD(sp.page_type,'money','game','blog','support','page'), sp.word_count DESC LIMIT 100"),
-    articles:  await q('SELECT id,title,primary_keyword,status,quality_score,review_notes,scheduled_for,updated_at FROM articles ORDER BY updated_at DESC LIMIT 200'),
-    keywords:  await q('SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords ORDER BY priority_score DESC LIMIT 200'),
-    gaps:      await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC LIMIT 50"),
-    backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.domain_rating DESC, b.id DESC LIMIT 100').catch(()=>[]),
-    competitors: await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,audit_score,last_audited_at FROM competitors WHERE active=1 ORDER BY audit_score DESC'),
-    serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(()=>[]),
-    techIssues, rankingTop, weeklyChange, decayPages, positionHistory
-  });
-} catch(e){ next(e); } });
-app.get('/settings', async (req,res,next)=>{ try {
-  const gscConnected = await googleConnected();
-  const sites = await q('SELECT id,name,gsc_property,ga4_property_id FROM sites WHERE active=1');
-  const lastGscSync = await one("SELECT MAX(recorded_on) last_sync FROM rankings").catch(()=>null);
-  const rankingCount = await one("SELECT COUNT(*) cnt FROM rankings").catch(()=>({cnt:0}));
-  render(res,'settings',{ currentPath:'/settings',
-    query: req.query,
-    gscConnected, googleClientConfigured: !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET),
-    gscSynced: Number(req.query.gsc_sync||0), ga4Synced: Number(req.query.ga4_sync||0),
-    googleMsg: req.query.google||'', errorMsg: req.query.error||'', infoMsg: req.query.msg||'',
-    sites,
-    lastGscSync: lastGscSync?.last_sync || null,
-    rankingCount: Number(rankingCount?.cnt||0),
-    dfsCallsToday: _dfsDailyCallCount,
-    dfsDailyCap: DFS_DAILY_CALL_CAP,
-    env:{
-      hasAI:!!(process.env.ANTHROPIC_API_KEY||process.env.OPENAI_API_KEY), hasOpenAI:!!process.env.OPENAI_API_KEY, hasAnthropic:!!process.env.ANTHROPIC_API_KEY, hasGoogle:googleCredentialsStatus().configured,
-      googleStatus: gscConnected ? 'Connected — refresh token stored' : googleCredentialsStatus().label,
-      googleServiceAccount:googleCredentialsStatus().serviceAccount, googleOAuth:googleCredentialsStatus().oauth,
-      hasContentful:contentfulReady(), contentfulActive:publishModeAllowsContentful(),
-      contentfulType:contentfulContentType(), publishMode:process.env.PUBLISH_MODE||'manual',
-      crawlLimit:process.env.CRAWL_PAGE_LIMIT||35, crawlBaseUrl: CRAWL_BASE_URL || '', port:PORT,
-      minRam:NP_MIN_PRICE, basePrice:NP_BASE_PLAN_PRICE, trialDays:NP_TRIAL_DAYS,
-      packageRules:NP_PACKAGE_RULES, refundPolicy:NP_REFUND_POLICY
+app.get('/assets', async (req, res, next) => {
+  try {
+    const assets = await q('SELECT a.*,s.name site_name FROM article_assets a LEFT JOIN sites s ON s.id=a.site_id ORDER BY a.game_slug,a.folder_name,a.label');
+    // Build per-game press-kit diagnostics
+    const gameStats = {};
+    for (const a of assets) {
+      const g = a.game_slug || 'unknown';
+      if (!gameStats[g]) gameStats[g] = { game: g, count: 0, saved: 0, sourceUrls: new Set(), lastImport: null, failed: 0 };
+      gameStats[g].count++;
+      if (a.local_path || a.asset_url) gameStats[g].saved++;
+      if (a.source_url) gameStats[g].sourceUrls.add(a.source_url);
+      if (a.created_at) { const d = new Date(a.created_at); if (!gameStats[g].lastImport || d > gameStats[g].lastImport) gameStats[g].lastImport = d; }
     }
-  });
-} catch(e){ next(e); } });
+    const pressKitDiagnostics = Object.values(gameStats).map(g => ({ ...g, sourceUrls: [...g.sourceUrls].slice(0, 3) })).sort((a, b) => b.count - a.count);
+    render(res, 'assets', { currentPath: '/assets', imported: Number(req.query.imported || 0), sites: await siteOptions(), assets, pressKitDiagnostics });
+  } catch (e) { next(e); }
+});
+app.post('/assets', upload.single('image'), async (req, res, next) => {
+  try {
+    let assetUrl = normalizeImageUrl(req.body.asset_url);
+    if (req.file) {
+      const ext = path.extname(req.file.originalname || '').toLowerCase().replace(/[^.a-z0-9]/g, '') || '.jpg';
+      const finalName = `${Date.now()}-${crypto.randomBytes(5).toString('hex')}${ext}`;
+      const finalPath = path.join(uploadDir, finalName);
+      fs.renameSync(req.file.path, finalPath);
+      assetUrl = `/uploads/${finalName}`;
+    }
+    if (!assetUrl) throw new Error('Paste an image URL or choose an image file.');
+    const game = req.body.game_slug || detectGame(`${req.body.label || ''} ${req.body.alt_text || ''}`) || null;
+    await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text,contentful_asset_id) VALUES (?,?,?,?,?,?,?)', [req.body.site_id || null, req.body.label || 'Uploaded image', game, req.body.folder_name || game || null, assetUrl, req.body.alt_text || null, req.body.contentful_asset_id || null]);
+    res.redirect('/assets');
+  } catch (e) { next(e); }
+});
+app.post('/assets/:id/delete', async (req, res, next) => { try { await q('DELETE FROM article_assets WHERE id=?', [req.params.id]); res.redirect('/assets'); } catch (e) { next(e); } });
 
-app.post('/maintenance/cleanup', async (req,res,next)=>{ try { await cleanupDuplicates(); await cleanupBrokenLocalPressKitAssets(); await cleanupBrokenArticleImageRefs(); res.redirect('/'); } catch(e){ next(e); } });
-app.post('/maintenance/run-all', async (req,res,next)=>{ try { await cleanupDuplicates(); const sites=await q('SELECT * FROM sites WHERE active=1'); for (const s of sites) { try { await saveOwnSiteScan(s.id, await crawlWebsite(resolveCrawlUrl(s.url), Number(process.env.CRAWL_PAGE_LIMIT || 35))); } catch(err){} } const comps=await q('SELECT id,COALESCE(url,competitor_url) url FROM competitors WHERE active=1'); for (const c of comps) { try { await saveCompetitorAudit(c.id, await auditCompetitor(c.url)); } catch(err){} } res.redirect('/'); } catch(e){ next(e); } });
+app.get('/keywords', async (req, res, next) => { try { render(res, 'keywords', { currentPath: '/keywords', sites: await siteOptions(), keywords: await q('SELECT k.*,s.name site_name FROM keywords k LEFT JOIN sites s ON s.id=k.site_id ORDER BY k.priority_score DESC,k.volume DESC,k.id DESC') }); } catch (e) { next(e); } });
+app.post('/keywords', async (req, res, next) => { try { const p = priorityScore({ volume: req.body.volume, difficulty: req.body.difficulty, position: req.body.position || 50 }); await q('INSERT INTO keywords (site_id,keyword,cluster_name,volume,difficulty,priority_score,source,intent,last_updated) VALUES (?,?,?,?,?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE volume=VALUES(volume),difficulty=VALUES(difficulty),priority_score=VALUES(priority_score),cluster_name=VALUES(cluster_name),intent=VALUES(intent),last_updated=NOW()', [req.body.site_id || null, req.body.keyword, req.body.cluster_name || clusterName(req.body.keyword), req.body.volume || 0, req.body.difficulty || 35, p, req.body.source || 'manual', req.body.intent || intentOf(req.body.keyword)]); res.redirect('/keywords'); } catch (e) { next(e); } });
+app.post('/keywords/cluster', async (req, res, next) => { try { const rows = await q('SELECT * FROM keywords'); for (const k of rows) await q('UPDATE keywords SET cluster_name=?,intent=?,priority_score=GREATEST(priority_score,?) WHERE id=?', [clusterName(k.keyword), intentOf(k.keyword), priorityScore({ volume: k.volume, difficulty: k.difficulty, position: 50 }), k.id]); res.redirect('/keywords'); } catch (e) { next(e); } });
+
+app.get('/backlinks', async (req, res, next) => { try { render(res, 'backlinks', { currentPath: '/backlinks', sites: await siteOptions(), competitors: await q('SELECT id,COALESCE(name,competitor_name) name FROM competitors WHERE active=1 ORDER BY name'), backlinks: await q('SELECT b.*,s.name site_name,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN sites s ON s.id=b.site_id LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY FIELD(b.status,\'opportunity\',\'competitor-opportunity\',\'outreach\',\'earned\'), b.authority_score DESC,b.id DESC') }); } catch (e) { next(e); } });
+app.post('/backlinks', async (req, res, next) => { try { await q('INSERT INTO backlinks (site_id,competitor_id,source_domain,source_url,target_url,anchor_text,authority_score,status) VALUES (?,?,?,?,?,?,?,?)', [req.body.site_id || null, req.body.competitor_id || null, req.body.source_domain || hostOf(req.body.source_url), req.body.source_url || null, req.body.target_url || null, req.body.anchor_text || null, req.body.authority_score || 0, req.body.status || 'opportunity']); res.redirect('/backlinks'); } catch (e) { next(e); } });
+app.post('/backlinks/:id/status', async (req, res, next) => { try { await q('UPDATE backlinks SET status=? WHERE id=?', [req.body.status, req.params.id]); res.redirect('/backlinks'); } catch (e) { next(e); } });
+app.post('/backlinks/:id/notes', async (req, res, next) => {
+  try {
+    await q('UPDATE backlinks SET outreach_notes=?, last_contacted_at=CASE WHEN ? IS NOT NULL AND ? != \'\' THEN NOW() ELSE last_contacted_at END WHERE id=?',
+      [req.body.outreach_notes || null, req.body.outreach_notes, req.body.outreach_notes, req.params.id]);
+    res.redirect('/backlinks');
+  } catch (e) { next(e); }
+});
+app.post('/backlinks/score-all', async (req, res, next) => {
+  try {
+    const rows = await q('SELECT id, source_domain FROM backlinks WHERE domain_rating=0 OR domain_rating IS NULL');
+    for (const r of rows) {
+      const score = scoreBacklinkOpportunity(r.source_domain || '');
+      await execSafe('UPDATE backlinks SET authority_score=GREATEST(authority_score,?), domain_rating=? WHERE id=?', [score, score, r.id]);
+    }
+    res.redirect('/backlinks?scored=1');
+  } catch (e) { next(e); }
+});
+
+app.get('/reports', async (req, res, next) => {
+  try {
+    const siteId = req.query.site_id || null;
+    const [techIssues, rankingTop, weeklyChange, decayPages, positionHistory] = await Promise.all([
+      runTechnicalSEOAudit(siteId || null),
+      q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(() => []),
+      buildWeeklyChangeReport(siteId || null),
+      detectContentDecay(siteId || null),
+      getPositionHistory(siteId || null, 8)
+    ]);
+    render(res, 'reports', {
+      currentPath: '/reports',
+      reports: await q('SELECT r.*,s.name site_name FROM seo_report_snapshots r LEFT JOIN sites s ON s.id=r.site_id ORDER BY r.recorded_on DESC,r.id DESC LIMIT 100'),
+      metrics: await q('SELECT p.*,s.name site_name FROM page_metrics p LEFT JOIN sites s ON s.id=p.site_id ORDER BY p.report_date DESC,p.views DESC LIMIT 100'),
+      pages: await q("SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY FIELD(sp.page_type,'money','game','blog','support','page'), sp.word_count DESC LIMIT 100"),
+      articles: await q('SELECT id,title,primary_keyword,status,quality_score,review_notes,scheduled_for,updated_at FROM articles ORDER BY updated_at DESC LIMIT 200'),
+      keywords: await q('SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords ORDER BY priority_score DESC LIMIT 200'),
+      gaps: await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC LIMIT 50"),
+      backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.domain_rating DESC, b.id DESC LIMIT 100').catch(() => []),
+      competitors: await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,audit_score,last_audited_at FROM competitors WHERE active=1 ORDER BY audit_score DESC'),
+      serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(() => []),
+      techIssues, rankingTop, weeklyChange, decayPages, positionHistory
+    });
+  } catch (e) { next(e); }
+});
+app.get('/settings', async (req, res, next) => {
+  try {
+    const gscConnected = await googleConnected();
+    const sites = await q('SELECT id,name,gsc_property,ga4_property_id FROM sites WHERE active=1');
+    const lastGscSync = await one("SELECT MAX(recorded_on) last_sync FROM rankings").catch(() => null);
+    const rankingCount = await one("SELECT COUNT(*) cnt FROM rankings").catch(() => ({ cnt: 0 }));
+    render(res, 'settings', {
+      currentPath: '/settings',
+      query: req.query,
+      gscConnected, googleClientConfigured: !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET),
+      gscSynced: Number(req.query.gsc_sync || 0), ga4Synced: Number(req.query.ga4_sync || 0),
+      googleMsg: req.query.google || '', errorMsg: req.query.error || '', infoMsg: req.query.msg || '',
+      sites,
+      lastGscSync: lastGscSync?.last_sync || null,
+      rankingCount: Number(rankingCount?.cnt || 0),
+      dfsCallsToday: _dfsDailyCallCount,
+      dfsDailyCap: DFS_DAILY_CALL_CAP,
+      env: {
+        hasAI: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), hasOpenAI: !!process.env.OPENAI_API_KEY, hasAnthropic: !!process.env.ANTHROPIC_API_KEY, hasGoogle: googleCredentialsStatus().configured,
+        googleStatus: gscConnected ? 'Connected — refresh token stored' : googleCredentialsStatus().label,
+        googleServiceAccount: googleCredentialsStatus().serviceAccount, googleOAuth: googleCredentialsStatus().oauth,
+        hasContentful: contentfulReady(), contentfulActive: publishModeAllowsContentful(),
+        contentfulType: contentfulContentType(), publishMode: process.env.PUBLISH_MODE || 'manual',
+        crawlLimit: process.env.CRAWL_PAGE_LIMIT || 35, crawlBaseUrl: CRAWL_BASE_URL || '', port: PORT,
+        minRam: NP_MIN_PRICE, basePrice: NP_BASE_PLAN_PRICE, trialDays: NP_TRIAL_DAYS,
+        packageRules: NP_PACKAGE_RULES, refundPolicy: NP_REFUND_POLICY
+      }
+    });
+  } catch (e) { next(e); }
+});
+
+app.post('/maintenance/cleanup', async (req, res, next) => { try { await cleanupDuplicates(); await cleanupBrokenLocalPressKitAssets(); await cleanupBrokenArticleImageRefs(); res.redirect('/'); } catch (e) { next(e); } });
+app.post('/maintenance/run-all', async (req, res, next) => { try { await cleanupDuplicates(); const sites = await q('SELECT * FROM sites WHERE active=1'); for (const s of sites) { try { await saveOwnSiteScan(s.id, await crawlWebsite(resolveCrawlUrl(s.url), Number(process.env.CRAWL_PAGE_LIMIT || 35))); } catch (err) { } } const comps = await q('SELECT id,COALESCE(url,competitor_url) url FROM competitors WHERE active=1'); for (const c of comps) { try { await saveCompetitorAudit(c.id, await auditCompetitor(c.url)); } catch (err) { } } res.redirect('/'); } catch (e) { next(e); } });
 
 // ── SERP Intelligence routes ──────────────────────────────────────────────────
-app.get('/serp', async (req,res,next)=>{ try {
-  const siteId = req.query.site_id || null;
-  const sites = await siteOptions();
-  const rawCached = await q(
-    `SELECT sc.keyword, sc.provider, sc.search_volume, sc.keyword_difficulty,
+app.get('/serp', async (req, res, next) => {
+  try {
+    const siteId = req.query.site_id || null;
+    const sites = await siteOptions();
+    const rawCached = await q(
+      `SELECT sc.keyword, sc.provider, sc.search_volume, sc.keyword_difficulty,
             sc.fetched_at, sc.expires_at, sc.serp_features_json, sc.summary_json
      FROM serp_cache sc
      ORDER BY sc.fetched_at DESC LIMIT 120`
-  );
-  // Derive result_count and avg_words from the stored summary JSON — avoids dependency on serp_results table
-  const cached = rawCached.map(row => {
-    const summary = safeJsonParse(row.summary_json, {});
-    const results = Array.isArray(summary.results) ? summary.results : [];
-    const wordCounts = results.map(r => Number(r.word_count||0)).filter(n => n > 0);
-    const avg_words = wordCounts.length ? Math.round(wordCounts.reduce((a,b)=>a+b,0)/wordCounts.length) : 0;
-    return { ...row, result_count: results.length, avg_words: avg_words || null };
-  });
-  const providerStatus = DFS_ENABLED
-    ? `DataForSEO active — US / English / ${DFS_DEVICE} / top ${DFS_MAX_RESULTS} results / ${DFS_CACHE_DAYS}-day cache`
-    : 'DuckDuckGo fallback active — add DATAFORSEO_LOGIN + DATAFORSEO_PASSWORD to .env.local and set DATAFORSEO_ENABLED=true to upgrade';
-  render(res,'serp',{ currentPath:'/serp', sites, siteId, cached, providerStatus, dfsEnabled:DFS_ENABLED });
-} catch(e){ next(e); } });
+    );
+    // Derive result_count and avg_words from the stored summary JSON — avoids dependency on serp_results table
+    const cached = rawCached.map(row => {
+      const summary = safeJsonParse(row.summary_json, {});
+      const results = Array.isArray(summary.results) ? summary.results : [];
+      const wordCounts = results.map(r => Number(r.word_count || 0)).filter(n => n > 0);
+      const avg_words = wordCounts.length ? Math.round(wordCounts.reduce((a, b) => a + b, 0) / wordCounts.length) : 0;
+      return { ...row, result_count: results.length, avg_words: avg_words || null };
+    });
+    const providerStatus = DFS_ENABLED
+      ? `DataForSEO active — US / English / ${DFS_DEVICE} / top ${DFS_MAX_RESULTS} results / ${DFS_CACHE_DAYS}-day cache`
+      : 'DuckDuckGo fallback active — add DATAFORSEO_LOGIN + DATAFORSEO_PASSWORD to .env.local and set DATAFORSEO_ENABLED=true to upgrade';
+    render(res, 'serp', { currentPath: '/serp', sites, siteId, cached, providerStatus, dfsEnabled: DFS_ENABLED });
+  } catch (e) { next(e); }
+});
 
-app.post('/serp/analyze', async (req,res,next)=>{ try {
-  const keyword = String(req.body.keyword||'').trim();
-  const siteId  = req.body.site_id || null;
-  if (!keyword) return res.redirect('/serp');
-  await purgeSerpCache(siteId, keyword);
-  await analyzeSerpForKeyword({ siteId, keyword, siteUrl:'' });
-  res.redirect('/serp' + (siteId ? '?site_id='+encodeURIComponent(siteId) : ''));
-} catch(e){ next(e); } });
+app.post('/serp/analyze', async (req, res, next) => {
+  try {
+    const keyword = String(req.body.keyword || '').trim();
+    const siteId = req.body.site_id || null;
+    if (!keyword) return res.redirect('/serp');
+    await purgeSerpCache(siteId, keyword);
+    await analyzeSerpForKeyword({ siteId, keyword, siteUrl: '' });
+    res.redirect('/serp' + (siteId ? '?site_id=' + encodeURIComponent(siteId) : ''));
+  } catch (e) { next(e); }
+});
 
-app.post('/serp/analyze-batch', async (req,res,next)=>{ try {
-  const siteId   = req.body.site_id || null;
-  const keywords = [...new Set(String(req.body.keywords||'').split('\n').map(l=>l.trim()).filter(Boolean))].slice(0,20);
-  for (const kw of keywords) {
-    await purgeSerpCache(siteId, kw);
-    try { await analyzeSerpForKeyword({ siteId, keyword:kw, siteUrl:'' }); } catch(e){ console.warn('[SERP batch]', kw, e.message); }
-  }
-  res.redirect('/serp' + (siteId ? '?site_id='+encodeURIComponent(siteId) : ''));
-} catch(e){ next(e); } });
+app.post('/serp/analyze-batch', async (req, res, next) => {
+  try {
+    const siteId = req.body.site_id || null;
+    const keywords = [...new Set(String(req.body.keywords || '').split('\n').map(l => l.trim()).filter(Boolean))].slice(0, 20);
+    for (const kw of keywords) {
+      await purgeSerpCache(siteId, kw);
+      try { await analyzeSerpForKeyword({ siteId, keyword: kw, siteUrl: '' }); } catch (e) { console.warn('[SERP batch]', kw, e.message); }
+    }
+    res.redirect('/serp' + (siteId ? '?site_id=' + encodeURIComponent(siteId) : ''));
+  } catch (e) { next(e); }
+});
 
-app.post('/serp/purge', async (req,res,next)=>{ try {
-  await purgeSerpCache(req.body.site_id||null, req.body.keyword||null);
-  res.redirect('/serp' + (req.body.site_id ? '?site_id='+encodeURIComponent(req.body.site_id) : ''));
-} catch(e){ next(e); } });
+app.post('/serp/purge', async (req, res, next) => {
+  try {
+    await purgeSerpCache(req.body.site_id || null, req.body.keyword || null);
+    res.redirect('/serp' + (req.body.site_id ? '?site_id=' + encodeURIComponent(req.body.site_id) : ''));
+  } catch (e) { next(e); }
+});
 
-app.get('/serp/:keyword/results', async (req,res,next)=>{ try {
-  const keyword = decodeURIComponent(req.params.keyword||'');
-  const qword   = cleanKeyword(keyword)||keyword;
-  const cache   = await one('SELECT * FROM serp_cache WHERE keyword=? ORDER BY fetched_at DESC LIMIT 1', [qword]);
-  if (!cache) return res.json({ keyword, provider:'unknown', fetched_at:null, expires_at:null, search_volume:0, keyword_difficulty:0, serp_features:[], results:[] });
-  const summary = safeJsonParse(cache.summary_json, {});
-  res.json({
-    keyword,
-    provider: cache.provider||'unknown',
-    fetched_at: cache.fetched_at||null,
-    expires_at: cache.expires_at||null,
-    search_volume: cache.search_volume||0,
-    keyword_difficulty: cache.keyword_difficulty||0,
-    serp_features: safeJsonParse(cache.serp_features_json, []),
-    results: (summary.results||[]).map(r=>({
-      position: r.position||0,
-      url: r.url||r.result_url||'',
-      title: r.title||r.result_title||'',
-      snippet: r.snippet||'',
-      word_count: r.word_count||0,
-      headings: r.headings||[],
-      questions: r.questions||[]
-    }))
-  });
-} catch(e){ res.status(500).json({ error: e.message || 'Failed to load results' }); } });
+app.get('/serp/:keyword/results', async (req, res, next) => {
+  try {
+    const keyword = decodeURIComponent(req.params.keyword || '');
+    const qword = cleanKeyword(keyword) || keyword;
+    const cache = await one('SELECT * FROM serp_cache WHERE keyword=? ORDER BY fetched_at DESC LIMIT 1', [qword]);
+    if (!cache) return res.json({ keyword, provider: 'unknown', fetched_at: null, expires_at: null, search_volume: 0, keyword_difficulty: 0, serp_features: [], results: [] });
+    const summary = safeJsonParse(cache.summary_json, {});
+    res.json({
+      keyword,
+      provider: cache.provider || 'unknown',
+      fetched_at: cache.fetched_at || null,
+      expires_at: cache.expires_at || null,
+      search_volume: cache.search_volume || 0,
+      keyword_difficulty: cache.keyword_difficulty || 0,
+      serp_features: safeJsonParse(cache.serp_features_json, []),
+      results: (summary.results || []).map(r => ({
+        position: r.position || 0,
+        url: r.url || r.result_url || '',
+        title: r.title || r.result_title || '',
+        snippet: r.snippet || '',
+        word_count: r.word_count || 0,
+        headings: r.headings || [],
+        questions: r.questions || []
+      }))
+    });
+  } catch (e) { res.status(500).json({ error: e.message || 'Failed to load results' }); }
+});
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── GOOGLE OAUTH ROUTES ───────────────────────────────────────────────────────
-app.get('/api/auth/google', (req,res) => {
+app.get('/api/auth/google', (req, res) => {
   if (!GOOGLE_CLIENT_ID) return res.redirect('/settings?error=no_google_client');
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -5755,88 +5873,92 @@ app.get('/api/auth/google', (req,res) => {
   res.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());
 });
 
-app.get('/api/auth/google/callback', async (req,res) => {
+app.get('/api/auth/google/callback', async (req, res) => {
   const code = req.query.code;
   if (!code) return res.redirect('/settings?error=no_code');
   try {
     const resp = await axios.post('https://oauth2.googleapis.com/token', new URLSearchParams({
       code, client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
       redirect_uri: GOOGLE_REDIRECT_URI, grant_type: 'authorization_code'
-    }).toString(), { headers:{ 'Content-Type':'application/x-www-form-urlencoded' } });
+    }).toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     const tokens = resp.data;
-    await saveGoogleToken({ access_token: tokens.access_token, refresh_token: tokens.refresh_token,
-      expiry_date: Date.now() + (tokens.expires_in||3600)*1000, scope: tokens.scope });
+    await saveGoogleToken({
+      access_token: tokens.access_token, refresh_token: tokens.refresh_token,
+      expiry_date: Date.now() + (tokens.expires_in || 3600) * 1000, scope: tokens.scope
+    });
     // Auto-sync GSC data immediately after connecting
     try {
       const allSites = await q('SELECT * FROM sites WHERE active=1');
       let autoSynced = 0;
       for (const site of allSites) {
-        const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'_')] || process.env.GSC_PROPERTY_NATIVPOST;
+        const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_')] || process.env.GSC_PROPERTY_NATIVPOST;
         if (prop && prop !== 'NOT_SET_YET') {
-          try { autoSynced += await syncGSCData(site.id, prop); } catch(e) { console.error('Auto GSC sync error:', e.message); }
+          try { autoSynced += await syncGSCData(site.id, prop); } catch (e) { console.error('Auto GSC sync error:', e.message); }
         }
       }
       console.log('Auto GSC sync after connect:', autoSynced, 'rows');
-    } catch(e) { console.error('Auto sync failed:', e.message); }
+    } catch (e) { console.error('Auto sync failed:', e.message); }
     res.redirect('/settings?google=connected');
-  } catch(e) {
+  } catch (e) {
     console.error('Google OAuth callback error:', e.message);
     res.redirect('/settings?error=oauth_failed&detail=' + encodeURIComponent(e.message));
   }
 });
 
-app.post('/api/auth/google/disconnect', async (req,res) => {
-  try { await execSafe('DELETE FROM google_oauth_tokens'); } catch(e){}
+app.post('/api/auth/google/disconnect', async (req, res) => {
+  try { await execSafe('DELETE FROM google_oauth_tokens'); } catch (e) { }
   res.redirect('/settings?google=disconnected');
 });
 
-app.post('/api/gsc/sync', async (req,res,next) => {
+app.post('/api/gsc/sync', async (req, res, next) => {
   try {
     const sites = await q('SELECT * FROM sites WHERE active=1');
     let total = 0;
     const results = [];
     for (const site of sites) {
-      const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'_')] || process.env.GSC_PROPERTY_NATIVPOST;
+      const prop = site.gsc_property || process.env['GSC_PROPERTY_' + (site.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_')] || process.env.GSC_PROPERTY_NATIVPOST;
       if (!prop || prop === 'NOT_SET_YET') { results.push({ name: site.name, skipped: true, reason: 'No GSC property configured' }); continue; }
       try {
         const n = await syncGSCData(site.id, prop);
         total += n;
         results.push({ name: site.name, imported: n, property: prop });
-      } catch(e) { results.push({ name: site.name, error: e.message }); }
+      } catch (e) { results.push({ name: site.name, error: e.message }); }
     }
     res.redirect('/settings?gsc_sync=' + total + '&msg=' + encodeURIComponent('Synced ' + total + ' GSC rows'));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/api/ga4/sync', async (req,res,next) => {
+app.post('/api/ga4/sync', async (req, res, next) => {
   try {
     const sites = await q('SELECT * FROM sites WHERE active=1');
     let total = 0;
     const errors = [];
     for (const site of sites) {
-      const prop = site.ga4_property_id || process.env['GA4_PROPERTY_ID_' + (site.name||'').toUpperCase().replace(/[^A-Z0-9]/g,'_')] || process.env.GA4_PROPERTY_ID_NATIVPOST;
+      const prop = site.ga4_property_id || process.env['GA4_PROPERTY_ID_' + (site.name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_')] || process.env.GA4_PROPERTY_ID_NATIVPOST;
       if (!prop || prop === 'NOT_SET_YET') { errors.push(site.name + ': no GA4 property ID configured — set ga4_property_id on the site record in Own Sites'); continue; }
-      try { const n = await syncGA4Data(site.id, prop); total += n; } catch(e) { errors.push(site.name + ': ' + e.message); console.error('GA4 sync error:', e.message); }
+      try { const n = await syncGA4Data(site.id, prop); total += n; } catch (e) { errors.push(site.name + ': ' + e.message); console.error('GA4 sync error:', e.message); }
     }
     const msg = total > 0 ? 'GA4 sync complete — ' + total + ' rows imported' : (errors.length ? 'GA4 sync attempted. Issues: ' + errors.join(' | ') : 'GA4 sync ran but returned 0 rows — check your GA4 property ID in Own Sites');
     res.redirect('/settings?ga4_sync=' + Math.max(total, 1) + '&msg=' + encodeURIComponent(msg));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/reports/run-audit', async (req,res,next)=>{ try {
-  const siteId = req.body.site_id || null;
-  const issues = await runTechnicalSEOAudit(siteId || null);
-  const critical = issues.filter(i=>i.severity==='critical').length;
-  const warning  = issues.filter(i=>i.severity==='warning').length;
-  const score    = Math.max(0, 100 - critical*10 - warning*3);
-  await execSafe(
-    'INSERT INTO seo_report_snapshots (site_id,snapshot_type,score,payload_json,recorded_on) VALUES (?,?,?,?,CURDATE()) ON DUPLICATE KEY UPDATE score=VALUES(score),payload_json=VALUES(payload_json)',
-    [siteId||null, 'technical_audit', score, JSON.stringify(issues)]
-  );
-  res.redirect('/reports?audited=1');
-} catch(e){ next(e); } });
+app.post('/reports/run-audit', async (req, res, next) => {
+  try {
+    const siteId = req.body.site_id || null;
+    const issues = await runTechnicalSEOAudit(siteId || null);
+    const critical = issues.filter(i => i.severity === 'critical').length;
+    const warning = issues.filter(i => i.severity === 'warning').length;
+    const score = Math.max(0, 100 - critical * 10 - warning * 3);
+    await execSafe(
+      'INSERT INTO seo_report_snapshots (site_id,snapshot_type,score,payload_json,recorded_on) VALUES (?,?,?,?,CURDATE()) ON DUPLICATE KEY UPDATE score=VALUES(score),payload_json=VALUES(payload_json)',
+      [siteId || null, 'technical_audit', score, JSON.stringify(issues)]
+    );
+    res.redirect('/reports?audited=1');
+  } catch (e) { next(e); }
+});
 
-app.get('/reports/competitor-gaps', async (req,res,next) => {
+app.get('/reports/competitor-gaps', async (req, res, next) => {
   try {
     // Keywords competitors rank for that we don't have content for
     const gaps = await q(`
@@ -5856,32 +5978,33 @@ app.get('/reports/competitor-gaps', async (req,res,next) => {
       buildWeeklyChangeReport(null),
       detectContentDecay(null),
       getPositionHistory(null, 8),
-      q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(()=>[])
+      q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(() => [])
     ]);
-    render(res, 'reports', { currentPath:'/reports', competitorGaps: gaps,
+    render(res, 'reports', {
+      currentPath: '/reports', competitorGaps: gaps,
       reports: await q('SELECT r.*,s.name site_name FROM seo_report_snapshots r LEFT JOIN sites s ON s.id=r.site_id ORDER BY r.recorded_on DESC LIMIT 100'),
       metrics: await q('SELECT p.*,s.name site_name FROM page_metrics p LEFT JOIN sites s ON s.id=p.site_id ORDER BY p.report_date DESC,p.views DESC LIMIT 100'),
       pages: await q("SELECT sp.*,s.name site_name FROM site_pages sp JOIN sites s ON s.id=sp.site_id GROUP BY sp.site_id, sp.page_url ORDER BY FIELD(sp.page_type,'money','game','blog','support','page'), sp.word_count DESC LIMIT 100"),
       articles: await q('SELECT id,title,primary_keyword,status,quality_score,review_notes,scheduled_for,updated_at FROM articles ORDER BY updated_at DESC LIMIT 200'),
       keywords: await q('SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords ORDER BY priority_score DESC LIMIT 200'),
       gaps: await q("SELECT keyword,cluster_name,priority_score,volume,intent FROM keywords WHERE source IN ('competitor-crawl','serp') AND keyword LIKE '% %' AND (keyword LIKE '%social media%' OR keyword LIKE '%brand voice%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%ai%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%marketing%' OR keyword LIKE '%publish%' OR keyword LIKE '%schedule%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%africa%' OR keyword LIKE '%agency%') ORDER BY priority_score DESC LIMIT 50"),
-      backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.id DESC LIMIT 100').catch(()=>[]),
+      backlinks: await q('SELECT b.*,COALESCE(c.name,c.competitor_name) competitor_name FROM backlinks b LEFT JOIN competitors c ON c.id=b.competitor_id ORDER BY b.authority_score DESC, b.id DESC LIMIT 100').catch(() => []),
       competitors: await q('SELECT id,COALESCE(name,competitor_name) name,COALESCE(url,competitor_url) url,audit_score,last_audited_at FROM competitors WHERE active=1 ORDER BY audit_score DESC'),
-      serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(()=>[]),
+      serpItems: await q('SELECT keyword, provider, search_volume, fetched_at FROM serp_cache ORDER BY fetched_at DESC LIMIT 30').catch(() => []),
       techIssues: cgTechIssues, rankingTop: cgRankingTop,
       weeklyChange: cgWeeklyChange, decayPages: cgDecayPages, positionHistory: cgPositionHistory
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 
 // ── INTERNAL LINKING ROUTES ───────────────────────────────────────────────
 // Review pending link suggestions, apply them one-by-one or in bulk, and
 // manually re-run the scan for every published article (backfill).
-app.get('/reports/internal-links', async (req,res,next) => {
+app.get('/reports/internal-links', async (req, res, next) => {
   try {
     const status = req.query.status || 'pending';
-    const allowedStatuses = ['pending','applied','rejected','stale','all'];
+    const allowedStatuses = ['pending', 'applied', 'rejected', 'stale', 'all'];
     const filterStatus = allowedStatuses.includes(status) ? status : 'pending';
     const where = filterStatus === 'all' ? '' : 'WHERE ils.status=?';
     const params = filterStatus === 'all' ? [] : [filterStatus];
@@ -5898,40 +6021,40 @@ app.get('/reports/internal-links', async (req,res,next) => {
       params
     );
     const counts = {
-      pending:   (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='pending'"))?.c || 0,
-      applied:   (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='applied'"))?.c || 0,
-      rejected:  (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='rejected'"))?.c || 0,
-      stale:     (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='stale'"))?.c || 0,
-      total:     (await one('SELECT COUNT(*) c FROM internal_link_suggestions'))?.c || 0
+      pending: (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='pending'"))?.c || 0,
+      applied: (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='applied'"))?.c || 0,
+      rejected: (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='rejected'"))?.c || 0,
+      stale: (await one("SELECT COUNT(*) c FROM internal_link_suggestions WHERE status='stale'"))?.c || 0,
+      total: (await one('SELECT COUNT(*) c FROM internal_link_suggestions'))?.c || 0
     };
     render(res, 'internal-links', {
-      currentPath:'/reports/internal-links',
+      currentPath: '/reports/internal-links',
       suggestions: rows,
       counts,
       filterStatus,
       message: req.query.message || null
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/reports/internal-links/:id/apply', async (req,res,next) => {
+app.post('/reports/internal-links/:id/apply', async (req, res, next) => {
   try {
     const result = await applyInternalLinkSuggestion(req.params.id);
     const msg = result.ok
-      ? `Linked "${result.anchor}" in article #${result.sourceId} → #${result.targetId}${result.republished?' (republished to Contentful)':''}`
+      ? `Linked "${result.anchor}" in article #${result.sourceId} → #${result.targetId}${result.republished ? ' (republished to Contentful)' : ''}`
       : `Could not apply: ${result.error}`;
     res.redirect('/reports/internal-links?message=' + encodeURIComponent(msg));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/reports/internal-links/:id/reject', async (req,res,next) => {
+app.post('/reports/internal-links/:id/reject', async (req, res, next) => {
   try {
     await q("UPDATE internal_link_suggestions SET status='rejected' WHERE id=?", [req.params.id]);
     res.redirect('/reports/internal-links');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/reports/internal-links/apply-all', async (req,res,next) => {
+app.post('/reports/internal-links/apply-all', async (req, res, next) => {
   try {
     const pending = await q("SELECT id FROM internal_link_suggestions WHERE status='pending' ORDER BY created_at ASC LIMIT 100");
     let applied = 0, failed = 0;
@@ -5939,27 +6062,27 @@ app.post('/reports/internal-links/apply-all', async (req,res,next) => {
       const r = await applyInternalLinkSuggestion(row.id);
       if (r.ok) applied++; else failed++;
     }
-    res.redirect('/reports/internal-links?message=' + encodeURIComponent(`Applied ${applied} link${applied===1?'':'s'}${failed?`, ${failed} failed`:''}`));
-  } catch(e) { next(e); }
+    res.redirect('/reports/internal-links?message=' + encodeURIComponent(`Applied ${applied} link${applied === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}`));
+  } catch (e) { next(e); }
 });
 
-app.post('/reports/internal-links/rescan', async (req,res,next) => {
+app.post('/reports/internal-links/rescan', async (req, res, next) => {
   try {
     // Rescan all published articles as potential targets. This backfills suggestions
     // for articles that were published before the recommender existed.
     const targets = await q("SELECT id, title, slug, primary_keyword, published_url FROM articles WHERE status='published' ORDER BY published_at DESC LIMIT 300");
     let totalCreated = 0;
     for (const t of targets) {
-      try { totalCreated += await findInternalLinkOpportunities(t); } catch(e) { /* skip individual failures */ }
+      try { totalCreated += await findInternalLinkOpportunities(t); } catch (e) { /* skip individual failures */ }
     }
-    res.redirect('/reports/internal-links?message=' + encodeURIComponent(`Rescan complete — ${totalCreated} new suggestion${totalCreated===1?'':'s'} found across ${targets.length} published articles`));
-  } catch(e) { next(e); }
+    res.redirect('/reports/internal-links?message=' + encodeURIComponent(`Rescan complete — ${totalCreated} new suggestion${totalCreated === 1 ? '' : 's'} found across ${targets.length} published articles`));
+  } catch (e) { next(e); }
 });
 
 // ── USER MANAGEMENT (admin only) ──────────────────────────────────────────
-app.get('/admin/users', async (req,res,next) => {
+app.get('/admin/users', async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin access required', currentPath:'' });
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin access required', currentPath: '' });
     const users = await q('SELECT id,username,email,role,created_at FROM auth_users ORDER BY id ASC');
     const msg = req.query.msg ? String(req.query.msg) : '';
     let rows = users.map(u => {
@@ -5971,7 +6094,7 @@ app.get('/admin/users', async (req,res,next) => {
         : '<span style="font-size:.72rem;color:var(--muted)">Protected</span>';
       return '<tr style="border-bottom:1px solid rgba(255,255,255,.05)">'
         + '<td style="padding:.4rem .5rem"><strong>' + u.username + '</strong></td>'
-        + '<td style="padding:.4rem .5rem;color:var(--muted)">' + (u.email||'—') + '</td>'
+        + '<td style="padding:.4rem .5rem;color:var(--muted)">' + (u.email || '—') + '</td>'
         + '<td style="padding:.4rem .5rem"><span style="padding:2px 8px;border-radius:999px;font-size:.72rem;' + roleStyle + '">' + u.role + '</span></td>'
         + '<td style="padding:.4rem .5rem;color:var(--muted);font-size:.75rem">' + created + '</td>'
         + '<td style="padding:.4rem .5rem">' + deleteBtn + '</td></tr>';
@@ -6003,25 +6126,25 @@ app.get('/admin/users', async (req,res,next) => {
       + '</tr></thead><tbody>' + rows + '</tbody></table>'
       + '<p class="hint" style="margin-top:.75rem">Password reset: go to <a href="/auth/reset-password">/auth/reset-password</a> and enter the username to generate a reset token.</p>'
       + '</section></main></div></body></html>');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/admin/users/create', async (req,res,next) => {
+app.post('/admin/users/create', async (req, res, next) => {
   try {
     if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     const { username, email, password, role } = req.body;
     if (!username || !password || password.length < 8) return res.redirect('/admin/users?msg=Username+and+password+(8%2B+chars)+required');
     const salt = crypto.randomBytes(32).toString('hex');
     const hash = await hashPassword(password, salt);
-    await q('INSERT INTO auth_users (username,email,password_hash,salt,role) VALUES (?,?,?,?,?)', [username.trim(), email||null, hash, salt, role||'user']);
+    await q('INSERT INTO auth_users (username,email,password_hash,salt,role) VALUES (?,?,?,?,?)', [username.trim(), email || null, hash, salt, role || 'user']);
     res.redirect('/admin/users?msg=User+' + encodeURIComponent(username) + '+created+successfully');
-  } catch(e) {
+  } catch (e) {
     if (e.code === 'ER_DUP_ENTRY') return res.redirect('/admin/users?msg=Username+already+exists');
     next(e);
   }
 });
 
-app.post('/admin/users/:id/delete', async (req,res,next) => {
+app.post('/admin/users/:id/delete', async (req, res, next) => {
   try {
     if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     const user = await one('SELECT username FROM auth_users WHERE id=?', [req.params.id]);
@@ -6030,25 +6153,25 @@ app.post('/admin/users/:id/delete', async (req,res,next) => {
     await q('DELETE FROM auth_sessions WHERE user_id=?', [req.params.id]);
     await q('DELETE FROM auth_users WHERE id=? AND username != ?', [req.params.id, 'admin']);
     res.redirect('/admin/users?msg=User+deleted');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 
 // ── LIVE GAMES ROUTES ─────────────────────────────────────────────────────
-app.get('/admin/live-games', async (req,res,next) => {
+app.get('/admin/live-games', async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message:'Admin only', currentPath:'' });
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
     const games = await q('SELECT * FROM live_games ORDER BY status DESC, game_label ASC');
     const msg = req.query.msg || '';
     // Dynamically built from GAME_ALIASES so any newly added game appears automatically
     const allKeys = GAME_ALIASES.map(g => g.key).sort();
-    render(res, 'live-games', { currentPath:'/admin/live-games', games, msg, allKeys });
-  } catch(e) { next(e); }
+    render(res, 'live-games', { currentPath: '/admin/live-games', games, msg, allKeys });
+  } catch (e) { next(e); }
 });
 
-app.post('/admin/live-games/refresh', async (req,res,next) => {
+app.post('/admin/live-games/refresh', async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message:'Admin only', currentPath:'' });
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
     const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url: 'https://nativpost.com' };
     const { confirmed, debug } = await refreshLiveGamesFromIGH(site.url);
     const debugSummary = (debug || []).slice(-4).join(' | ');
@@ -6056,76 +6179,76 @@ app.post('/admin/live-games/refresh', async (req,res,next) => {
       ? `Confirmed live: ${confirmed.join(', ')}`
       : `None auto-detected. Debug: ${debugSummary}. Add games manually using the form below.`;
     res.redirect('/admin/live-games?msg=' + encodeURIComponent(msg));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/admin/live-games/set', async (req,res,next) => {
+app.post('/admin/live-games/set', async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message:'Admin only', currentPath:'' });
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
     const { game_key, game_label, igh_page_url, status, max_players, notes } = req.body;
     await q(`INSERT INTO live_games (game_key, game_label, igh_page_url, status, max_players, notes)
              VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE
              game_label=VALUES(game_label), igh_page_url=VALUES(igh_page_url),
              status=VALUES(status), max_players=VALUES(max_players), notes=VALUES(notes), updated_at=NOW()`,
-      [game_key, game_label||gameDisplay(game_key), igh_page_url||null, status||'live', max_players||null, notes||null]);
+      [game_key, game_label || gameDisplay(game_key), igh_page_url || null, status || 'live', max_players || null, notes || null]);
     res.redirect('/admin/live-games?msg=' + encodeURIComponent(game_label + ' set to ' + status));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
-app.post('/admin/live-games/:key/delete', async (req,res,next) => {
+app.post('/admin/live-games/:key/delete', async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message:'Admin only', currentPath:'' });
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
     await q('DELETE FROM live_games WHERE game_key=?', [req.params.key]);
     res.redirect('/admin/live-games?msg=Removed');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // Also expose via Content Studio refresh button
-app.post('/content-studio/refresh-supported-games', async (req,res,next) => {
+app.post('/content-studio/refresh-supported-games', async (req, res, next) => {
   try {
-    const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url:'https://nativpost.com' };
+    const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url: 'https://nativpost.com' };
     const { confirmed } = await refreshLiveGamesFromIGH(site.url);
     res.redirect('/content-studio' + (confirmed.length ? '' : '?msg=' + encodeURIComponent('Auto-detect found no games. Set them manually in Admin → Live Games.')));
 
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 
 // ── GAME FACTS ADMIN ROUTES ──────────────────────────────────────────────
-app.get('/admin/game-facts', async (req,res,next) => {
+app.get('/admin/game-facts', async (req, res, next) => {
   try {
     if (!req.user) return res.redirect('/login');
     const facts = await q('SELECT * FROM game_facts ORDER BY game_key ASC');
     const msg = req.query.msg || '';
-    render(res, 'game-facts', { currentPath:'/admin/game-facts', facts, msg });
-  } catch(e) { next(e); }
+    render(res, 'game-facts', { currentPath: '/admin/game-facts', facts, msg });
+  } catch (e) { next(e); }
 });
 
-app.post('/admin/game-facts/:key/update', async (req,res,next) => {
+app.post('/admin/game-facts/:key/update', async (req, res, next) => {
   try {
     if (!req.user) return res.redirect('/login');
     const { max_players, ram_min_gb, ram_notes, engine, server_os, steamcmd_app_id,
-            official_site, steam_url, release_status, release_date, dedicated_server_available, custom_facts } = req.body;
+      official_site, steam_url, release_status, release_date, dedicated_server_available, custom_facts } = req.body;
     await q(`UPDATE game_facts SET max_players=?,ram_min_gb=?,ram_notes=?,engine=?,server_os=?,
              steamcmd_app_id=?,official_site=?,steam_url=?,release_status=?,release_date=?,
              dedicated_server_available=?,custom_facts=?,updated_at=NOW() WHERE game_key=?`,
-      [max_players||null, ram_min_gb||null, ram_notes||null, engine||null, server_os||null,
-       steamcmd_app_id||null, official_site||null, steam_url||null, release_status||'released',
-       release_date||null, dedicated_server_available==='1'?1:0, custom_facts||null, req.params.key]);
+      [max_players || null, ram_min_gb || null, ram_notes || null, engine || null, server_os || null,
+      steamcmd_app_id || null, official_site || null, steam_url || null, release_status || 'released',
+      release_date || null, dedicated_server_available === '1' ? 1 : 0, custom_facts || null, req.params.key]);
     res.redirect('/admin/game-facts?msg=' + encodeURIComponent('Updated ' + req.params.key));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // ── v107 routes: API Balances, Game Radar, Backlink Prospects, Themes ──
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).render('error', { message: 'Admin access required', currentPath:'' });
+    return res.status(403).render('error', { message: 'Admin access required', currentPath: '' });
   }
   next();
 }
 
 // API Balances — admin-only. Fetches live balance on demand, or serves cached.
-app.get('/admin/api-balances', requireAdmin, async (req,res,next) => {
+app.get('/admin/api-balances', requireAdmin, async (req, res, next) => {
   try {
     const balances = await getCachedApiBalances();
     const msg = req.query.msg || '';
@@ -6135,25 +6258,25 @@ app.get('/admin/api-balances', requireAdmin, async (req,res,next) => {
       userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
-app.post('/admin/api-balances/refresh', requireAdmin, async (req,res,next) => {
+app.post('/admin/api-balances/refresh', requireAdmin, async (req, res, next) => {
   try {
     const svc = req.body.service || null;
     const results = await refreshApiBalances(svc);
-    const summary = Object.entries(results).map(([k,v]) => `${k}:${v.status}`).join(', ');
+    const summary = Object.entries(results).map(([k, v]) => `${k}:${v.status}`).join(', ');
     res.redirect('/admin/api-balances?msg=' + encodeURIComponent('Refreshed — ' + summary));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // Game Expansion Radar — admin-only manage page + refresh button
-app.get('/keywords', requireAdmin, async (req,res,next) => {
+app.get('/keywords', requireAdmin, async (req, res, next) => {
   try {
     const status = req.query.status || 'pending';
     const rows = await q(
       "SELECT * FROM game_expansion_radar WHERE status=? ORDER BY opportunity_score DESC, signal_score DESC LIMIT 200",
       [status]
-    ).catch(()=>[]);
+    ).catch(() => []);
     const counts = {
       pending: (await one("SELECT COUNT(*) c FROM game_expansion_radar WHERE status='pending'"))?.c || 0,
       dismissed: (await one("SELECT COUNT(*) c FROM game_expansion_radar WHERE status='dismissed'"))?.c || 0,
@@ -6166,23 +6289,23 @@ app.get('/keywords', requireAdmin, async (req,res,next) => {
       userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
-app.post('/admin/game-radar/refresh', requireAdmin, async (req,res,next) => {
+app.post('/admin/game-radar/refresh', requireAdmin, async (req, res, next) => {
   try {
     const stats = await refreshGameExpansionRadar();
     res.redirect('/admin/game-radar?msg=' + encodeURIComponent(`Scanned ${stats.total} Steam titles — added ${stats.added}, skipped ${stats.skipped}`));
-  } catch(e) {
+  } catch (e) {
     res.redirect('/admin/game-radar?msg=' + encodeURIComponent('Refresh failed: ' + (e.message || e)));
   }
 });
-app.post('/admin/game-radar/:id/dismiss', requireAdmin, async (req,res,next) => {
+app.post('/admin/game-radar/:id/dismiss', requireAdmin, async (req, res, next) => {
   try {
     await q("UPDATE game_expansion_radar SET status='dismissed', dismissed_at=NOW() WHERE id=?", [req.params.id]);
     res.redirect('/keywords');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
-app.post('/admin/game-radar/:id/plan', requireAdmin, async (req,res,next) => {
+app.post('/admin/game-radar/:id/plan', requireAdmin, async (req, res, next) => {
   try {
     const row = await one('SELECT * FROM game_expansion_radar WHERE id=?', [req.params.id]);
     if (row) {
@@ -6195,16 +6318,16 @@ app.post('/admin/game-radar/:id/plan', requireAdmin, async (req,res,next) => {
       await q("UPDATE game_expansion_radar SET status='planned' WHERE id=?", [req.params.id]);
     }
     res.redirect('/admin/game-radar?msg=' + encodeURIComponent('Added to content calendar'));
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // Backlink prospects — view + discover
-app.get('/backlinks/prospects', async (req,res,next) => {
+app.get('/backlinks/prospects', async (req, res, next) => {
   try {
     const prospects = await q(
       'SELECT * FROM backlink_prospects WHERE status IN (?,?) ORDER BY prospect_score DESC LIMIT 300',
       ['new', 'reviewed']
-    ).catch(()=>[]);
+    ).catch(() => []);
     res.render('backlink-prospects', {
       currentPath: '/backlinks/prospects',
       prospects,
@@ -6213,31 +6336,31 @@ app.get('/backlinks/prospects', async (req,res,next) => {
       userTheme: res.locals.userTheme || 'np-purple',
       currentUser: res.locals.currentUser
     });
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
-app.post('/backlinks/prospects/discover', async (req,res,next) => {
+app.post('/backlinks/prospects/discover', async (req, res, next) => {
   try {
     const result = await runLinkGapDiscovery({ maxCompetitors: 5 });
     res.redirect('/backlinks/prospects?msg=' + encodeURIComponent(`Link gap scan complete — ${result.saved} prospects saved from ${result.competitorHosts.length} competitors`));
-  } catch(e) {
+  } catch (e) {
     res.redirect('/backlinks/prospects?msg=' + encodeURIComponent('Discovery failed: ' + (e.message || e)));
   }
 });
-app.post('/backlinks/prospects/:id/status', async (req,res,next) => {
+app.post('/backlinks/prospects/:id/status', async (req, res, next) => {
   try {
-    const allowed = ['new','reviewed','contacted','earned','rejected'];
+    const allowed = ['new', 'reviewed', 'contacted', 'earned', 'rejected'];
     const s = allowed.includes(req.body.status) ? req.body.status : 'reviewed';
     await q('UPDATE backlink_prospects SET status=?, updated_at=NOW() WHERE id=?', [s, req.params.id]);
     res.redirect('/backlinks/prospects');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // Theme preference — per-user, any authenticated user can set their own
-app.post('/preferences/theme', async (req,res,next) => {
+app.post('/preferences/theme', async (req, res, next) => {
   try {
     const theme = String(req.body.theme || '').trim();
     if (!VALID_THEMES.includes(theme)) {
-      if (req.xhr || req.headers.accept?.includes('application/json')) return res.status(400).json({error:'Invalid theme'});
+      if (req.xhr || req.headers.accept?.includes('application/json')) return res.status(400).json({ error: 'Invalid theme' });
       return res.redirect((req.body.redirect || '/settings') + '?theme_error=1');
     }
     if (req.user) await setUserTheme(req.user.id, theme);
@@ -6246,7 +6369,7 @@ app.post('/preferences/theme', async (req,res,next) => {
       return res.json({ ok: true });
     }
     res.redirect((req.body.redirect || '/settings') + '?theme_saved=1#appearance');
-  } catch(e) { next(e); }
+  } catch (e) { next(e); }
 });
 
 // Background refreshers — run on boot + on interval
@@ -6254,7 +6377,7 @@ function startBalanceRefresher() {
   const intervalMs = 15 * 60 * 1000; // 15 min
   async function tick() {
     try { await refreshApiBalances(); }
-    catch(e) { console.error('[Balances] refresh failed:', e.message); }
+    catch (e) { console.error('[Balances] refresh failed:', e.message); }
   }
   // First tick 90s after boot, then every 15min
   setTimeout(tick, 90000);
@@ -6275,10 +6398,10 @@ function startCompetitorRefresher() {
           if (!c.url) continue;
           const audit = await auditCompetitor(c.url);
           await saveCompetitorAudit(c.id, audit);
-        } catch(e) { console.error(`[Competitors] Audit failed for ${c.url}:`, e.message); }
+        } catch (e) { console.error(`[Competitors] Audit failed for ${c.url}:`, e.message); }
       }
       console.log(`[Competitors] Weekly re-audit complete.`);
-    } catch(e) { console.error('[Competitors] Weekly refresh failed:', e.message); }
+    } catch (e) { console.error('[Competitors] Weekly refresh failed:', e.message); }
   }
   // First run 30 minutes after boot (avoid startup congestion), then every 7 days
   setTimeout(tick, 30 * 60 * 1000);
@@ -6294,15 +6417,15 @@ function startRadarRefresher() {
     try {
       const stats = await refreshGameExpansionRadar();
       if (stats.added > 0) console.log(`[Radar] Daily scan: added ${stats.added} new game opportunity rows`);
-    } catch(e) { console.error('[Radar] refresh failed:', e.message); }
+    } catch (e) { console.error('[Radar] refresh failed:', e.message); }
   }
   setTimeout(tick, 10 * 60 * 1000); // first run 10 min after boot
   setInterval(tick, intervalMs);
   console.log('Game Expansion Radar refresher enabled (every 24h).');
 }
 
-app.use((req,res)=>res.status(404).render('error',{ currentPath:'', message:'Page not found' }));
-app.use((err,req,res,next)=>{ console.error(err); res.status(500).render('error',{ currentPath:'', message:err.message || 'Unexpected app error' }); });
+app.use((req, res) => res.status(404).render('error', { currentPath: '', message: 'Page not found' }));
+app.use((err, req, res, next) => { console.error(err); res.status(500).render('error', { currentPath: '', message: err.message || 'Unexpected app error' }); });
 
 
 async function syncContentfulArticlesToDB() {
@@ -6340,10 +6463,10 @@ async function syncContentfulArticlesToDB() {
               console.log(`[ContentfulSync] Fetched ${cfSlugs.length} entries from Contentful API.`);
               break;
             }
-          } catch(e) { /* try next token */ }
+          } catch (e) { /* try next token */ }
         }
       }
-    } catch(e) { /* fall through to hardcoded list */ }
+    } catch (e) { /* fall through to hardcoded list */ }
 
     // If API failed, use known published slugs as fallback
     if (cfSlugs.length === 0) {
@@ -6362,7 +6485,7 @@ async function syncContentfulArticlesToDB() {
     for (const { slug, title } of cfSlugs) {
       const cfUrl = `${baseUrl}${slug}`;
       const kwFromSlug = slug.toLowerCase().replace(/-/g, ' ').trim();
-      const existing = await one("SELECT id FROM articles WHERE slug=? OR published_url=?", [slug, cfUrl]).catch(()=>null);
+      const existing = await one("SELECT id FROM articles WHERE slug=? OR published_url=?", [slug, cfUrl]).catch(() => null);
       if (!existing) {
         await execSafe(
           `INSERT INTO articles (site_id, title, primary_keyword, slug, status, published_url, published_at, body, created_at, updated_at) VALUES (?, ?, ?, ?, 'published', ?, NOW(), '', NOW(), NOW())`,
@@ -6373,9 +6496,9 @@ async function syncContentfulArticlesToDB() {
     }
     if (synced > 0) console.log(`[ContentfulSync] Imported ${synced} Contentful articles to local DB.`);
     else console.log(`[ContentfulSync] DB already up to date.`);
-  } catch(e) {
+  } catch (e) {
     console.error('[ContentfulSync] Failed:', e.message);
   }
 }
 
-ensureSchema().then(()=>app.listen(PORT,'0.0.0.0',()=>{ console.log(`NativPost SEO Tool running on 0.0.0.0:${PORT}`); startAutoPublisher(); startWeeklyGSCSync(); startBalanceRefresher(); startRadarRefresher(); startCompetitorRefresher(); startDailyBriefRefresher(); setTimeout(syncContentfulArticlesToDB, 30000); })).catch(err=>{ console.error('Failed to start SEO tool:', err); process.exit(1); });
+ensureSchema().then(() => app.listen(PORT, '0.0.0.0', () => { console.log(`NativPost SEO Tool running on 0.0.0.0:${PORT}`); startAutoPublisher(); startWeeklyGSCSync(); startBalanceRefresher(); startRadarRefresher(); startCompetitorRefresher(); startDailyBriefRefresher(); setTimeout(syncContentfulArticlesToDB, 30000); })).catch(err => { console.error('Failed to start SEO tool:', err); process.exit(1); });a

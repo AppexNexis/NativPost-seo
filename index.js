@@ -916,7 +916,7 @@ function localUploadPath(url = '') {
   if (!clean || clean.includes('..') || clean.includes('/') || clean.includes('\\')) return '';
   return path.join(uploadDir, clean);
 }
-function localUploadFileOk(url = '', minBytes = 12000) {
+function localUploadFileOk(url = '', minBytes = 1000) { // Lowered from 12000 — user uploads can be small
   try {
     const fp = localUploadPath(url);
     if (!fp) return false;
@@ -1331,13 +1331,7 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     let text = r.data.output_text || '';
     if (!text && Array.isArray(r.data.output)) text = r.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
     text = text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch(jsonErr) {
-      // Try sanitizing bad escape sequences before giving up
-      try { parsed = JSON.parse(sanitized); } catch(e2) { throw new Error('JSON parse failed: ' + jsonErr.message); }
-    }
+    const parsed = JSON.parse(text);
     if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
     if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
     if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
@@ -5025,6 +5019,12 @@ app.post('/articles/:id/upload-image', upload.single('image'), async (req, res, 
     const alt = req.body.alt_text || `${a.primary_keyword || a.title || 'NativPost social media content'} image`;
     const result = await q('INSERT INTO article_assets (site_id,label,game_slug,folder_name,asset_url,alt_text) VALUES (?,?,?,?,?,?)', [a.site_id || null, label, game, game || 'article-images', assetUrl, alt]);
     await q('UPDATE articles SET featured_image_id=?, featured_image_url=?, featured_image_alt=? WHERE id=?', [result.insertId, assetUrl, alt, req.params.id]);
+    // Recalculate quality score now that image is attached
+    const refreshed = await one('SELECT * FROM articles WHERE id=?', [req.params.id]);
+    if (refreshed) {
+      const newScore = contentQuality(refreshed);
+      await q('UPDATE articles SET quality_score=? WHERE id=?', [newScore, req.params.id]);
+    }
     res.redirect(`/articles/${req.params.id}/edit`);
   } catch (e) { next(e); }
 });
