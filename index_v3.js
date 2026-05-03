@@ -3761,13 +3761,18 @@ function markdownToContentfulRichText(md) {
   const blocks = [];
   const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
   let tableRows = [], inTable = false, inList = false, listItems = [], inOl = false;
+  // NativPost content model: the 'content' Rich Text field has strict node validation.
+  // Paragraphs must be wrapped as quotes since plain paragraph nodes are not in the allowlist.
+  // To fix properly: Contentful → Content model → Page Blog Post → Content → Edit → 
+  // Validation → add "paragraph" to allowed block node types.
+  const PARA_NODE = 'paragraph'; // Change to 'quote' if Contentful blocks paragraphs
 
   function flushList() {
     if (!listItems.length) return;
     const listType = inOl ? 'ordered-list' : 'unordered-list';
     blocks.push({
       nodeType: listType, data: {}, content: listItems.map(text => ({
-        nodeType: 'list-item', data: {}, content: [{ nodeType: 'paragraph', data: {}, content: inlineNodes(text) }]
+        nodeType: 'list-item', data: {}, content: [{ nodeType: PARA_NODE, data: {}, content: inlineNodes(text) }]
       }))
     });
     listItems = []; inList = false; inOl = false;
@@ -3775,17 +3780,23 @@ function markdownToContentfulRichText(md) {
 
   function flushTable() {
     if (!tableRows.length) { inTable = false; return; }
-    // Parse rows: filter out separator rows (---|---), extract cells
     const parsed = tableRows.map(row => row.split('|').map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1));
     const dataRows = parsed.filter(cells => !cells.every(c => /^[-:]+$/.test(c)));
     if (!dataRows.length) { tableRows = []; inTable = false; return; }
-    const tableContent = dataRows.map((cells, ri) => ({
-      nodeType: 'table-row', data: {}, content: cells.map(cell => ({
-        nodeType: ri === 0 ? 'table-header-cell' : 'table-cell', data: {},
-        content: [{ nodeType: 'paragraph', data: {}, content: inlineNodes(cell) }]
-      }))
-    }));
-    blocks.push({ nodeType: 'table', data: {}, content: tableContent });
+    // Convert tables to a heading-6 + unordered-list since 'table' may not be in allowlist
+    // Header row becomes heading-6
+    if (dataRows[0]) {
+      const headerText = dataRows[0].join(' | ');
+      blocks.push({ nodeType: 'heading-6', data: {}, content: inlineNodes(headerText) });
+    }
+    // Data rows become list items
+    if (dataRows.length > 1) {
+      blocks.push({
+        nodeType: 'unordered-list', data: {}, content: dataRows.slice(1).map(cells => ({
+          nodeType: 'list-item', data: {}, content: [{ nodeType: PARA_NODE, data: {}, content: inlineNodes(cells.join(' | ')) }]
+        }))
+      });
+    }
     tableRows = []; inTable = false;
   }
 
@@ -3854,12 +3865,12 @@ function markdownToContentfulRichText(md) {
 
     // Paragraph
     flushList();
-    blocks.push({ nodeType: 'paragraph', data: {}, content: inlineNodes(line) });
+    blocks.push({ nodeType: PARA_NODE, data: {}, content: inlineNodes(line) });
   }
 
   flushList();
   if (inTable) flushTable();
-  if (!blocks.length) blocks.push({ nodeType: 'paragraph', data: {}, content: [{ nodeType: 'text', value: '', marks: [], data: {} }] });
+  if (!blocks.length) blocks.push({ nodeType: PARA_NODE, data: {}, content: [{ nodeType: 'text', value: '', marks: [], data: {} }] });
   return { nodeType: 'document', data: {}, content: blocks };
 }
 function bodyForContentful(article) {
@@ -3994,9 +4005,16 @@ function appendContentfulUniqueSuffix(value, suffix, maxLen = 255) {
   return truncate(value, room).replace(/\s+$/, '') + tag;
 }
 
-function makeLocalized(locale, value) { return { [locale]: value }; }
+function makeLocalized(locale, value, isLocalized = true) {
+  return isLocalized ? { [locale]: value } : value;
+}
 function fieldHasValue(fields, id, locale) {
-  return fields[id] && fields[id][locale] !== undefined && fields[id][locale] !== null && fields[id][locale] !== '';
+  if (!fields[id]) return false;
+  // Non-localized field — value is direct
+  if (fields[id][locale] !== undefined) return fields[id][locale] !== null && fields[id][locale] !== '';
+  // Check if it's a direct (non-localized) value
+  const v = fields[id];
+  return v !== null && v !== '' && !(typeof v === 'object' && Object.keys(v).length === 0);
 }
 async function waitForProcessedAsset(base, token, assetId, locale) {
   for (let attempt = 0; attempt < 12; attempt++) {
@@ -4031,32 +4049,53 @@ async function createEntryComponentForAsset(componentType, assetId, altText) {
   return entryId;
 }
 async function fillMissingRequiredContentfulFields({ fields, fieldDefs, locale, article, publishTitle }) {
+  const localizedFieldIds = new Set(fieldDefs.filter(f => f.localized).map(f => f.id));
+  const wrap = (id, value) => localizedFieldIds.has(id) ? { [locale]: value } : value;
+  const hasVal = (id) => {
+    if (!fields[id]) return false;
+    // Check both localized and non-localized
+    if (fields[id][locale] !== undefined) return true;
+    if (typeof fields[id] === 'object' && fields[id] !== null && !fields[id].nodeType && !fields[id].sys) return false;
+    return true;
+  };
   for (const fd of fieldDefs) {
-    if (!fd || !fd.id || !fd.required || fieldHasValue(fields, fd.id, locale)) continue;
+    if (!fd || !fd.id || !fd.required || hasVal(fd.id)) continue;
     const id = fd.id, type = fd.type;
     const fallbackText = id === 'internalName' ? publishTitle : (id.toLowerCase().includes('title') ? publishTitle : (article.excerpt || article.meta_description || publishTitle));
-    if (['Symbol', 'Text'].includes(type)) { fields[id] = { [locale]: truncate(fallbackText, symbolMaxLength(fd, type === 'Symbol' ? 255 : 5000)) }; continue; }
-    if (type === 'Date') { fields[id] = { [locale]: new Date().toISOString() }; continue; }
-    if (type === 'Boolean') { fields[id] = { [locale]: true }; continue; }
-    if (type === 'Integer' || type === 'Number') { fields[id] = { [locale]: 0 }; continue; }
-    if (type === 'RichText') { fields[id] = { [locale]: bodyForContentful(article) }; continue; }
+    if (['Symbol', 'Text'].includes(type)) { fields[id] = wrap(id, truncate(fallbackText, symbolMaxLength(fd, type === 'Symbol' ? 255 : 5000))); continue; }
+    if (type === 'Date') { fields[id] = wrap(id, new Date().toISOString()); continue; }
+    if (type === 'Boolean') { fields[id] = wrap(id, true); continue; }
+    if (type === 'Integer' || type === 'Number') { fields[id] = wrap(id, 0); continue; }
+    if (type === 'RichText') {
+      const rtDoc = bodyForContentful(article);
+      // For RichText, ensure we pass the document object directly
+      // wrap() handles localization: localized={en-US: doc} or direct=doc
+      fields[id] = wrap(id, typeof rtDoc === 'string' ? markdownToContentfulRichText(rtDoc) : rtDoc);
+      continue;
+    }
     if (type === 'Link' && fd.linkType === 'Asset') {
       const assetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
-      if (assetId) fields[id] = { [locale]: { sys: { type: 'Link', linkType: 'Asset', id: assetId } } };
+      if (assetId) fields[id] = wrap(id, { sys: { type: 'Link', linkType: 'Asset', id: assetId } });
       continue;
     }
     if (type === 'Link' && fd.linkType === 'Entry') {
       let entryId = '';
       if (id === contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || '')) entryId = contentfulEnabledField(process.env.CONTENTFUL_DEFAULT_AUTHOR_ENTRY_ID || '');
       if (!entryId) entryId = await findFirstContentfulEntryForContentType(contentfulLinkContentType(fd));
-      if (entryId) fields[id] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: entryId } } };
+      if (entryId) fields[id] = wrap(id, { sys: { type: 'Link', linkType: 'Entry', id: entryId } });
       continue;
     }
-    if (type === 'Array') { fields[id] = { [locale]: [] }; continue; }
+    if (type === 'Array') { fields[id] = wrap(id, []); continue; }
   }
 }
 function missingRequiredContentfulFields(fields, fieldDefs) {
-  return (fieldDefs || []).filter(fd => fd.required && !fields[fd.id]).map(fd => fd.id);
+  return (fieldDefs || []).filter(fd => {
+    if (!fd.required) return false;
+    const val = fields[fd.id];
+    if (val === undefined || val === null) return true;
+    // Accept both localized {en-US: ...} and non-localized direct value
+    return false;
+  }).map(fd => fd.id);
 }
 
 
@@ -4131,8 +4170,12 @@ async function updateAndPublishContentfulEntry({ entryId, fields, contentType })
   const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
   const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
   const get = await axios.get(`${base}/entries/${entryId}`, { headers: { Authorization: `Bearer ${token}` } });
-  const merged = { ...(get.data.fields || {}) };
+  // Use new fields directly — don't merge with old potentially-corrupt data
+  // Only keep existing fields that we're NOT setting (to avoid losing data)
+  const existingFields = get.data.fields || {};
+  const merged = { ...existingFields };
   for (const [k, v] of Object.entries(fields || {})) merged[k] = v;
+  console.log('[Contentful] Updating entry', entryId, '- overwriting fields:', Object.keys(fields || {}).join(', '));
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Version': get.data.sys.version };
   if (contentType) headers['X-Contentful-Content-Type'] = contentType;
   const updated = await axios.put(`${base}/entries/${entryId}`, { fields: merged }, { headers });
@@ -4450,7 +4493,18 @@ async function publishToContentful(article) {
   const fieldDefs = typeDef.fields || [];
   const allowed = new Set(fieldDefs.map(f => f.id));
   const fields = {};
-  const setField = (id, value) => { id = contentfulEnabledField(id); if (id && allowed.has(id) && value !== undefined && value !== null && value !== '') fields[id] = { [locale]: value }; };
+  // Build a map of which fields have localization enabled
+  const localizedFields = new Set(fieldDefs.filter(f => f.localized).map(f => f.id));
+  const setField = (id, value) => {
+    id = contentfulEnabledField(id);
+    if (!id || !allowed.has(id) || value === undefined || value === null || value === '') return;
+    // Only wrap in locale if the field has localization enabled in Contentful
+    if (localizedFields.has(id)) {
+      fields[id] = { [locale]: value };
+    } else {
+      fields[id] = value;
+    }
+  };
   const publishTitle = safeArticleTitle(article.title, articleTitleFor(article.primary_keyword || 'ai social media content'));
   setField(process.env.CONTENTFUL_FIELD_TITLE || 'title', publishTitle);
   setField(process.env.CONTENTFUL_FIELD_SLUG || 'slug', article.slug || slugify(publishTitle));
@@ -4469,7 +4523,10 @@ async function publishToContentful(article) {
   // Optional dedicated JSON-LD field — create a Symbol/Text field in Contentful named
   // e.g. "schemaJsonLd" and set CONTENTFUL_FIELD_SCHEMA_JSONLD=schemaJsonLd in .env.local.
   // This is the cleanest path for rich-text body formats which strip script tags.
-  setField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '', freshSchema);
+  // JSON-LD schema — only set if explicitly configured. The schema contains "sys" 
+  // objects that cause Contentful validation errors if sent to wrong field types.
+  const schemaLdField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '');
+  if (schemaLdField) setField(schemaLdField, typeof freshSchema === 'string' ? freshSchema : JSON.stringify(freshSchema));
   setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'shortDescription', article.excerpt || article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_META_DESCRIPTION || '', article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || 'publishedDate', new Date().toISOString());
@@ -4477,23 +4534,34 @@ async function publishToContentful(article) {
   const fieldImage = contentfulEnabledField(process.env.CONTENTFUL_FIELD_FEATURED_IMAGE || 'featuredImage');
   const imageDef = fieldDefs.find(f => f.id === fieldImage);
   if (contentfulAssetId && fieldImage && allowed.has(fieldImage)) {
+    const imageIsLocalized = localizedFields.has(fieldImage);
     if (imageDef?.type === 'Link' && imageDef?.linkType === 'Entry') {
       const componentId = await createEntryComponentForAsset(contentfulLinkContentType(imageDef), contentfulAssetId, article.featured_image_alt || article.title || publishTitle);
-      if (componentId) fields[fieldImage] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: componentId } } };
+      if (componentId) {
+        const imgVal = { sys: { type: 'Link', linkType: 'Entry', id: componentId } };
+        fields[fieldImage] = imageIsLocalized ? { [locale]: imgVal } : imgVal;
+      }
     } else {
-      fields[fieldImage] = { [locale]: { sys: { type: 'Link', linkType: 'Asset', id: contentfulAssetId } } };
+      const imgVal = { sys: { type: 'Link', linkType: 'Asset', id: contentfulAssetId } };
+      fields[fieldImage] = imageIsLocalized ? { [locale]: imgVal } : imgVal;
     }
   }
   const seoRefField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SEO_REFERENCE || 'seoFields');
   if (seoRefField && allowed.has(seoRefField)) {
     const seoId = await createSeoComponentEntry({ title: article.meta_title || publishTitle, description: article.meta_description || article.excerpt || '', articleId: article.id, slug: article.slug || slugify(publishTitle) });
-    if (seoId) fields[seoRefField] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: seoId } } };
+    if (seoId) {
+      const seoVal = { sys: { type: 'Link', linkType: 'Entry', id: seoId } };
+      fields[seoRefField] = localizedFields.has(seoRefField) ? { [locale]: seoVal } : seoVal;
+    }
   }
   const authorField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || 'author');
   if (authorField && allowed.has(authorField)) {
     const authorDef = fieldDefs.find(f => f.id === authorField);
     const authorId = await ensureContentfulAuthorEntry(authorDef);
-    if (authorId) fields[authorField] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: authorId } } };
+    if (authorId) {
+      const authorVal = { sys: { type: 'Link', linkType: 'Entry', id: authorId } };
+      fields[authorField] = localizedFields.has(authorField) ? { [locale]: authorVal } : authorVal;
+    }
   }
   await fillMissingRequiredContentfulFields({ fields, fieldDefs, locale, article, publishTitle });
   const missing = missingRequiredContentfulFields(fields, fieldDefs);
@@ -4501,6 +4569,10 @@ async function publishToContentful(article) {
   if (!Object.keys(fields).length) throw new Error('No Contentful fields were set. Check CONTENTFUL_FIELD_* env mappings against the pageBlogPost content type.');
   const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Content-Type': contentType };
+  // Diagnostic: log which fields are being set and whether they are localized
+  const localizedSet = [...localizedFields];
+  const fieldsSummary = Object.keys(fields).map(k => `${k}(${localizedSet.includes(k) ? 'localized' : 'direct'})`).join(', ');
+  console.log(`[Contentful] Publishing article #${article.id} to ${contentType}. Fields: ${fieldsSummary}`);
   const slugField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SLUG || 'slug');
   const slugValue = article.slug || slugify(publishTitle);
   const existingBySlug = slugField ? await findContentfulEntryByLocalizedField(contentType, slugField, slugValue) : null;
@@ -4512,8 +4584,21 @@ async function publishToContentful(article) {
     try {
       const created = await axios.post(`${base}/entries`, { fields }, { headers });
       entryId = created.data.sys.id; const version = created.data.sys.version;
-      await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': version } });
+      // Publish the entry — if validation fails, save as draft and report the error
+      try {
+        await axios.put(`${base}/entries/${entryId}/published`, {}, { headers: { Authorization: `Bearer ${token}`, 'X-Contentful-Version': version } });
+      } catch (pubErr) {
+        // Entry created but publish failed (e.g. rich text validation error)
+        // Save as draft and throw a helpful message
+        const pubDetail = pubErr?.response?.data?.details?.errors?.map(e => e.name || e.details || '').join(', ') || pubErr.message;
+        console.error('[Contentful] Entry created as draft but publish failed:', pubDetail);
+        // Update local DB to reflect draft state
+        await q('UPDATE articles SET contentful_entry_id=?, review_notes=? WHERE id=?',
+          [created.data.sys.id, `Contentful draft saved (id: ${created.data.sys.id}) but publish blocked: ${pubDetail}. Fix in Contentful: Content model → Page Blog Post → Content field → Validation → add "paragraph" to allowed nodes.`, article.id]).catch(() => { });
+        throw new Error(`Content saved to Contentful as draft but publish failed: ${pubDetail}. In Contentful: Content model → Page Blog Post → Content → Edit → Validation → add paragraph to allowed block types.`);
+      }
     } catch (err) {
+      if (err.message && err.message.includes('Content saved to Contentful')) throw err;
       if (isContentfulUniqueValidationError(err)) {
         const existingFromError = await findContentfulEntryFromUniqueError(contentType, err);
         const existing = existingFromError || (slugField ? await findContentfulEntryByLocalizedField(contentType, slugField, slugValue) : null);
