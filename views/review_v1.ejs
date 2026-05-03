@@ -62,16 +62,16 @@
       <div class="actions">
         <a class="mini" href="/articles/<%= a.id %>">Preview</a>
         <a class="mini" href="/articles/<%= a.id %>/edit">Edit</a>
-        <% if(!_pass){ %>
-          <form method="post" action="/articles/<%= a.id %>/force-approve"
-            onsubmit="return confirm('Force-approve this article (score: <%= _q %>/<%= minQualityScore %>)? It will go directly to the Publish Queue.')">
-            <button class="mini warning">Approve anyway</button>
-          </form>
-        <% } else { %>
-          <form method="post" action="/articles/<%= a.id %>/status">
+        <form method="post" action="/articles/<%= a.id %>/status">
+          <% if(!_pass){ %>
+            <button class="mini" name="status" value="approved"
+              onclick="return confirm('Quality score ' + <%= _q %> + '/' + <%= minQualityScore %> + ' is below threshold. Approve anyway? It will be blocked at publish time if still below threshold.')">
+              Approve anyway
+            </button>
+          <% } else { %>
             <button class="mini primary" name="status" value="approved">Approve ✓</button>
-          </form>
-        <% } %>
+          <% } %>
+        </form>
         <form method="post" action="/articles/<%= a.id %>/reject-regenerate" onsubmit="return confirm('Reject and regenerate this article? Uses 1 AI credit.')">
           <button class="mini">Reject + regen</button>
         </form>
