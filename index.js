@@ -6145,21 +6145,70 @@ app.post('/admin/users/:id/delete', async (req, res, next) => {
 });
 
 
-// ── LIVE GAMES ROUTES ─────────────────────────────────────────────────────
-app.get('/admin/live-games', (req, res) => res.redirect('/keywords'));
+app.get('/admin/live-games', async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
+    const games = await q('SELECT * FROM live_games ORDER BY status DESC, game_label ASC').catch(() => []);
+    const msg = req.query.msg || '';
+    const allKeys = GAME_ALIASES.map(g => g.key).sort();
+    render(res, 'live-games', { currentPath: '/admin/live-games', games, msg, allKeys });
+  } catch (e) { next(e); }
+});
 
-app.post('/admin/live-games/refresh', (req, res) => res.redirect('/keywords'));
+app.post('/admin/live-games/refresh', async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
+    res.redirect('/admin/live-games?msg=' + encodeURIComponent('Auto-detect disabled for NativPost. Add entries manually using the form below.'));
+  } catch (e) { next(e); }
+});
 
-app.post('/admin/live-games/set', (req, res) => res.redirect('/keywords'));
+app.post('/admin/live-games/set', async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
+    const { game_key, game_label, igh_page_url, status, max_players, notes } = req.body;
+    await q(`INSERT INTO live_games (game_key, game_label, igh_page_url, status, max_players, notes)
+             VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE
+             game_label=VALUES(game_label), igh_page_url=VALUES(igh_page_url),
+             status=VALUES(status), max_players=VALUES(max_players), notes=VALUES(notes), updated_at=NOW()`,
+      [game_key, game_label || game_key, igh_page_url || null, status || 'live', max_players || null, notes || null]);
+    res.redirect('/admin/live-games?msg=' + encodeURIComponent((game_label || game_key) + ' set to ' + (status || 'live')));
+  } catch (e) { next(e); }
+});
 
-app.post('/admin/live-games/:key/delete', (req, res) => res.redirect('/keywords'));
+app.post('/admin/live-games/:key/delete', async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
+    await q('DELETE FROM live_games WHERE game_key=?', [req.params.key]);
+    res.redirect('/admin/live-games?msg=Removed');
+  } catch (e) { next(e); }
+});
 
 app.post('/content-studio/refresh-supported-games', (req, res) => res.redirect('/content-studio'));
 
+// ── GAME FACTS ADMIN ROUTES ──────────────────────────────────────────────
+app.get('/admin/game-facts', async (req, res, next) => {
+  try {
+    if (!req.user) return res.redirect('/login');
+    const facts = await q('SELECT * FROM game_facts ORDER BY game_key ASC').catch(() => []);
+    const msg = req.query.msg || '';
+    render(res, 'game-facts', { currentPath: '/admin/game-facts', facts, msg });
+  } catch (e) { next(e); }
+});
 
-// NativPost: game-facts admin routes removed (IGH game hosting feature).
-app.get('/admin/game-facts', (req, res) => res.redirect('/keywords'));
-app.post('/admin/game-facts/:key/update', (req, res) => res.redirect('/keywords'));
+app.post('/admin/game-facts/:key/update', async (req, res, next) => {
+  try {
+    if (!req.user) return res.redirect('/login');
+    const { max_players, ram_min_gb, ram_notes, engine, server_os, steamcmd_app_id,
+      official_site, steam_url, release_status, release_date, dedicated_server_available, custom_facts } = req.body;
+    await q(`UPDATE game_facts SET max_players=?,ram_min_gb=?,ram_notes=?,engine=?,server_os=?,
+             steamcmd_app_id=?,official_site=?,steam_url=?,release_status=?,release_date=?,
+             dedicated_server_available=?,custom_facts=?,updated_at=NOW() WHERE game_key=?`,
+      [max_players || null, ram_min_gb || null, ram_notes || null, engine || null, server_os || null,
+      steamcmd_app_id || null, official_site || null, steam_url || null, release_status || 'released',
+      release_date || null, dedicated_server_available === '1' ? 1 : 0, custom_facts || null, req.params.key]);
+    res.redirect('/admin/game-facts?msg=' + encodeURIComponent('Updated ' + req.params.key));
+  } catch (e) { next(e); }
+});
 
 // ── v107 routes: API Balances, Game Radar, Backlink Prospects, Themes ──
 function requireAdmin(req, res, next) {
