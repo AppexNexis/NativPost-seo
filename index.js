@@ -1331,7 +1331,13 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     let text = r.data.output_text || '';
     if (!text && Array.isArray(r.data.output)) text = r.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
     text = text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-    const parsed = JSON.parse(text);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch(jsonErr) {
+      // Try sanitizing bad escape sequences before giving up
+      try { parsed = JSON.parse(sanitized); } catch(e2) { throw new Error('JSON parse failed: ' + jsonErr.message); }
+    }
     if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
     if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
     if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
