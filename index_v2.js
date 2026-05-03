@@ -4066,13 +4066,7 @@ async function fillMissingRequiredContentfulFields({ fields, fieldDefs, locale, 
     if (type === 'Date') { fields[id] = wrap(id, new Date().toISOString()); continue; }
     if (type === 'Boolean') { fields[id] = wrap(id, true); continue; }
     if (type === 'Integer' || type === 'Number') { fields[id] = wrap(id, 0); continue; }
-    if (type === 'RichText') {
-      const rtDoc = bodyForContentful(article);
-      // For RichText, ensure we pass the document object directly
-      // wrap() handles localization: localized={en-US: doc} or direct=doc
-      fields[id] = wrap(id, typeof rtDoc === 'string' ? markdownToContentfulRichText(rtDoc) : rtDoc);
-      continue;
-    }
+    if (type === 'RichText') { fields[id] = wrap(id, bodyForContentful(article)); continue; }
     if (type === 'Link' && fd.linkType === 'Asset') {
       const assetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
       if (assetId) fields[id] = wrap(id, { sys: { type: 'Link', linkType: 'Asset', id: assetId } });
@@ -4170,12 +4164,9 @@ async function updateAndPublishContentfulEntry({ entryId, fields, contentType })
   const space = process.env.CONTENTFUL_SPACE_ID, env = process.env.CONTENTFUL_ENVIRONMENT_ID || 'master', token = contentfulToken();
   const base = `https://api.contentful.com/spaces/${space}/environments/${env}`;
   const get = await axios.get(`${base}/entries/${entryId}`, { headers: { Authorization: `Bearer ${token}` } });
-  // Use new fields directly — don't merge with old potentially-corrupt data
-  // Only keep existing fields that we're NOT setting (to avoid losing data)
-  const existingFields = get.data.fields || {};
-  const merged = { ...existingFields };
+  const merged = { ...(get.data.fields || {}) };
+  // Merge new fields — handles both localized {en-US:val} and non-localized val
   for (const [k, v] of Object.entries(fields || {})) merged[k] = v;
-  console.log('[Contentful] Updating entry', entryId, '- overwriting fields:', Object.keys(fields || {}).join(', '));
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/vnd.contentful.management.v1+json', 'X-Contentful-Version': get.data.sys.version };
   if (contentType) headers['X-Contentful-Content-Type'] = contentType;
   const updated = await axios.put(`${base}/entries/${entryId}`, { fields: merged }, { headers });
@@ -4523,10 +4514,7 @@ async function publishToContentful(article) {
   // Optional dedicated JSON-LD field — create a Symbol/Text field in Contentful named
   // e.g. "schemaJsonLd" and set CONTENTFUL_FIELD_SCHEMA_JSONLD=schemaJsonLd in .env.local.
   // This is the cleanest path for rich-text body formats which strip script tags.
-  // JSON-LD schema — only set if explicitly configured. The schema contains "sys" 
-  // objects that cause Contentful validation errors if sent to wrong field types.
-  const schemaLdField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '');
-  if (schemaLdField) setField(schemaLdField, typeof freshSchema === 'string' ? freshSchema : JSON.stringify(freshSchema));
+  setField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '', freshSchema);
   setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'shortDescription', article.excerpt || article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_META_DESCRIPTION || '', article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || 'publishedDate', new Date().toISOString());
