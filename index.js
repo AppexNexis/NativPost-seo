@@ -3607,7 +3607,7 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
 }
 
 function contentfulToken() { return process.env.CONTENTFUL_CMA_TOKEN || process.env.CONTENTFUL_MANAGEMENT_TOKEN || ''; }
-function contentfulContentType() { return process.env.CONTENTFUL_BLOG_CONTENT_TYPE_ID || process.env.CONTENTFUL_CONTENT_TYPE || 'blogPost'; }
+function contentfulContentType() { return process.env.CONTENTFUL_BLOG_CONTENT_TYPE_ID || process.env.CONTENTFUL_CONTENT_TYPE || 'pageBlogPost'; }
 function contentfulReady() { return !!(process.env.CONTENTFUL_SPACE_ID && contentfulToken() && contentfulContentType()); }
 function publishModeAllowsContentful() {
   const m = String(process.env.PUBLISH_MODE || 'contentful').toLowerCase().replace(/_/g, '');
@@ -3863,7 +3863,7 @@ function markdownToContentfulRichText(md) {
   return { nodeType: 'document', data: {}, content: blocks };
 }
 function bodyForContentful(article) {
-  const format = String(process.env.PUBLISH_BODY_FORMAT || 'richtext').toLowerCase();
+  const format = String(process.env.PUBLISH_BODY_FORMAT || 'richtext').toLowerCase(); // pageBlogPost.content is Rich Text
   const body = article.body || article.content || '';
   if (format === 'markdown') {
     // Markdown formats in CF get JSON-LD as an HTML comment fence — most markdown
@@ -4465,14 +4465,14 @@ async function publishToContentful(article) {
   });
   // Stash back onto the article object so bodyForContentful embeds the fresh version.
   article.schema_json = freshSchema;
-  setField(process.env.CONTENTFUL_FIELD_BODY || 'body', bodyForContentful(article));
+  setField(process.env.CONTENTFUL_FIELD_BODY || 'content', bodyForContentful(article));
   // Optional dedicated JSON-LD field — create a Symbol/Text field in Contentful named
   // e.g. "schemaJsonLd" and set CONTENTFUL_FIELD_SCHEMA_JSONLD=schemaJsonLd in .env.local.
   // This is the cleanest path for rich-text body formats which strip script tags.
   setField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '', freshSchema);
-  setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'excerpt', article.excerpt || article.meta_description || '');
+  setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'shortDescription', article.excerpt || article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_META_DESCRIPTION || '', article.meta_description || '');
-  setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || '', new Date().toISOString());
+  setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || 'publishedDate', new Date().toISOString());
   const contentfulAssetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
   const fieldImage = contentfulEnabledField(process.env.CONTENTFUL_FIELD_FEATURED_IMAGE || 'featuredImage');
   const imageDef = fieldDefs.find(f => f.id === fieldImage);
@@ -4484,12 +4484,12 @@ async function publishToContentful(article) {
       fields[fieldImage] = { [locale]: { sys: { type: 'Link', linkType: 'Asset', id: contentfulAssetId } } };
     }
   }
-  const seoRefField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SEO_REFERENCE || '');
+  const seoRefField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_SEO_REFERENCE || 'seoFields');
   if (seoRefField && allowed.has(seoRefField)) {
     const seoId = await createSeoComponentEntry({ title: article.meta_title || publishTitle, description: article.meta_description || article.excerpt || '', articleId: article.id, slug: article.slug || slugify(publishTitle) });
     if (seoId) fields[seoRefField] = { [locale]: { sys: { type: 'Link', linkType: 'Entry', id: seoId } } };
   }
-  const authorField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || '');
+  const authorField = contentfulEnabledField(process.env.CONTENTFUL_FIELD_AUTHOR || 'author');
   if (authorField && allowed.has(authorField)) {
     const authorDef = fieldDefs.find(f => f.id === authorField);
     const authorId = await ensureContentfulAuthorEntry(authorDef);
@@ -4600,7 +4600,8 @@ async function autoPublishApproved(options = {}) {
   for (const skipped of futureRows) results.push({ id: skipped.id, title: skipped.title, status: 'skipped', reason: 'scheduled_for_future', scheduled_for: scheduledValueFromRow(skipped) });
   for (const a of rows) {
     const breakdown = qualityBreakdown(a);
-    if (breakdown.score < MIN_QUALITY_SCORE) {
+    const wasForceApprovedAuto = (a.review_notes || '').includes('Force-approved');
+    if (breakdown.score < MIN_QUALITY_SCORE && !wasForceApprovedAuto) {
       await q("UPDATE articles SET status='review', review_notes=? WHERE id=?", [`Quality gate ${breakdown.score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), a.id]);
       results.push({ id: a.id, title: a.title, status: 'failed', error: 'quality_gate' });
       continue;
@@ -5537,8 +5538,10 @@ app.post('/publish/:id', async (req, res, next) => {
     if (!a) return res.status(404).render('error', { message: 'Article not found', currentPath: '/publish' });
     const score = contentQuality(a);
     const breakdown = qualityBreakdown(a);
-    // Manual publish: quality gate still applies but daily cap does NOT — human explicitly chose to publish
-    if (score < MIN_QUALITY_SCORE) {
+    // Manual publish: bypass quality gate if article is already queued (was force-approved)
+    // Only apply gate to articles not yet approved (still in draft/review status)
+    const wasForceApproved = a.status === 'queued' && (a.review_notes || '').includes('Force-approved');
+    if (score < MIN_QUALITY_SCORE && !wasForceApproved && a.status !== 'queued') {
       await q("UPDATE articles SET status='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
       return res.redirect('/review');
     }
@@ -5570,7 +5573,8 @@ app.post('/publish/:id', async (req, res, next) => {
     } catch (e) { console.warn('[InternalLinks] scan failed:', e.message); }
     res.redirect('/publish?published=1');
   } catch (e) {
-    try { await q('UPDATE articles SET review_notes=? WHERE id=?', [`Publish failed: ${e.message}`, req.params.id]); } catch { }
+    console.error('[Publish] Failed for article #' + req.params.id + ':', e.message);
+    try { await q('UPDATE articles SET review_notes=? WHERE id=?', [`Publish failed: ${e.message}`.slice(0, 1000), req.params.id]); } catch { }
     res.redirect('/publish?published=0&failed=1&failed_id=' + encodeURIComponent(req.params.id));
   }
 });

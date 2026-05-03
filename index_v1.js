@@ -65,7 +65,7 @@ process.env.TZ = APP_TIMEZONE;
 const AUTO_PUBLISH_ENABLED = String(process.env.AUTO_PUBLISH_ENABLED || 'true').toLowerCase() !== 'false';
 const AUTO_PUBLISH_INTERVAL_MINUTES = Math.max(1, Number(process.env.AUTO_PUBLISH_INTERVAL_MINUTES || 10));
 const AUTO_PUBLISH_DAILY_LIMIT = Math.max(1, Number(process.env.AUTO_PUBLISH_DAILY_LIMIT || 1));
-const MIN_QUALITY_SCORE = Math.max(1, Number(process.env.ADAPTIFY_MIN_QUALITY_SCORE || process.env.MIN_QUALITY_SCORE || 92));
+const MIN_QUALITY_SCORE = Math.max(1, Number(process.env.ADAPTIFY_MIN_QUALITY_SCORE || process.env.MIN_QUALITY_SCORE || 85));
 
 // ── DataForSEO ─────────────────────────────────────────────────────────────────
 const DFS_ENABLED = String(process.env.DATAFORSEO_ENABLED || 'true').toLowerCase() !== 'false'
@@ -4943,12 +4943,14 @@ app.post('/articles/:id/status', upload.any(), async (req, res, next) => {
     const allowed = new Set(['draft', 'review', 'approved', 'queued', 'published']);
     const statusRaw = Array.isArray(req.body.status) ? req.body.status[req.body.status.length - 1] : req.body.status;
     const status = allowed.has(String(statusRaw || '')) ? String(statusRaw) : 'draft';
+    const forceApprove = req.body.force === '1' || req.body.force === 'true'; // "Approve anyway" sets this
     const current = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?', [req.params.id]);
     if (!current) return res.redirect('/articles');
     const score = contentQuality(current);
     const breakdown = qualityBreakdown(current);
     const cal = await one('SELECT COALESCE(scheduled_for,scheduled_date) scheduled_for FROM content_calendar WHERE article_id=? ORDER BY id DESC LIMIT 1', [req.params.id]);
-    if (['approved', 'queued', 'published'].includes(status) && score < MIN_QUALITY_SCORE) {
+    // Quality gate: block if below threshold UNLESS force=1 (Approve anyway)
+    if (!forceApprove && ['approved', 'queued', 'published'].includes(status) && score < MIN_QUALITY_SCORE) {
       await q("UPDATE articles SET `status`='review', quality_score=?, review_notes=? WHERE id=?", [score, `Quality gate ${score}/${MIN_QUALITY_SCORE}. ${breakdown.notes.join(' ')}`.trim(), req.params.id]);
       return res.redirect('/review');
     }
@@ -4959,6 +4961,22 @@ app.post('/articles/:id/status', upload.any(), async (req, res, next) => {
     if (status === 'approved' || status === 'queued' || status === 'published') return res.redirect('/publish');
     if (status === 'review') return res.redirect('/review');
     res.redirect(req.get('referer') || `/articles/${req.params.id}`);
+  } catch (e) { next(e); }
+});
+
+// Force-approve route — bypasses quality gate. Used by "Approve anyway" button in review queue.
+app.post('/articles/:id/force-approve', async (req, res, next) => {
+  try {
+    const current = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?', [req.params.id]);
+    if (!current) return res.redirect('/review');
+    const score = contentQuality(current);
+    const cal = await one('SELECT COALESCE(scheduled_for,scheduled_date) scheduled_for FROM content_calendar WHERE article_id=? ORDER BY id DESC LIMIT 1', [req.params.id]);
+    await q('UPDATE articles SET `status`=?, reviewed_at=NOW(), scheduled_for=COALESCE(scheduled_for,?), quality_score=?, schema_json=COALESCE(schema_json,?), review_notes=? WHERE id=?',
+      ['queued', cal?.scheduled_for || null, score, buildArticleSchema(current),
+        `Force-approved at score ${score}/${MIN_QUALITY_SCORE}.`, req.params.id]);
+    await q("UPDATE content_calendar SET status='queued' WHERE article_id=?", [req.params.id]);
+    console.log(`[Approve] Article #${req.params.id} force-approved at score ${score}`);
+    res.redirect('/publish');
   } catch (e) { next(e); }
 });
 app.post('/articles/:id/delete', async (req, res, next) => {
