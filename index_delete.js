@@ -1789,7 +1789,7 @@ async function crawlWebsite(root, maxPages = 30) {
   const knownGameUrls = [];
   try {
     // ONLY use live_games table — NativPost platforms/features
-    const liveRows = [];
+    const liveRows = Promise.resolve([]);
     for (const r of liveRows) {
       const publicGameUrl = r.igh_page_url ||
         `${publicOrigin || originOf(start)}/game/${r.game_key.replace(/\s+/g, '-')}-server-hosting`;
@@ -3242,7 +3242,7 @@ async function generateDailyBrief(siteId = null) {
   }
 
   // 3. Live games we offer
-  const liveGameRows = [];
+  const liveGameRows = Promise.resolve([]);
   const liveGames = liveGameRows.map(g => g.game_key);
 
   // 4. Current rankings - keywords with high impressions but low clicks (high CTR opportunity)
@@ -3495,7 +3495,7 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     ];
     // Also add any live games from DB
     try {
-      const liveG = [];
+      const liveG = Promise.resolve([]);
       for (const g of liveG) {
         const pageUrl = g.igh_page_url || (siteBase + '/game/' + g.game_key.replace(/\s+/g, '-') + '-server-hosting');
         if (!ownPages.find(p => p.page_url === pageUrl)) {
@@ -5086,7 +5086,7 @@ async function supportedGamesForSite(siteId = null) {
 
   // 1. NativPost features — admin-configured
   try {
-    const liveRows = [];
+    const liveRows = Promise.resolve([]);
     for (const r of liveRows) {
       const g = detectGame(r.game_key) || r.game_key;
       if (g) supported.add(g);
