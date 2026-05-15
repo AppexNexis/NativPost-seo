@@ -518,9 +518,10 @@ label {
   background: rgba(0,0,0,.55);
   z-index: 98;
   opacity: 0;
+  pointer-events: none;
   transition: opacity .2s;
 }
-.sidebar-overlay.open { opacity: 1; }
+.sidebar-overlay.open { opacity: 1; pointer-events: all; }
 
 @media (max-width: 1200px) {
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -537,7 +538,7 @@ label {
     top: 0 !important;
     bottom: 0 !important;
     width: 256px !important;
-    z-index: 200;
+    z-index: 300;
     transition: left .22s cubic-bezier(.4,0,.2,1);
     border-right: 1px solid rgba(134,79,254,.2) !important;
   }
