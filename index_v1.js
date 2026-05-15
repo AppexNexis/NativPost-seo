@@ -113,39 +113,7 @@ if (SESSION_SECRET === 'nativpost-seo-secret-2026-change-me') {
 }
 
 async function ensureAuthTables() {
-  await execSafe(`CREATE TABLE IF NOT EXISTS game_facts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    game_key VARCHAR(120) NOT NULL UNIQUE,
-    steam_app_id VARCHAR(20) NULL,
-    max_players INT NULL,
-    min_players INT DEFAULT 1,
-    ram_min_gb INT NULL,
-    ram_notes TEXT NULL,
-    engine VARCHAR(120) NULL,
-    server_os VARCHAR(120) NULL,
-    steamcmd_app_id VARCHAR(20) NULL,
-    release_status VARCHAR(80) DEFAULT 'released',
-    release_date VARCHAR(40) NULL,
-    genre VARCHAR(255) NULL,
-    developer VARCHAR(255) NULL,
-    official_site TEXT NULL,
-    steam_url TEXT NULL,
-    dedicated_server_available TINYINT DEFAULT 1,
-    custom_facts TEXT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )`);
-  // Seed known game facts
-  // NativPost: game_facts seeding skipped. NativPost is not a game hosting service.
-  await execSafe(`CREATE TABLE IF NOT EXISTS live_games (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    game_key VARCHAR(120) NOT NULL UNIQUE,
-    game_label VARCHAR(255) NOT NULL,
-    igh_page_url TEXT NULL,
-    status VARCHAR(40) DEFAULT 'live',
-    max_players INT NULL,
-    notes TEXT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )`);
+  // NativPost: game_facts and live_games tables removed — NativPost is not a game hosting service.
   await execSafe(`CREATE TABLE IF NOT EXISTS auth_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(120) NOT NULL UNIQUE,
@@ -398,7 +366,7 @@ const BUSINESS_FACTS = process.env.NATIVPOST_BUSINESS_FACTS || 'NativPost is an 
 const NP_BASE_PLAN_PRICE = process.env.NATIVPOST_BASE_PLAN_PRICE || '$19/month (Starter)';
 const NP_TRIAL_DAYS = Number(process.env.NATIVPOST_TRIAL_DAYS || 7);
 const NP_REFUND_POLICY = process.env.NATIVPOST_REFUND_POLICY || 'NativPost offers a 7-day free trial with 3 posts max (text only). There is no money-back guarantee. Do not claim refunds.';
-const NP_PACKAGE_RULES = process.env.NATIVPOST_PACKAGE_RULES || 'Starter $19/mo (15 posts, 3 platforms) / Growth $39/mo (40 posts, 6 platforms, video) / Pro $79/mo (80 posts, unlimited platforms, human review) / Agency $149/mo (unlimited posts, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only).';
+const NP_PACKAGE_RULES = process.env.NATIVPOST_PACKAGE_RULES || 'Starter $19/mo (20 posts, 3 platforms, $29 setup) / Growth $49/mo (40 posts, 5 platforms, $79 setup) / Pro $99/mo (80 posts, all platforms, team review, $149 setup) / Enterprise custom. 7-day free trial (3 posts max, text only). Source: nativpost.com/pricing';
 const GAME_WORDS = GAME_ALIASES.map(g => g.key);
 function gameDisplay(game = '') { const g = GAME_ALIASES.find(x => x.key === String(game).toLowerCase()); return g?.label || String(game || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '); }
 function gameKeywordName(game = '') { const key = String(game || '').toLowerCase(); if (key === 'ark') return 'ark survival ascended'; return gameDisplay(game).toLowerCase().replace(/\s*\/.*$/, '').trim(); }
@@ -589,7 +557,7 @@ function articlePreviewHtml(article = {}) {
   const body = markdownToHtml(article.body || article.content || '');
   const site = article.site_name || 'NativPost';
   const imageBlock = img ? `<img class="hero-img" src="${escapeHtml(img)}" alt="${escapeHtml(article.featured_image_alt || '')}" onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty',textContent:'Saved image file was not found. Re-upload the image from Edit Draft.'}))">` : '<p class="empty">No image selected.</p>';
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(article.title || 'Article')}</title><link rel="stylesheet" href="/static/styles.css"><style>.sidebar{width:220px;flex-shrink:0;position:fixed;inset:0 auto 0 0;background:linear-gradient(180deg,#080a0d,#070810);border-right:1px solid rgba(134,79,254,.15);display:flex;flex-direction:column;z-index:10;overflow-y:auto}.sidebar::before{content:'';position:fixed;left:0;top:0;width:220px;height:3px;background:linear-gradient(90deg,transparent,#864FFE 40%,#22CFCF 60%,transparent);z-index:11}.main{margin-left:220px;width:calc(100% - 220px);padding:2rem}.brand{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(134,79,254,.12)}.logo{width:32px;height:36px;border-radius:50%;background:#1A1A1C;display:grid;place-items:center;font-weight:900;font-size:10px;color:#fff;box-shadow:0 0 18px rgba(134,79,254,.35)}.brand-text strong{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;display:block}.brand-text span{color:#864FFE;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;opacity:.8}nav{padding:8px 10px;display:flex;flex-direction:column;gap:1px}nav a{color:rgba(165,176,184,.75);padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;display:block;border:1px solid transparent;transition:all .15s}nav a:hover{color:#e6ecee;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}nav a.active{color:#864FFE;background:linear-gradient(135deg,rgba(134,79,254,.12),rgba(134,79,254,.06));border-color:rgba(134,79,254,.2);font-weight:600}.nav-section{margin:12px 0 3px;padding:0 8px;display:flex;align-items:center;gap:6px}.nav-section-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(134,79,254,.25),rgba(134,79,254,.06))}.nav-section-label{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#864FFE;opacity:.7;white-space:nowrap}</style></head><body><div class="app"><aside class="sidebar"><div class="brand"><div class="logo">NP</div><div class="brand-text"><strong>NativPost</strong><span>NativPost SEO</span></div></div><nav><div class="nav-section"><span class="nav-section-label">Overview</span><span class="nav-section-line"></span></div><a href="/">Dashboard</a><a href="/reports">Reports</a><div class="nav-section"><span class="nav-section-label">Content</span><span class="nav-section-line"></span></div><a href="/content-studio">Content Studio</a><a class="active" href="/articles">Drafts &amp; Articles</a><a href="/review">Review Queue</a><a href="/publish">Publish Queue</a><div class="nav-section"><span class="nav-section-label">Research</span><span class="nav-section-line"></span></div><a href="/sites">Own Sites</a><a href="/competitors">Competitors</a><a href="/keywords">Keywords</a><a href="/serp">SERP Intelligence</a><div class="nav-section"><span class="nav-section-label">System</span><span class="nav-section-line"></span></div><a href="/settings">Settings</a><a href="/admin/live-games">Live Games</a></nav></aside><main class="main"><section class="hero"><div><p class="eyebrow">${escapeHtml(article.status || 'draft')} article · quality ${escapeHtml(article.quality_score || 0)}</p><h1>${escapeHtml(article.title || 'Untitled')}</h1><p>${escapeHtml(article.primary_keyword || 'No keyword')} · ${escapeHtml(site)}</p></div><div class="actions"><a class="btn primary" href="/articles/${article.id}/edit">Edit Draft</a><form method="post" action="/articles/${article.id}/status"><button name="status" value="review" class="btn">Review</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="approved" class="btn">Approve</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="queued" class="btn">Queue</button></form></div></section><div class="grid two"><section class="card"><h2>SEO fields</h2><div class="metric-row"><strong>Slug</strong><span>${escapeHtml(article.slug || '')}</span></div><div class="metric-row"><strong>Meta title</strong><span>${escapeHtml(article.meta_title || '')}</span></div><div class="metric-row"><strong>Meta description</strong><span>${escapeHtml(article.meta_description || '')}</span></div><div class="metric-row"><strong>Image alt</strong><span>${escapeHtml(article.featured_image_alt || '')}</span></div><div class="metric-row"><strong>Published URL</strong><span>${article.published_url ? `<a target="_blank" href="${escapeHtml(article.published_url)}">${escapeHtml(article.published_url)}</a>` : 'Not published'}</span></div></section><section class="card"><h2>Featured image</h2>${imageBlock}</section></div><section class="card article-preview"><h2>Article body</h2><div class="rendered-article">${body}</div></section><section class="card danger-zone"><h2>Actions</h2><div class="actions"><form method="post" action="/publish/${article.id}"><input name="published_url" placeholder="Optional published URL"><button class="btn">Mark Published</button></form><form method="post" action="/articles/${article.id}/delete" onsubmit="return confirm('Delete this article?')"><button class="btn danger">Delete</button></form></div></section></main></div></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(article.title || 'Article')}</title><link rel="stylesheet" href="/static/styles.css"><style>.sidebar{width:220px;flex-shrink:0;position:fixed;inset:0 auto 0 0;background:linear-gradient(180deg,#080a0d,#070810);border-right:1px solid rgba(134,79,254,.15);display:flex;flex-direction:column;z-index:10;overflow-y:auto}.sidebar::before{content:'';position:fixed;left:0;top:0;width:220px;height:3px;background:linear-gradient(90deg,transparent,#864FFE 40%,#22CFCF 60%,transparent);z-index:11}.main{margin-left:220px;width:calc(100% - 220px);padding:2rem}.brand{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(134,79,254,.12)}.logo{width:32px;height:36px;border-radius:50%;background:#1A1A1C;display:grid;place-items:center;font-weight:900;font-size:10px;color:#fff;box-shadow:0 0 18px rgba(134,79,254,.35)}.brand-text strong{color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;display:block}.brand-text span{color:#864FFE;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;opacity:.8}nav{padding:8px 10px;display:flex;flex-direction:column;gap:1px}nav a{color:rgba(165,176,184,.75);padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;display:block;border:1px solid transparent;transition:all .15s}nav a:hover{color:#e6ecee;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}nav a.active{color:#864FFE;background:linear-gradient(135deg,rgba(134,79,254,.12),rgba(134,79,254,.06));border-color:rgba(134,79,254,.2);font-weight:600}.nav-section{margin:12px 0 3px;padding:0 8px;display:flex;align-items:center;gap:6px}.nav-section-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(134,79,254,.25),rgba(134,79,254,.06))}.nav-section-label{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#864FFE;opacity:.7;white-space:nowrap}</style></head><body><div class="app"><aside class="sidebar"><div class="brand"><div class="logo">NP</div><div class="brand-text"><strong>NativPost</strong><span>NativPost SEO</span></div></div><nav><div class="nav-section"><span class="nav-section-label">Overview</span><span class="nav-section-line"></span></div><a href="/">Dashboard</a><a href="/reports">Reports</a><div class="nav-section"><span class="nav-section-label">Content</span><span class="nav-section-line"></span></div><a href="/content-studio">Content Studio</a><a class="active" href="/articles">Drafts &amp; Articles</a><a href="/review">Review Queue</a><a href="/publish">Publish Queue</a><div class="nav-section"><span class="nav-section-label">Research</span><span class="nav-section-line"></span></div><a href="/sites">Own Sites</a><a href="/competitors">Competitors</a><a href="/keywords">Keywords</a><a href="/serp">SERP Intelligence</a><div class="nav-section"><span class="nav-section-label">System</span><span class="nav-section-line"></span></div><a href="/settings">Settings</a><</nav></aside><main class="main"><section class="hero"><div><p class="eyebrow">${escapeHtml(article.status || 'draft')} article · quality ${escapeHtml(article.quality_score || 0)}</p><h1>${escapeHtml(article.title || 'Untitled')}</h1><p>${escapeHtml(article.primary_keyword || 'No keyword')} · ${escapeHtml(site)}</p></div><div class="actions"><a class="btn primary" href="/articles/${article.id}/edit">Edit Draft</a><form method="post" action="/articles/${article.id}/status"><button name="status" value="review" class="btn">Review</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="approved" class="btn">Approve</button></form><form method="post" action="/articles/${article.id}/status"><button name="status" value="queued" class="btn">Queue</button></form></div></section><div class="grid two"><section class="card"><h2>SEO fields</h2><div class="metric-row"><strong>Slug</strong><span>${escapeHtml(article.slug || '')}</span></div><div class="metric-row"><strong>Meta title</strong><span>${escapeHtml(article.meta_title || '')}</span></div><div class="metric-row"><strong>Meta description</strong><span>${escapeHtml(article.meta_description || '')}</span></div><div class="metric-row"><strong>Image alt</strong><span>${escapeHtml(article.featured_image_alt || '')}</span></div><div class="metric-row"><strong>Published URL</strong><span>${article.published_url ? `<a target="_blank" href="${escapeHtml(article.published_url)}">${escapeHtml(article.published_url)}</a>` : 'Not published'}</span></div></section><section class="card"><h2>Featured image</h2>${imageBlock}</section></div><section class="card article-preview"><h2>Article body</h2><div class="rendered-article">${body}</div></section><section class="card danger-zone"><h2>Actions</h2><div class="actions"><form method="post" action="/publish/${article.id}"><input name="published_url" placeholder="Optional published URL"><button class="btn">Mark Published</button></form><form method="post" action="/articles/${article.id}/delete" onsubmit="return confirm('Delete this article?')"><button class="btn danger">Delete</button></form></div></section></main></div></body></html>`;
 }
 
 function bodyForPublishing(article) {
@@ -1201,13 +1169,13 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     `- People Also Ask / questions to answer in FAQ:`,
     serpQuestions ? '- ' + serpQuestions : '(none captured — use common questions for this game/topic)',
     '',
-    `Return strict JSON only with keys: title, slug, meta_title, meta_description, excerpt, body_markdown, featured_image_alt, review_notes.`,
+    `Return strict JSON only with keys: title, slug, meta_title, meta_description, excerpt, body_markdown, featured_image_alt, review_notes. FIELD LIMITS (HARD): title must be ≤50 characters. excerpt must be ≤150 characters — it is a short teaser sentence, not a paragraph. meta_description must be ≤160 characters.`,
     `WRITING QUALITY RULES — READ FIRST:`,
     `- Write in flowing, confident prose. Avoid bullet-point walls. For lists WITHIN sections, use the inline bold term format: "**Term:** explanation sentence." — NOT bullet points. Reserve actual bullet/numbered lists only for step-by-step instructions.`,
     `- Do NOT pad with empty phrases like "In today's gaming world", "As gaming continues to evolve", or "unlock the ultimate experience". Write like an expert, not a marketing brochure.`,
     `- Use specific facts and numbers: anti-slop filter scores 0-1, rejects below 0.7; 3 variants generated in parallel via asyncio.gather(); topic memory prevents repetition; Paystack accepted in Africa. Vague filler fails the quality gate.`,
     `- Vary sentence length. Mix short punchy sentences with longer explanatory ones. Write for a real human who is deciding whether to invest in an AI social media tool.`,
-    `- HEADLINE FORMAT: Never use "[Keyword] | NativPost" as the title. Use a story hook or data hook. Examples: "Stop Sounding Like a Bot: How NativPost Builds a Real Brand Voice" or "Why 73% of AI Social Media Content Gets Ignored (And How to Fix It)" or "Ocoya vs NativPost in 2026: Which One Actually Learns Your Brand?". The title should make someone want to click.`,
+    `- HEADLINE FORMAT: Never use "[Keyword] | NativPost" as the title. Use a story hook or data hook. Examples: "Stop Sounding Like a Bot: How NativPost Builds a Real Brand Voice" or "Why 73% of AI Social Media Content Gets Ignored (And How to Fix It)" or "Ocoya vs NativPost in 2026: Which One Actually Learns Your Brand?". The title should make someone want to click. CRITICAL: The title field MUST be 50 characters or fewer — count every character including spaces. If your hook runs long, shorten it. Titles over 50 characters will fail Contentful validation and block publishing.`,
     `- OPENING PARAGRAPH: Do NOT open with a definition or quick answer. Open with a SCENARIO or DILEMMA the reader is facing. Example: "When you first decide to take your world online, you face a fork in the road..." or "A single disgruntled player with a $5 booter service can knock your entire server offline in seconds." Hook them with tension, then resolve it.`,
     `- QUICK ANSWER TABLE: The FIRST element after the opening paragraph must be a markdown comparison table that immediately answers the core buying question. This gets featured snippets. For hosting: Plan | RAM | Players | Price. For guides: Method | Best For | Cost.`,
     `- TECHNICAL SPECIFICITY: Name specific tools, protocols, and features throughout. For NativPost: anti-slop filter (0-1 score, rejects below 0.7), content modes (Normal/Concise/Controversial), tone sliders (1-10), topic memory, asyncio.gather() parallel generation, Paystack (Africa billing). For brand voice: forbidden words, per-platform voice, content examples. Specific > generic. This specificity signals expertise.`,
@@ -1253,12 +1221,12 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     `- Include 3-5 internal markdown links to NativPost blog posts or pages (nativpost.com/blog/, app.nativpost.com). Place naturally in context.`,
     isGameArticle
       ? `- REQUIRED: 1 external link to the game's official Steam page or developer website. Place in the What is [Game] section. Without this the article fails quality gate.`
-      : `- REQUIRED: 1 external link to a relevant authoritative source about ai social media content, esports, or gaming infrastructure. Do NOT link to a specific game's Steam page.`,
+      : `- REQUIRED: 1 external link to a relevant authoritative source about AI, social media, content marketing, or the industry being discussed. Link to a reputable study, platform documentation, or relevant research. This is mandatory — missing it reduces quality score.`,
     `- Do not use fake stats. Do not promise guaranteed #1 rankings.`,
     `- Do not mention refunds, money-back guarantees, or 30-day guarantees. NativPost offers a ${NP_TRIAL_DAYS}-day free trial (3 posts max, text only).`,
     `- Do not claim NativPost offers unlimited posts on Starter or a free forever plan. Starter is 15 posts/mo at $19/mo with a $5 setup fee.`,
     `- For server RAM sections: use ONLY the RAM figures from the VERIFIED GAME FACTS above. Do not invent tiers.`,
-    `- NATIVPOST PLAN DATA: Use these exact pricing facts for ALL plan claims. Starter $19/mo (15 posts, 3 platforms), Growth $39/mo (40 posts, 6 platforms, video), Pro $79/mo (80 posts, unlimited platforms), Agency $149/mo (unlimited, 5 brand profiles). All plans: $5 one-time setup fee. 7-day free trial (3 posts max, text only). Source: ${NP_PACKAGE_RULES}`,
+    `- NATIVPOST PLAN DATA: Use these exact pricing facts for ALL plan claims. Starter $19/mo (20 posts, 3 platforms), Growth $49/mo (40 posts, 5 platforms), Pro $99/mo (80 posts, all platforms, team review). All plans include one-time setup fee. 7-day free trial (3 posts max, text only). Source: nativpost.com/pricing Source: ${NP_PACKAGE_RULES}`,
     `- LINK FORMAT: All pricing, CTA, and 'View Pricing' links MUST use full absolute URLs. Examples: [Start Free Trial](https://app.nativpost.com), [View Plans](https://nativpost.com/pricing), [NativPost Blog](https://nativpost.com/blog). Never use relative URLs.`,
     `- NEVER invent NativPost features not confirmed in the business facts. Do NOT claim: free forever plan, unlimited posts on Starter, 30-day trial, money-back guarantee, or any platform not in the supported list. Only claim features explicitly listed in the NativPost business facts above.`,
     isGameArticle
@@ -1821,7 +1789,7 @@ async function crawlWebsite(root, maxPages = 30) {
   const knownGameUrls = [];
   try {
     // ONLY use live_games table — NativPost platforms/features
-    const liveRows = await q("SELECT game_key, igh_page_url FROM live_games WHERE status='live'");
+    const liveRows = [];
     for (const r of liveRows) {
       const publicGameUrl = r.igh_page_url ||
         `${publicOrigin || originOf(start)}/game/${r.game_key.replace(/\s+/g, '-')}-server-hosting`;
@@ -2179,8 +2147,8 @@ async function getPositionHistory(siteId = null, limit = 10) {
 function scoreBacklinkOpportunity(domain = '') {
   const d = String(domain || '').toLowerCase();
   let score = 0;
-  // Gaming/server related domains get high scores
-  if (/game|gaming|server|host|gamer|play|steam|survival|craft|pvp|mmo/.test(d)) score += 40;
+  // Social media / content marketing related domains get high scores
+  if (/social|media|content|brand|marketing|creator|agency|ai|saas|startup/.test(d)) score += 40;
   // Review/directory sites
   if (/review|compare|best|top|rank|list|direct|hub|index/.test(d)) score += 25;
   // Known high-value domains
@@ -2318,7 +2286,7 @@ function qualityBreakdown(article = {}) {
   const game = detectGame(`${article.title || ''} ${article.primary_keyword || ''} ${body}`);
   const notes = [];
   let score = 0;
-  if ((article.title || '').length >= 35 && (article.title || '').length <= 72) score += 10; else notes.push('Title should be 35-72 characters.');
+  if ((article.title || '').length >= 35 && (article.title || '').length <= 50) score += 10; else notes.push('Title should be 35-50 characters.');
   if (article.primary_keyword && new RegExp(article.primary_keyword.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(`${article.title || ''} ${body.slice(0, 300)}`)) score += 10; else notes.push('Primary keyword is not prominent enough in the title/opening.');
   if ((article.meta_description || '').length >= 120 && (article.meta_description || '').length <= 160) score += 10; else notes.push('Meta description should be 120-160 characters.');
   if (bodyWords >= 1500) score += 14; else if (bodyWords >= 1200) score += 10; else notes.push('Article is too thin; target 1200+ words, ideally 1500+.');
@@ -2328,7 +2296,7 @@ function qualityBreakdown(article = {}) {
   if (/## FAQ/i.test(body)) score += 7; else notes.push('Needs an FAQ section.');
   if (hasTableOrChecklist(body)) score += 7; else notes.push('Needs a table or checklist for snippet-readiness.');
   if (internalLinks.length >= 2) score += 8; else notes.push('Needs at least two internal NativPost links.');
-  if (hasExternalUrl) score += 4; else notes.push('Needs at least one authoritative outbound source link (e.g. Steam page, official game site).');
+  if (hasExternalUrl) score += 4; else notes.push('Needs at least one authoritative outbound source link (e.g. official platform docs, industry research, or relevant authority site).');
   if (article.featured_image_url) score += 5; else notes.push('Needs a featured image.');
   if ((article.featured_image_alt || '').length >= 8) score += 3; else notes.push('Needs better featured image alt text.');
   if (/NativPost/i.test(body) && /free trial|brand voice|anti-slop|7-day/i.test(body)) score += 6; else notes.push('Needs a stronger NativPost CTA — mention 7-day free trial and brand voice.');
@@ -2540,7 +2508,7 @@ function generateResetCode() {
 }
 async function hashResetCode(code) {
   // Simple SHA-256 is fine for a 6-digit, 15-minute-lifetime code with a 5-attempt cap
-  return crypto.createHash('sha256').update(String(code || '') + (process.env.SESSION_SECRET || 'igh-reset-salt')).digest('hex');
+  return crypto.createHash('sha256').update(String(code || '') + (process.env.SESSION_SECRET || 'nativpost-reset-salt-2026')).digest('hex');
 }
 
 // ── Game Expansion Radar ─────────────────────────────────────────────────
@@ -3103,7 +3071,7 @@ Start your 7-day free trial at [app.nativpost.com](https://app.nativpost.com) �
 // ── LIVE GAMES MANAGEMENT ─────────────────────────────────────────────────
 async function getLiveGamesFromDB() {
   try {
-    const rows = await q("SELECT * FROM live_games WHERE status='live' ORDER BY game_label ASC");
+    const rows = Promise.resolve([]);
     return rows;
   } catch (e) { return []; }
 }
@@ -3192,13 +3160,7 @@ async function refreshLiveGamesFromIGH(siteUrl = 'https://nativpost.com') {
       if (!gameKey) gameKey = slugText;
       const label = gameDisplay(gameKey) || slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       const publicUrl = `${base}/game/${slug}-server-hosting`;
-      await q(`INSERT INTO live_games (game_key, game_label, igh_page_url, status)
-               VALUES (?,?,?,'live') ON DUPLICATE KEY UPDATE
-               igh_page_url=VALUES(igh_page_url), game_label=VALUES(game_label),
-               status='live', updated_at=NOW()`,
-        [gameKey, label, publicUrl]);
-      if (!confirmed.includes(gameKey)) confirmed.push(gameKey);
-      debug.push(`Added: ${label} (${gameKey}) → ${publicUrl}`);
+      // NativPost: live_games insert skipped — table removed.
     }
 
     debug.push(`Done: ${confirmed.length} live games detected`);
@@ -3280,7 +3242,7 @@ async function generateDailyBrief(siteId = null) {
   }
 
   // 3. Live games we offer
-  const liveGameRows = await q("SELECT game_key, game_label FROM live_games WHERE status='live'").catch(() => []);
+  const liveGameRows = [];
   const liveGames = liveGameRows.map(g => g.game_key);
 
   // 4. Current rankings - keywords with high impressions but low clicks (high CTR opportunity)
@@ -3289,8 +3251,7 @@ async function generateDailyBrief(siteId = null) {
            SUM(clicks)/NULLIF(SUM(impressions),0) ctr
     FROM rankings
     WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    AND impressions > 50
-    AND keyword REGEXP 'game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|v.rising|ark|hytale|everwind|infected|igh'
+    AND (keyword LIKE '%social media%' OR keyword LIKE '%ai%' OR keyword LIKE '%brand%' OR keyword LIKE '%content%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%schedule%' OR keyword LIKE '%africa%')
     GROUP BY keyword
     HAVING MIN(position) BETWEEN 4 AND 30
     ORDER BY SUM(impressions) DESC
@@ -3481,12 +3442,10 @@ async function getLiveGamesFacts() {
 }
 
 
-// ── GAME KNOWLEDGE BASE ───────────────────────────────────────────────────
+// ── GAME KNOWLEDGE BASE — NativPost: game_facts table removed, stub returns null ───────────
 async function getGameFacts(gameKey) {
-  if (!gameKey) return null;
-  try {
-    return await one('SELECT * FROM game_facts WHERE game_key=?', [gameKey]);
-  } catch (e) { return null; }
+  // NativPost is not a game hosting service — game_facts table removed.
+  return null;
 }
 
 function buildGameFactsPrompt(facts, gameKey) {
@@ -3536,7 +3495,7 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     ];
     // Also add any live games from DB
     try {
-      const liveG = await q("SELECT * FROM live_games WHERE status='live' ORDER BY game_label ASC");
+      const liveG = [];
       for (const g of liveG) {
         const pageUrl = g.igh_page_url || (siteBase + '/game/' + g.game_key.replace(/\s+/g, '-') + '-server-hosting');
         if (!ownPages.find(p => p.page_url === pageUrl)) {
@@ -3569,10 +3528,10 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
   const ai = await callOpenAIArticle({ site, keyword: rawKeyword, ownPages, competitorPages: compPages.concat(serp.results.map(r => ({ page_url: r.url || r.result_url, page_title: r.title || r.result_title, word_count: r.word_count, page_type: 'serp' }))), competitorTerms: [...terms, ...serp.entities], imageHints, offerFacts: [offerFacts, liveGamesFacts, gameFactsPrompt, livePackageFacts].filter(Boolean).join('\n'), serp });
   let title, body, meta, excerpt, imageAlt, notes;
   if (ai) {
-    title = truncate(ai.title || articleTitleFor(rawKeyword), 500);
+    title = truncate(ai.title || articleTitleFor(rawKeyword), 50);  // Contentful shortDescription max is 50 chars
     body = ai.body_markdown;
     meta = truncate(ai.meta_description || `Learn how ${rawKeyword} works and why NativPost is the best AI social media content platform in 2026.`, 160);
-    excerpt = ai.excerpt || meta;
+    excerpt = truncate(ai.excerpt || meta, 150);  // Contentful shortDescription max is 224 chars; use 150 for safety
     imageAlt = ai.featured_image_alt || `${rawKeyword} hosting image`;
     notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${ai.review_notes || ''}`;
   } else {
@@ -3584,7 +3543,7 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
   }
   body = repairOfferClaims(body);
   meta = truncate(repairOfferClaims(meta), 160);
-  excerpt = repairOfferClaims(excerpt);
+  excerpt = truncate(repairOfferClaims(excerpt), 150);
   const offerNote = offerReviewNote(`${title}\n${meta}\n${excerpt}\n${body}`);
   if (offerNote) notes = `${notes}\n${offerNote}`.trim();
   const game = detectGame(rawKeyword);
@@ -3687,7 +3646,6 @@ async function syncGSCData(siteId, gscProperty) {
   const COMPETITOR_BRANDS = ['ocoya', 'predis', 'buffer', 'hootsuite', 'sprout social', 'later',
     'feedhive', 'socialbee', 'contentstudio', 'postbridge', 'jasper', 'copy.ai', 'writesonic',
     'semrush', 'ahrefs', 'hubspot', 'mailchimp', 'canva', 'planoly', 'tailwind app',
-    // Also block game hosting competitor brands that might sneak in from Jasper blog
     'nitrado', 'gportal', 'g-portal', 'shockbyte', 'bisecthosting', 'hosthavoc', 'apexhosting',
     'apex hosting', 'scalacube', 'nodecraft', 'sparkedhost', 'pingperfect', 'fragnet'];
 
@@ -3696,11 +3654,19 @@ async function syncGSCData(siteId, gscProperty) {
     if (!k || k.length < 3) return false;
     for (const brand of COMPETITOR_BRANDS) { if (k.includes(brand)) return false; }
     if (/[^\u0000-\u007f]{3,}/.test(k)) return false; // non-English garbage
-    if (/infected.*game|infected.*host|igh/.test(k)) return true;
-    if (/(game|server|hosting|host|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|v.rising|ark|hytale|everwind)/.test(k)) return true;
-    if (/(dedicated|managed|ddos|nvme|mod|setup|deploy|trial|cheap|best|low.?lag|latency).*server/.test(k)) return true;
-    if (/server.*(dedicated|hosting|rental|setup|lag|ping|tick)/.test(k)) return true;
-    return false;
+    // Block clearly irrelevant navigational/unrelated queries
+    if (/\b(crack|torrent|porn|xxx|casino|gambling|betting|keygen|warez)\b/.test(k)) return false;
+    // NativPost branded queries — always keep
+    if (/nativpost/.test(k)) return true;
+    // Core NativPost product topics: social media, AI content, brand voice, scheduling
+    if (/(social media|content|brand|caption|post|schedule|publish|automate|automation)/.test(k)) return true;
+    if (/(instagram|linkedin|tiktok|twitter|facebook|youtube|threads|pinterest)/.test(k)) return true;
+    if (/(ai.*(tool|platform|writer|generator|content|post|caption)|content.*ai|brand.*voice|brand.*profile|anti.slop|tone|voice)/.test(k)) return true;
+    if (/(agency|freelancer|creator|influencer|startup|saas|b2b|ecommerce|marketing|copywriting)/.test(k)) return true;
+    // Africa / Paystack markets
+    if (/(africa|nigeria|kenya|ghana|south.africa|paystack|naira)/.test(k)) return true;
+    // If GSC reports it, it landed on nativpost.com — keep everything not already blocked above
+    return true;
   }
 
   for (const row of rows) {
@@ -4470,7 +4436,7 @@ async function publishToContentful(article) {
   // e.g. "schemaJsonLd" and set CONTENTFUL_FIELD_SCHEMA_JSONLD=schemaJsonLd in .env.local.
   // This is the cleanest path for rich-text body formats which strip script tags.
   setField(process.env.CONTENTFUL_FIELD_SCHEMA_JSONLD || '', freshSchema);
-  setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'shortDescription', article.excerpt || article.meta_description || '');
+  setField(process.env.CONTENTFUL_FIELD_EXCERPT || 'shortDescription', truncate(article.excerpt || article.meta_description || '', 150));
   setField(process.env.CONTENTFUL_FIELD_META_DESCRIPTION || '', article.meta_description || '');
   setField(process.env.CONTENTFUL_FIELD_PUBLISH_DATE || 'publishedDate', new Date().toISOString());
   const contentfulAssetId = article.contentful_asset_id || article.featured_image_contentful_id || await ensureArticleHasContentfulAsset(article);
@@ -5112,15 +5078,15 @@ function keywordsFromPageForPlan(page = {}) {
 
 async function supportedGamesForSite(siteId = null) {
   // Priority order for supported games:
-  // 1. live_games table (admin-managed, most reliable)
+  // 1. NativPost features list (no longer uses live_games table)
   // 2. Explicit env config (SUPPORTED_GAMES_EXACT)
   // 3. Auto-discovered from /games page crawl
   // 4. site_pages table (previously crawled game URLs)
   const supported = explicitSupportedGamesFromEnv();
 
-  // 1. live_games table — admin explicitly set these
+  // 1. NativPost features — admin-configured
   try {
-    const liveRows = await q("SELECT game_key FROM live_games WHERE status='live'");
+    const liveRows = [];
     for (const r of liveRows) {
       const g = detectGame(r.game_key) || r.game_key;
       if (g) supported.add(g);
@@ -5132,7 +5098,7 @@ async function supportedGamesForSite(siteId = null) {
     : (await one("SELECT * FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' ORDER BY id LIMIT 1") || await one('SELECT * FROM sites WHERE active=1 ORDER BY id LIMIT 1'));
   const sid = site?.id || siteId || null;
 
-  // 2. Auto-discover from /games page (only if live_games table is empty)
+  // 2. Auto-discover NativPost feature pages
   if (supported.size === 0 && site?.url) {
     for (const g of await discoverSupportedGamesFromGamesPage(site.url)) supported.add(g);
   }
@@ -5742,7 +5708,7 @@ app.get('/reports', async (req, res, next) => {
     const siteId = req.query.site_id || null;
     const [techIssues, rankingTop, weeklyChange, decayPages, positionHistory] = await Promise.all([
       runTechnicalSEOAudit(siteId || null),
-      q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(() => []),
+      q("SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND (keyword LIKE '%social media%' OR keyword LIKE '%ai%' OR keyword LIKE '%brand%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%schedule%' OR keyword LIKE '%publish%' OR keyword LIKE '%africa%') GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20").catch(() => []),
       buildWeeklyChangeReport(siteId || null),
       detectContentDecay(siteId || null),
       getPositionHistory(siteId || null, 8)
@@ -6000,7 +5966,7 @@ app.get('/reports/competitor-gaps', async (req, res, next) => {
       buildWeeklyChangeReport(null),
       detectContentDecay(null),
       getPositionHistory(null, 8),
-      q('SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND keyword REGEXP "game|server|hosting|minecraft|palworld|rust|valheim|enshrouded|windrose|terraria|dayz|zomboid|conan|icarus|satisfactory|factorio|infected|igh" AND keyword NOT REGEXP "nitrado|gportal|shockbyte|bisect|hosthavoc|freakhost|scalacube|nodecraft|sparkedhost|pingperfect|aternos|minehut" GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20').catch(() => [])
+      q("SELECT keyword, MIN(position) position, SUM(clicks) clicks, SUM(impressions) impressions, MAX(recorded_on) recorded_on FROM rankings WHERE recorded_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND (keyword LIKE '%social media%' OR keyword LIKE '%ai%' OR keyword LIKE '%brand%' OR keyword LIKE '%content%' OR keyword LIKE '%caption%' OR keyword LIKE '%nativpost%' OR keyword LIKE '%instagram%' OR keyword LIKE '%linkedin%' OR keyword LIKE '%tiktok%' OR keyword LIKE '%schedule%' OR keyword LIKE '%publish%' OR keyword LIKE '%africa%') GROUP BY keyword ORDER BY SUM(clicks) DESC, SUM(impressions) DESC LIMIT 20").catch(() => [])
     ]);
     render(res, 'reports', {
       currentPath: '/reports', competitorGaps: gaps,
@@ -6179,13 +6145,11 @@ app.post('/admin/users/:id/delete', async (req, res, next) => {
 });
 
 
-// ── LIVE GAMES ROUTES ─────────────────────────────────────────────────────
 app.get('/admin/live-games', async (req, res, next) => {
   try {
     if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
-    const games = await q('SELECT * FROM live_games ORDER BY status DESC, game_label ASC');
+    const games = await q('SELECT * FROM live_games ORDER BY status DESC, game_label ASC').catch(() => []);
     const msg = req.query.msg || '';
-    // Dynamically built from GAME_ALIASES so any newly added game appears automatically
     const allKeys = GAME_ALIASES.map(g => g.key).sort();
     render(res, 'live-games', { currentPath: '/admin/live-games', games, msg, allKeys });
   } catch (e) { next(e); }
@@ -6194,13 +6158,7 @@ app.get('/admin/live-games', async (req, res, next) => {
 app.post('/admin/live-games/refresh', async (req, res, next) => {
   try {
     if (!req.user || req.user.role !== 'admin') return res.status(403).render('error', { message: 'Admin only', currentPath: '' });
-    const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url: 'https://nativpost.com' };
-    const { confirmed, debug } = await refreshLiveGamesFromIGH(site.url);
-    const debugSummary = (debug || []).slice(-4).join(' | ');
-    const msg = confirmed.length
-      ? `Confirmed live: ${confirmed.join(', ')}`
-      : `None auto-detected. Debug: ${debugSummary}. Add games manually using the form below.`;
-    res.redirect('/admin/live-games?msg=' + encodeURIComponent(msg));
+    res.redirect('/admin/live-games?msg=' + encodeURIComponent('Auto-detect disabled for NativPost. Add entries manually using the form below.'));
   } catch (e) { next(e); }
 });
 
@@ -6212,8 +6170,8 @@ app.post('/admin/live-games/set', async (req, res, next) => {
              VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE
              game_label=VALUES(game_label), igh_page_url=VALUES(igh_page_url),
              status=VALUES(status), max_players=VALUES(max_players), notes=VALUES(notes), updated_at=NOW()`,
-      [game_key, game_label || gameDisplay(game_key), igh_page_url || null, status || 'live', max_players || null, notes || null]);
-    res.redirect('/admin/live-games?msg=' + encodeURIComponent(game_label + ' set to ' + status));
+      [game_key, game_label || game_key, igh_page_url || null, status || 'live', max_players || null, notes || null]);
+    res.redirect('/admin/live-games?msg=' + encodeURIComponent((game_label || game_key) + ' set to ' + (status || 'live')));
   } catch (e) { next(e); }
 });
 
@@ -6225,22 +6183,13 @@ app.post('/admin/live-games/:key/delete', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Also expose via Content Studio refresh button
-app.post('/content-studio/refresh-supported-games', async (req, res, next) => {
-  try {
-    const site = await one("SELECT url FROM sites WHERE active=1 AND LOWER(url) LIKE '%nativpost%' LIMIT 1") || { url: 'https://nativpost.com' };
-    const { confirmed } = await refreshLiveGamesFromIGH(site.url);
-    res.redirect('/content-studio' + (confirmed.length ? '' : '?msg=' + encodeURIComponent('Auto-detect found no games. Set them manually in Admin → Live Games.')));
-
-  } catch (e) { next(e); }
-});
-
+app.post('/content-studio/refresh-supported-games', (req, res) => res.redirect('/content-studio'));
 
 // ── GAME FACTS ADMIN ROUTES ──────────────────────────────────────────────
 app.get('/admin/game-facts', async (req, res, next) => {
   try {
     if (!req.user) return res.redirect('/login');
-    const facts = await q('SELECT * FROM game_facts ORDER BY game_key ASC');
+    const facts = await q('SELECT * FROM game_facts ORDER BY game_key ASC').catch(() => []);
     const msg = req.query.msg || '';
     render(res, 'game-facts', { currentPath: '/admin/game-facts', facts, msg });
   } catch (e) { next(e); }
@@ -6292,56 +6241,11 @@ app.post('/admin/api-balances/refresh', requireAdmin, async (req, res, next) => 
 });
 
 // Game Expansion Radar — admin-only manage page + refresh button
-app.get('/keywords', requireAdmin, async (req, res, next) => {
-  try {
-    const status = req.query.status || 'pending';
-    const rows = await q(
-      "SELECT * FROM game_expansion_radar WHERE status=? ORDER BY opportunity_score DESC, signal_score DESC LIMIT 200",
-      [status]
-    ).catch(() => []);
-    const counts = {
-      pending: (await one("SELECT COUNT(*) c FROM game_expansion_radar WHERE status='pending'"))?.c || 0,
-      dismissed: (await one("SELECT COUNT(*) c FROM game_expansion_radar WHERE status='dismissed'"))?.c || 0,
-      planned: (await one("SELECT COUNT(*) c FROM game_expansion_radar WHERE status='planned'"))?.c || 0,
-    };
-    res.render('game-radar', {
-      currentPath: '/keywords',
-      radar: rows, counts, filterStatus: status,
-      msg: req.query.msg || '',
-      userTheme: res.locals.userTheme || 'np-purple',
-      currentUser: res.locals.currentUser
-    });
-  } catch (e) { next(e); }
-});
-app.post('/admin/game-radar/refresh', requireAdmin, async (req, res, next) => {
-  try {
-    const stats = await refreshGameExpansionRadar();
-    res.redirect('/admin/game-radar?msg=' + encodeURIComponent(`Scanned ${stats.total} Steam titles — added ${stats.added}, skipped ${stats.skipped}`));
-  } catch (e) {
-    res.redirect('/admin/game-radar?msg=' + encodeURIComponent('Refresh failed: ' + (e.message || e)));
-  }
-});
-app.post('/admin/game-radar/:id/dismiss', requireAdmin, async (req, res, next) => {
-  try {
-    await q("UPDATE game_expansion_radar SET status='dismissed', dismissed_at=NOW() WHERE id=?", [req.params.id]);
-    res.redirect('/keywords');
-  } catch (e) { next(e); }
-});
-app.post('/admin/game-radar/:id/plan', requireAdmin, async (req, res, next) => {
-  try {
-    const row = await one('SELECT * FROM game_expansion_radar WHERE id=?', [req.params.id]);
-    if (row) {
-      // Queue a calendar item for this game — lands in Content Studio
-      const keyword = `${row.game_label.toLowerCase()} server hosting`;
-      await execSafe(
-        "INSERT INTO content_calendar (site_id, title, target_keyword, reason, status) VALUES (NULL, ?, ?, ?, 'planned')",
-        [`${row.game_label} Server Hosting Guide`, keyword, `Game Expansion Radar — opportunity score ${row.opportunity_score}. ${row.reason || ''}`]
-      );
-      await q("UPDATE game_expansion_radar SET status='planned' WHERE id=?", [req.params.id]);
-    }
-    res.redirect('/admin/game-radar?msg=' + encodeURIComponent('Added to content calendar'));
-  } catch (e) { next(e); }
-});
+// NativPost: game-radar /keywords override removed — using the real keywords route defined above.
+// NativPost: game-radar routes removed (IGH Steam expansion feature).
+app.post('/admin/game-radar/refresh', requireAdmin, (req, res) => res.redirect('/keywords'));
+app.post('/admin/game-radar/:id/dismiss', requireAdmin, (req, res) => res.redirect('/keywords'));
+app.post('/admin/game-radar/:id/plan', requireAdmin, (req, res) => res.redirect('/keywords'));
 
 // Backlink prospects — view + discover
 app.get('/backlinks/prospects', async (req, res, next) => {

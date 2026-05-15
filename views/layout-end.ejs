@@ -1,1 +1,33 @@
-</main></div></body></html>
+</main></div>
+
+<script>
+/* ── Mobile sidebar toggle ─────────────────────────────────────────────── */
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function toggleSidebar() {
+  if (document.getElementById('sidebar').classList.contains('open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+// Close sidebar on nav link click (mobile UX)
+document.querySelectorAll('.sidebar nav a').forEach(function(a) {
+  a.addEventListener('click', function() {
+    if (window.innerWidth <= 900) closeSidebar();
+  });
+});
+// Close on ESC key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSidebar();
+});
+</script>
+</body></html>

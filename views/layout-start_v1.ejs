@@ -1,292 +1,545 @@
 <!doctype html>
 <html lang="en" data-theme="<%= typeof userTheme !== 'undefined' ? userTheme : 'np-purple' %>">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NativPost SEO — Command Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
   <style>
-  /* ── Enterprise Sidebar ─────────────────────────────────────────────────── */
-  .sidebar {
-    width: 256px; flex-shrink: 0; position: fixed; inset: 0 auto 0 0;
-    background: linear-gradient(180deg, #080a0d 0%, #070810 100%);
-    border-right: 1px solid rgba(134,79,254,.15);
-    display: flex; flex-direction: column; z-index: 10;
-    overflow-y: auto; overflow-x: hidden;
-  }
-  .sidebar::before {
-    content: ''; position: fixed; left: 0; top: 0; width: 256px; height: 3px;
-    background: linear-gradient(90deg, transparent 0%, var(--np-purple) 40%, var(--np-cyan) 60%, transparent 100%);
-    z-index: 11; pointer-events: none;
-  }
-  .main { margin-left: 256px; width: calc(100% - 256px); padding: var(--sp-6) var(--sp-7); max-width: 1600px; }
+    /* ── Enterprise Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+      width: 256px;
+      flex-shrink: 0;
+      position: fixed;
+      inset: 0 auto 0 0;
+      background: linear-gradient(180deg, #080a0d 0%, #070810 100%);
+      border-right: 1px solid rgba(134, 79, 254, .15);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
 
-  /* Brand */
-  .brand {
-    display: flex; align-items: center; gap: 12px;
-    padding: 22px 20px 18px;
-    border-bottom: 1px solid rgba(134,79,254,.12);
-    position: relative; flex-shrink: 0;
-  }
-  .brand::after {
-    content: ''; position: absolute; bottom: -1px; left: 20px; right: 20px; height: 1px;
-    background: linear-gradient(90deg, var(--np-purple) 0%, transparent 100%);
-    opacity: 0.4;
-  }
-  .logo {
-    width: 38px; height: 38px; flex-shrink: 0;
-    border-radius: 50%;
-    background: #1A1A1C;
-    display: grid; place-items: center;
-    box-shadow: 0 0 18px rgba(134,79,254,.35), 0 0 40px rgba(134,79,254,.12);
-    animation: logo-pulse 4s ease-in-out infinite;
-  }
-  @keyframes logo-pulse {
-    0%, 100% { box-shadow: 0 0 18px rgba(134,79,254,.35), 0 0 40px rgba(134,79,254,.12); }
-    50% { box-shadow: 0 0 28px rgba(134,79,254,.55), 0 0 60px rgba(134,79,254,.2); }
-  }
-  .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-  .brand-text strong { color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .brand-text span { color: var(--np-purple); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.22em; margin-top: 2px; opacity: .85; }
+    .sidebar::before {
+      content: '';
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 256px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, var(--np-purple) 40%, var(--np-cyan) 60%, transparent 100%);
+      z-index: 11;
+      pointer-events: none;
+    }
 
-  /* Nav */
-  nav { display: flex; flex-direction: column; padding: 8px 12px; flex: 1; gap: 1px; }
+    .main {
+      margin-left: 256px;
+      width: calc(100% - 256px);
+      padding: var(--sp-6) var(--sp-7);
+      max-width: 1600px;
+    }
 
-  .nav-section {
-    margin-top: 16px; margin-bottom: 4px; padding: 0 8px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .nav-section-line {
-    flex: 1; height: 1px;
-    background: linear-gradient(90deg, rgba(134,79,254,.3) 0%, rgba(134,79,254,.08) 100%);
-  }
-  .nav-section-label {
-    font-size: 9px; font-weight: 800; letter-spacing: 0.2em;
-    text-transform: uppercase; color: var(--np-purple); opacity: .7;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .nav-section:first-child { margin-top: 6px; }
+    /* Brand */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid rgba(134, 79, 254, .12);
+      position: relative;
+      flex-shrink: 0;
+    }
 
-  nav a {
-    color: rgba(165,176,184,.75);
-    padding: 7px 10px;
-    border-radius: 7px;
-    font-size: 13px; font-weight: 500;
-    display: flex; align-items: center; gap: 9px;
-    border: 1px solid transparent;
-    transition: all .15s ease;
-    position: relative; letter-spacing: 0.01em;
-  }
-  nav a .nav-icon {
-    width: 16px; height: 16px; flex-shrink: 0; opacity: .6;
-    transition: opacity .15s ease;
-  }
-  nav a:hover {
-    color: #e6ecee; background: rgba(255,255,255,.04);
-    border-color: rgba(255,255,255,.06);
-  }
-  nav a:hover .nav-icon { opacity: .9; }
-  nav a.active {
-    color: var(--np-purple);
-    background: linear-gradient(135deg, rgba(134,79,254,.15) 0%, rgba(134,79,254,.08) 100%);
-    border-color: rgba(134,79,254,.25);
-    font-weight: 600;
-    box-shadow: inset 0 0 12px rgba(134,79,254,.06), 0 1px 4px rgba(0,0,0,.3);
-  }
-  nav a.active .nav-icon { opacity: 1; }
-  nav a.active::before {
-    content: ''; position: absolute; left: -1px; top: 20%; bottom: 20%;
-    width: 2px; border-radius: 0 2px 2px 0;
-    background: var(--np-purple);
-    box-shadow: 0 0 8px var(--np-purple);
-  }
+    .brand::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20px;
+      right: 20px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--np-purple) 0%, transparent 100%);
+      opacity: 0.4;
+    }
 
-  /* Sidebar footer */
-  .sidebar-footer {
-    margin-top: auto; padding: 14px 12px;
-    border-top: 1px solid rgba(134,79,254,.12); flex-shrink: 0;
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .sidebtn {
-    width: 100%; padding: 10px 12px;
-    border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.03); color: rgba(165,176,184,.85);
-    font-family: inherit; font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: all .15s ease; text-align: center;
-    letter-spacing: 0.02em;
-  }
-  .sidebtn:hover {
-    border-color: rgba(134,79,254,.5); color: var(--np-purple);
-    background: rgba(134,79,254,.08);
-    box-shadow: 0 0 12px rgba(134,79,254,.15);
-  }
-  .sidebtn small { display: block; font-size: 10px; opacity: .5; font-weight: 400; margin-top: 2px; }
+    .logo {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #1A1A1C;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 18px rgba(134, 79, 254, .35), 0 0 40px rgba(134, 79, 254, .12);
+      animation: logo-pulse 4s ease-in-out infinite;
+    }
 
-  .sidebar-user {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 8px; padding: 8px 10px;
-    background: rgba(255,255,255,.03); border-radius: 8px;
-    border: 1px solid rgba(255,255,255,.07);
-  }
-  .sidebar-user-info { display: flex; flex-direction: column; gap: 2px; }
-  .sidebar-user-name { font-size: 12px; color: #e6ecee; font-weight: 600; }
-  .sidebar-user-info a { font-size: 10px; color: var(--text-muted); }
-  .sidebar-logout { font-size: 11px; color: var(--text-muted); padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,.1); transition: all .15s; }
-  .sidebar-logout:hover { color: var(--bad); border-color: rgba(255,71,87,.4); background: rgba(255,71,87,.06); }
+    @keyframes logo-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 18px rgba(134, 79, 254, .35), 0 0 40px rgba(134, 79, 254, .12);
+      }
+
+      50% {
+        box-shadow: 0 0 28px rgba(134, 79, 254, .55), 0 0 60px rgba(134, 79, 254, .2);
+      }
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .brand-text strong {
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .brand-text span {
+      color: var(--np-purple);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      margin-top: 2px;
+      opacity: .85;
+    }
+
+    /* Nav */
+    nav {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      flex: 1;
+      gap: 1px;
+    }
+
+    .nav-section {
+      margin-top: 16px;
+      margin-bottom: 4px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-section-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(134, 79, 254, .3) 0%, rgba(134, 79, 254, .08) 100%);
+    }
+
+    .nav-section-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--np-purple);
+      opacity: .7;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-section:first-child {
+      margin-top: 6px;
+    }
+
+    nav a {
+      color: rgba(165, 176, 184, .75);
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid transparent;
+      transition: all .15s ease;
+      position: relative;
+      letter-spacing: 0.01em;
+    }
+
+    nav a .nav-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: .6;
+      transition: opacity .15s ease;
+    }
+
+    nav a:hover {
+      color: #e6ecee;
+      background: rgba(255, 255, 255, .04);
+      border-color: rgba(255, 255, 255, .06);
+    }
+
+    nav a:hover .nav-icon {
+      opacity: .9;
+    }
+
+    nav a.active {
+      color: var(--np-purple);
+      background: linear-gradient(135deg, rgba(134, 79, 254, .15) 0%, rgba(134, 79, 254, .08) 100%);
+      border-color: rgba(134, 79, 254, .25);
+      font-weight: 600;
+      box-shadow: inset 0 0 12px rgba(134, 79, 254, .06), 0 1px 4px rgba(0, 0, 0, .3);
+    }
+
+    nav a.active .nav-icon {
+      opacity: 1;
+    }
+
+    nav a.active::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 20%;
+      bottom: 20%;
+      width: 2px;
+      border-radius: 0 2px 2px 0;
+      background: var(--np-purple);
+      box-shadow: 0 0 8px var(--np-purple);
+    }
+
+    /* Sidebar footer */
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px 12px;
+      border-top: 1px solid rgba(134, 79, 254, .12);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebtn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .03);
+      color: rgba(165, 176, 184, .85);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s ease;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+
+    .sidebtn:hover {
+      border-color: rgba(134, 79, 254, .5);
+      color: var(--np-purple);
+      background: rgba(134, 79, 254, .08);
+      box-shadow: 0 0 12px rgba(134, 79, 254, .15);
+    }
+
+    .sidebtn small {
+      display: block;
+      font-size: 10px;
+      opacity: .5;
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .sidebar-user {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, .03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, .07);
+    }
+
+    .sidebar-user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar-user-name {
+      font-size: 12px;
+      color: #e6ecee;
+      font-weight: 600;
+    }
+
+    .sidebar-user-info a {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .sidebar-logout {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      transition: all .15s;
+    }
+
+    .sidebar-logout:hover {
+      color: var(--bad);
+      border-color: rgba(255, 71, 87, .4);
+      background: rgba(255, 71, 87, .06);
+    }
   </style>
 </head>
+
 <body data-theme="<%= typeof userTheme !== 'undefined' ? userTheme : 'np-purple' %>">
-<div class="app">
-<aside class="sidebar">
-  <div class="brand">
-    <div class="logo">
-      <svg width="24" height="24" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 13C14 12.4477 14.4477 12 15 12H17C17.5523 12 18 12.4477 18 13V31C18 31.5523 17.5523 32 17 32H15C14.4477 32 14 31.5523 14 31V13Z" fill="#F5F5F7"/>
-        <path d="M16 30L28 14" stroke="#F5F5F7" stroke-width="4" stroke-linecap="round"/>
-        <path d="M26 13C26 12.4477 26.4477 12 27 12H29C29.5523 12 30 12.4477 30 13V31C30 31.5523 29.5523 32 29 32H27C26.4477 32 26 31.5523 26 31V13Z" fill="#F5F5F7"/>
-        <path d="M28 11L30.5 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M30.5 8.5L30.5 11" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M30.5 8.5L28 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <div class="brand-text">
-      <strong>NativPost</strong>
-      <span>SEO Command</span>
-    </div>
-  </div>
-  <nav>
-    <div class="nav-section">
-      <span class="nav-section-label">Overview</span>
-      <span class="nav-section-line"></span>
-    </div>
-    <a class="<%= currentPath==='/'?'active':'' %>" href="/">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
-      Dashboard
-    </a>
-    <a class="<%= currentPath==='/daily-brief'?'active':'' %>" href="/daily-brief">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="4" x2="8" y2="8.5"/><line x1="8" y1="8.5" x2="10.5" y2="11"/></svg>
-      Daily Brief
-    </a>
-    <a class="<%= currentPath==='/reports'?'active':'' %>" href="/reports">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,12 5,7 8,9 11,4 15,4"/><line x1="1" y1="15" x2="15" y2="15"/></svg>
-      Reports
-    </a>
-
-    <div class="nav-section">
-      <span class="nav-section-label">Research</span>
-      <span class="nav-section-line"></span>
-    </div>
-    <a class="<%= currentPath==='/sites'?'active':'' %>" href="/sites">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><ellipse cx="8" cy="8" rx="3" ry="6.5"/><line x1="1.5" y1="8" x2="14.5" y2="8"/></svg>
-      Own Sites
-    </a>
-    <a class="<%= currentPath==='/competitors'?'active':'' %>" href="/competitors">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M10.5 5.5a4 4 0 1 1 0 8"/><line x1="2" y1="14" x2="2" y2="12.5" stroke-width="2"/><line x1="12" y1="14" x2="12" y2="12.5" stroke-width="2"/></svg>
-      Competitors
-    </a>
-    <a class="<%= currentPath==='/keywords'?'active':'' %>" href="/keywords">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="14.5" y2="14.5"/><line x1="5" y1="7" x2="9" y2="7"/><line x1="7" y1="5" x2="7" y2="9"/></svg>
-      Keywords
-    </a>
-    <a class="<%= currentPath==='/serp'?'active':'' %>" href="/serp">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="3" rx="1"/><rect x="1" y="7" width="10" height="3" rx="1"/><rect x="1" y="12" width="7" height="3" rx="1"/></svg>
-      SERP Intelligence
-    </a>
-    <a class="<%= currentPath==='/backlinks'?'active':'' %>" href="/backlinks">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5L7 4"/><path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5L9 12"/></svg>
-      Backlinks
-    </a>
-    <a class="<%= currentPath==='/backlinks/prospects'?'active':'' %>" href="/backlinks/prospects">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l3-3m6-6l3-3M8 8l4-4M4 12l4-4"/><circle cx="13" cy="3" r="1.5"/><circle cx="3" cy="13" r="1.5"/></svg>
-      Link Gap
-    </a>
-
-    <div class="nav-section">
-      <span class="nav-section-label">Content</span>
-      <span class="nav-section-line"></span>
-    </div>
-    <a class="<%= currentPath==='/content-studio'?'active':'' %>" href="/content-studio">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2.5a1.5 1.5 0 0 1 2.5 1.5L5 12.5 2 13.5l1-3L11 2.5z"/></svg>
-      Content Studio
-    </a>
-    <a class="<%= currentPath==='/articles'?'active':'' %>" href="/articles">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="12" height="13" rx="1.5"/><line x1="5" y1="5.5" x2="11" y2="5.5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="10.5" x2="8.5" y2="10.5"/></svg>
-      Drafts &amp; Articles
-    </a>
-    <a class="<%= currentPath==='/review'?'active':'' %>" href="/review">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9.5a6 6 0 1 1-4.5-5.8"/><polyline points="9,9 11,11 14.5,7"/></svg>
-      Review Queue
-    </a>
-    <a class="<%= currentPath==='/publish'?'active':'' %>" href="/publish">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3"/><polyline points="11,5 8,2 5,5"/><line x1="8" y1="2" x2="8" y2="11"/></svg>
-      Publish Queue
-    </a>
-    <a class="<%= currentPath==='/reports/internal-links'?'active':'' %>" href="/reports/internal-links">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="8" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="12" r="2"/><line x1="6" y1="7" x2="10" y2="5"/><line x1="6" y1="9" x2="10" y2="11"/></svg>
-      Internal Links
-    </a>
-    <a class="<%= currentPath==='/assets'?'active':'' %>" href="/assets">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 10l3.5-3.5 3 3 2.5-2.5 4 4"/><circle cx="11.5" cy="6.5" r="1.5"/></svg>
-      Image Library
-    </a>
-
-    <div class="nav-section">
-      <span class="nav-section-label">System</span>
-      <span class="nav-section-line"></span>
-    </div>
-    <a class="<%= currentPath==='/settings'?'active':'' %>" href="/settings">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06"/></svg>
-      Settings
-    </a>
-    <a class="<%= currentPath==='/admin/live-games'?'active':'' %>" href="/admin/live-games">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1.5"/><path d="M5 8h2m-1-1v2"/><circle cx="10.5" cy="7.5" r=".75" fill="currentColor"/><circle cx="12.5" cy="9.5" r=".75" fill="currentColor"/></svg>
-      Platform Strategy
-    </a>
-    <a class="<%= currentPath==='/admin/game-facts'?'active':'' %>" href="/admin/game-facts">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><circle cx="8" cy="11" r=".75" fill="currentColor"/></svg>
-      Brand Facts
-    </a>
-    <% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') { %>
-      <div class="nav-section">
-        <span class="nav-section-label">Admin</span>
-        <span class="nav-section-line"></span>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M14 13C14 12.4477 14.4477 12 15 12H17C17.5523 12 18 12.4477 18 13V31C18 31.5523 17.5523 32 17 32H15C14.4477 32 14 31.5523 14 31V13Z"
+              fill="#F5F5F7" />
+            <path d="M16 30L28 14" stroke="#F5F5F7" stroke-width="4" stroke-linecap="round" />
+            <path
+              d="M26 13C26 12.4477 26.4477 12 27 12H29C29.5523 12 30 12.4477 30 13V31C30 31.5523 29.5523 32 29 32H27C26.4477 32 26 31.5523 26 31V13Z"
+              fill="#F5F5F7" />
+            <path d="M28 11L30.5 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M30.5 8.5L30.5 11" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round" />
+            <path d="M30.5 8.5L28 8.5" stroke="#864FFE" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <strong>NativPost</strong>
+          <span>SEO Command</span>
+        </div>
       </div>
-      <a class="<%= currentPath==='/admin/game-radar'?'active':'' %>" href="/admin/game-radar">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="3.5"/><line x1="8" y1="1.5" x2="8" y2="8"/><line x1="8" y1="8" x2="12" y2="5"/></svg>
-        Keyword Radar
-      </a>
-      <a class="<%= currentPath==='/admin/api-balances'?'active':'' %>" href="/admin/api-balances">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="1" x2="8" y2="15"/><path d="M5 4h4.5a2.5 2.5 0 0 1 0 5H5m0 0h5.5a2.5 2.5 0 0 1 0 5H5"/></svg>
-        API Balances
-      </a>
-      <a class="<%= currentPath==='/admin/users'?'active':'' %>" href="/admin/users">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M1.5 14.5c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/></svg>
-        Users
-      </a>
-    <% } %>
-  </nav>
-  <div class="sidebar-footer">
-    <form method="post" action="/maintenance/run-all" onsubmit="return confirm('Crawl &amp; Audit Sites?\n\nRe-scans your sites and competitors for technical SEO data.\nNo AI credits used. No content generated. No publishing.')">
-      <button class="sidebtn" title="Crawls own sites and competitors — no OpenAI, no DataForSEO credits, no publishing">
-        Crawl &amp; Audit Sites
-        <small>No credits used</small>
-      </button>
-    </form>
-    <div class="sidebar-user">
-      <div class="sidebar-user-info">
-        <span class="sidebar-user-name"><%= (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'Guest' %></span>
-        <% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'admin') { %>
-          <a href="/admin/users">Manage users</a>
-        <% } else { %>
-          <a href="/settings">Settings</a>
-        <% } %>
-      </div>
-      <a href="/auth/logout" class="sidebar-logout">Sign out</a>
-    </div>
-  </div>
-</aside>
-<main class="main">
+      <nav>
+        <div class="nav-section">
+          <span class="nav-section-label">Overview</span>
+          <span class="nav-section-line"></span>
+        </div>
+        <a class="<%= currentPath==='/'?'active':'' %>" href="/">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="1" width="6" height="6" rx="1.5" />
+            <rect x="9" y="1" width="6" height="6" rx="1.5" />
+            <rect x="1" y="9" width="6" height="6" rx="1.5" />
+            <rect x="9" y="9" width="6" height="6" rx="1.5" />
+          </svg>
+          Dashboard
+        </a>
+        <a class="<%= currentPath==='/daily-brief'?'active':'' %>" href="/daily-brief">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="8" r="6.5" />
+            <line x1="8" y1="4" x2="8" y2="8.5" />
+            <line x1="8" y1="8.5" x2="10.5" y2="11" />
+          </svg>
+          Daily Brief
+        </a>
+        <a class="<%= currentPath==='/reports'?'active':'' %>" href="/reports">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="1,12 5,7 8,9 11,4 15,4" />
+            <line x1="1" y1="15" x2="15" y2="15" />
+          </svg>
+          Reports
+        </a>
 
+        <div class="nav-section">
+          <span class="nav-section-label">Research</span>
+          <span class="nav-section-line"></span>
+        </div>
+        <a class="<%= currentPath==='/sites'?'active':'' %>" href="/sites">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="8" r="6.5" />
+            <ellipse cx="8" cy="8" rx="3" ry="6.5" />
+            <line x1="1.5" y1="8" x2="14.5" y2="8" />
+          </svg>
+          Own Sites
+        </a>
+        <a class="<%= currentPath==='/competitors'?'active':'' %>" href="/competitors">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M6 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+            <path d="M10.5 5.5a4 4 0 1 1 0 8" />
+            <line x1="2" y1="14" x2="2" y2="12.5" stroke-width="2" />
+            <line x1="12" y1="14" x2="12" y2="12.5" stroke-width="2" />
+          </svg>
+          Competitors
+        </a>
+        <a class="<%= currentPath==='/keywords'?'active':'' %>" href="/keywords">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="7" cy="7" r="5" />
+            <line x1="11" y1="11" x2="14.5" y2="14.5" />
+            <line x1="5" y1="7" x2="9" y2="7" />
+            <line x1="7" y1="5" x2="7" y2="9" />
+          </svg>
+          Keywords
+        </a>
+        <a class="<%= currentPath==='/serp'?'active':'' %>" href="/serp">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="2" width="14" height="3" rx="1" />
+            <rect x="1" y="7" width="10" height="3" rx="1" />
+            <rect x="1" y="12" width="7" height="3" rx="1" />
+          </svg>
+          SERP Intelligence
+        </a>
+        <a class="<%= currentPath==='/backlinks'?'active':'' %>" href="/backlinks">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M6.5 9.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5L7 4" />
+            <path d="M9.5 6.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5L9 12" />
+          </svg>
+          Backlinks
+        </a>
+        <a class="<%= currentPath==='/backlinks/prospects'?'active':'' %>" href="/backlinks/prospects">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M2 14l3-3m6-6l3-3M8 8l4-4M4 12l4-4" />
+            <circle cx="13" cy="3" r="1.5" />
+            <circle cx="3" cy="13" r="1.5" />
+          </svg>
+          Link Gap
+        </a>
+
+        <div class="nav-section">
+          <span class="nav-section-label">Content</span>
+          <span class="nav-section-line"></span>
+        </div>
+        <a class="<%= currentPath==='/content-studio'?'active':'' %>" href="/content-studio">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M11 2.5a1.5 1.5 0 0 1 2.5 1.5L5 12.5 2 13.5l1-3L11 2.5z" />
+          </svg>
+          Content Studio
+        </a>
+        <a class="<%= currentPath==='/articles'?'active':'' %>" href="/articles">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="1.5" width="12" height="13" rx="1.5" />
+            <line x1="5" y1="5.5" x2="11" y2="5.5" />
+            <line x1="5" y1="8" x2="11" y2="8" />
+            <line x1="5" y1="10.5" x2="8.5" y2="10.5" />
+          </svg>
+          Drafts &amp; Articles
+        </a>
+        <a class="<%= currentPath==='/review'?'active':'' %>" href="/review">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 9.5a6 6 0 1 1-4.5-5.8" />
+            <polyline points="9,9 11,11 14.5,7" />
+          </svg>
+          Review Queue
+        </a>
+        <a class="<%= currentPath==='/publish'?'active':'' %>" href="/publish">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-3" />
+            <polyline points="11,5 8,2 5,5" />
+            <line x1="8" y1="2" x2="8" y2="11" />
+          </svg>
+          Publish Queue
+        </a>
+        <a class="<%= currentPath==='/reports/internal-links'?'active':'' %>" href="/reports/internal-links">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="4" cy="8" r="2" />
+            <circle cx="12" cy="4" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <line x1="6" y1="7" x2="10" y2="5" />
+            <line x1="6" y1="9" x2="10" y2="11" />
+          </svg>
+          Internal Links
+        </a>
+        <a class="<%= currentPath==='/assets'?'active':'' %>" href="/assets">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="3" width="14" height="10" rx="1.5" />
+            <path d="M1 10l3.5-3.5 3 3 2.5-2.5 4 4" />
+            <circle cx="11.5" cy="6.5" r="1.5" />
+          </svg>
+          Image Library
+        </a>
+
+        <div class="nav-section">
+          <span class="nav-section-label">System</span>
+          <span class="nav-section-line"></span>
+        </div>
+        <a class="<%= currentPath==='/settings'?'active':'' %>" href="/settings">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="8" r="2.5" />
+            <path
+              d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M12.95 3.05l-1.06 1.06M4.11 11.89l-1.06 1.06" />
+          </svg>
+          Settings
+        </a>
+        <a class="<%= currentPath==='/admin/live-games'?'active':'' %>" href="/admin/live-games">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="1" y="4" width="14" height="9" rx="1.5" />
+            <path d="M5 8h2m-1-1v2" />
+            <circle cx="10.5" cy="7.5" r=".75" fill="currentColor" />
+            <circle cx="12.5" cy="9.5" r=".75" fill="currentColor" />
+          </svg>
+          Platform Strategy
+        </a>
+        <a class="<%= currentPath==='/admin/game-facts'?'active':'' %>" href="/admin/game-facts">
+          <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="8" r="6.5" />
+            <line x1="8" y1="5" x2="8" y2="8.5" />
+            <circle cx="8" cy="11" r=".75" fill="currentColor" />
+          </svg>
+          Brand Facts
+        </a>
+        <% if (typeof currentUser !=='undefined' && currentUser && currentUser.role==='admin' ) { %>
+          <div class="nav-section">
+            <span class="nav-section-label">Admin</span>
+            <span class="nav-section-line"></span>
+          </div>
+          <a class="<%= currentPath==='/keywords'?'active':'' %>" href="/keywords">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="6.5" />
+              <circle cx="8" cy="8" r="3.5" />
+              <line x1="8" y1="1.5" x2="8" y2="8" />
+              <line x1="8" y1="8" x2="12" y2="5" />
+            </svg>
+            Keyword Radar
+          </a>
+          <a class="<%= currentPath==='/admin/api-balances'?'active':'' %>" href="/admin/api-balances">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="8" y1="1" x2="8" y2="15" />
+              <path d="M5 4h4.5a2.5 2.5 0 0 1 0 5H5m0 0h5.5a2.5 2.5 0 0 1 0 5H5" />
+            </svg>
+            API Balances
+          </a>
+          <a class="<%= currentPath==='/admin/users'?'active':'' %>" href="/admin/users">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="5" r="3" />
+              <path d="M1.5 14.5c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" />
+            </svg>
+            Users
+          </a>
+          <% } %>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="post" action="/maintenance/run-all"
+          onsubmit="return confirm('Crawl &amp; Audit Sites?\n\nRe-scans your sites and competitors for technical SEO data.\nNo AI credits used. No content generated. No publishing.')">
+          <button class="sidebtn"
+            title="Crawls own sites and competitors — no OpenAI, no DataForSEO credits, no publishing">
+            Crawl &amp; Audit Sites
+            <small>No credits used</small>
+          </button>
+        </form>
+        <div class="sidebar-user">
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">
+              <%= (typeof currentUser !=='undefined' && currentUser) ? currentUser.username : 'Guest' %>
+            </span>
+            <% if (typeof currentUser !=='undefined' && currentUser && currentUser.role==='admin' ) { %>
+              <a href="/admin/users">Manage users</a>
+              <% } else { %>
+                <a href="/settings">Settings</a>
+                <% } %>
+          </div>
+          <a href="/auth/logout" class="sidebar-logout">Sign out</a>
+        </div>
+      </div>
+    </aside>
+    <main class="main">

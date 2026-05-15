@@ -42,6 +42,12 @@
   <% if(_syncStale && gscConnected){ %>
     <p style="margin-top:.75rem;font-size:.8rem;color:var(--warn)">⚠ GSC data is <%= _syncAge===null?'missing':'more than 2 days old' %>. Click <strong>Sync GSC data now</strong> below to refresh rankings.</p>
   <% } %>
+  <% if(!gscConnected){ %>
+    <div style="margin-top:.75rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:12px 16px">
+      <strong style="color:var(--bad);display:block;margin-bottom:4px">⚠ Google authentication required</strong>
+      <span style="font-size:.82rem;color:var(--text-muted)">Your Google OAuth token has expired or been revoked. GSC and GA4 syncing will not work until you reconnect. Click <strong>Connect Google Account</strong> in the section below to re-authenticate.</span>
+    </div>
+  <% } %>
 </section>
 
 <% if(googleMsg === 'connected'){ %>
@@ -89,6 +95,7 @@ GOOGLE_OAUTH_REDIRECT_URI=http://YOUR_AMP_HOST:7783/api/auth/google/callback</pr
     Make sure this exact URI is whitelisted in your Google Cloud OAuth client settings.</p>
   <% } else { %>
     <p>Google account is connected. Sync pulls the last 90 days of data into your rankings and page metrics tables. Run syncs periodically (weekly is sufficient) or after major site changes.</p>
+    <p style="margin-top:.4rem;font-size:var(--fs-sm);color:var(--text-muted)">If syncing returns a 403 error, use the debug tool to see the exact rejection reason: <a href="/api/google/debug" target="_blank" style="color:var(--np-purple);font-weight:600">Run sync diagnostic →</a></p>
     <div class="grid two" style="margin-top:.75rem">
       <div>
         <h3 style="font-size:var(--fs-md);margin-bottom:.5rem">Google Search Console</h3>

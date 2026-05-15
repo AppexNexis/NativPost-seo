@@ -1,0 +1,353 @@
+<%- include('layout-start') %>
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Configuration</p>
+      <h1>Settings</h1>
+      <p>Connection status for all integrations. Most values are set in <code>.env.local</code> — restart the app after
+        editing that file.</p>
+    </div>
+  </section>
+
+  <!-- ── SYSTEM HEALTH PANEL ─────────────────────────────────────────────── -->
+  <% var _lastSync=(typeof lastGscSync !=='undefined' && lastGscSync) ? new Date(lastGscSync) : null; var
+    _syncAge=_lastSync ? Math.floor((Date.now() - _lastSync.getTime()) / (1000*60*60*24)) : null; var
+    _syncStale=_syncAge===null || _syncAge> 2;
+    var _rankCnt = (typeof rankingCount !== 'undefined') ? rankingCount : 0;
+    var _dfsUsed = (typeof dfsCallsToday !== 'undefined') ? dfsCallsToday : 0;
+    var _dfsCap = (typeof dfsDailyCap !== 'undefined') ? dfsDailyCap : 20;
+    var _dfsPct = _dfsCap > 0 ? Math.round((_dfsUsed / _dfsCap) * 100) : 0;
+    %>
+    <section class="card" style="margin-bottom:1rem">
+      <div class="card-head">
+        <h2>System health</h2>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-top:.5rem">
+        <div
+          style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=_syncStale?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)'%>">
+          <strong style="display:block;font-size:1rem;color:<%=_syncStale?'var(--bad)':'var(--np-purple)'%>">
+            <%= _lastSync ? _lastSync.toLocaleDateString() : 'Never' %>
+          </strong>
+          <span style="font-size:.72rem;color:var(--text-muted)">Last GSC sync<% if(_syncAge!==null){ %> · <%= _syncAge
+                %>d ago<% } %></span>
+        </div>
+        <div style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid var(--line)">
+          <strong style="display:block;font-size:1rem;color:var(--text)">
+            <%= _rankCnt.toLocaleString() %>
+          </strong>
+          <span style="font-size:.72rem;color:var(--text-muted)">Ranking rows in DB</span>
+        </div>
+        <div
+          style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=_dfsPct>80?'rgba(239,68,68,.3)':_dfsPct>50?'rgba(245,158,11,.3)':'var(--line)'%>">
+          <strong
+            style="display:block;font-size:1rem;color:<%=_dfsPct>80?'var(--bad)':_dfsPct>50?'var(--warn)':'var(--np-purple)'%>">
+            <%= _dfsUsed %> / <%= _dfsCap %>
+          </strong>
+          <span style="font-size:.72rem;color:var(--text-muted)">DataForSEO calls today</span>
+        </div>
+        <div
+          style="background:var(--bg-3,#0d1117);border-radius:8px;padding:12px 14px;border:1px solid <%=gscConnected?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'%>">
+          <strong style="display:block;font-size:1rem;color:<%=gscConnected?'var(--np-purple)':'var(--bad)'%>">
+            <%= gscConnected ? '✓ Connected' : '✗ Disconnected' %>
+          </strong>
+          <span style="font-size:.72rem;color:var(--text-muted)">Google / GSC</span>
+        </div>
+      </div>
+      <% if(_syncStale && gscConnected){ %>
+        <p style="margin-top:.75rem;font-size:.8rem;color:var(--warn)">⚠ GSC data is <%= _syncAge===null?'missing':'more
+            than 2 days old' %>. Click <strong>Sync GSC data now</strong> below to refresh rankings.</p>
+        <% } %>
+    </section>
+
+    <% if(googleMsg==='connected' ){ %>
+      <div class="notice-good"><strong>Google connected!</strong> Refresh token stored. Use "Sync GSC" and "Sync GA4"
+        below to pull your data now.</div>
+      <% } else if(googleMsg==='disconnected' ){ %>
+        <div class="notice-warn"><strong>Google disconnected.</strong> Token removed. Reconnect below to restore GSC and
+          GA4 sync.</div>
+        <% } %>
+          <% if(errorMsg){ %>
+            <div class="notice-warn"><strong>Error:</strong>
+              <%= errorMsg %>
+                <% if(typeof infoMsg !=='undefined' && infoMsg){ %> — <%= infoMsg %>
+                    <% } %>
+            </div>
+            <% } %>
+              <% if(typeof gscSynced !=='undefined' && gscSynced> 0){ %>
+                <div class="notice-good"><strong>GSC sync complete.</strong>
+                  <%= gscSynced %> ranking rows imported. Ranking data is now available in Reports.
+                </div>
+                <% } %>
+                  <% if(typeof ga4Synced !=='undefined' && ga4Synced> 0){ %>
+                    <div class="notice-good"><strong>GA4 sync result:</strong>
+                      <%= typeof infoMsg !=='undefined' && infoMsg ? infoMsg : ga4Synced + ' page metric rows imported.'
+                        %>
+                    </div>
+                    <% } %>
+
+                      <!-- ── GOOGLE / GSC / GA4 ─────────────────────────────────────────────── -->
+                      <section class="card">
+                        <div class="card-head">
+                          <h2>Google Search Console &amp; GA4</h2>
+                          <span class="badge"
+                            style="<%= gscConnected ? 'background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:var(--np-purple)' : 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--bad)' %>">
+                            <%= gscConnected ? '✓ Connected' : '✗ Not connected' %>
+                          </span>
+                        </div>
+
+                        <% if(!googleClientConfigured){ %>
+                          <div class="notice-warn">
+                            <strong>OAuth client not configured.</strong> Add these to <code>.env.local</code> and
+                            restart:
+                            <pre style="margin:.5rem 0 0">GOOGLE_OAUTH_CLIENT_ID=your_client_id
+GOOGLE_OAUTH_CLIENT_SECRET=your_client_secret
+GOOGLE_OAUTH_REDIRECT_URI=http://YOUR_AMP_HOST:7783/api/auth/google/callback</pre>
+                            <p style="margin:.5rem 0 0;font-size:var(--fs-sm)">Create credentials at <a
+                                href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud
+                                Console</a>. Enable <strong>Google Search Console API</strong> and <strong>Google
+                                Analytics Data API</strong>. Add the redirect URI above to your OAuth client's allowed
+                              redirect URIs.</p>
+                          </div>
+                          <% } else if(!gscConnected){ %>
+                            <div class="notice-warn" style="margin-bottom:.75rem;font-size:var(--fs-md)">
+                              <strong>Before connecting:</strong> Your Google Cloud app is in "Testing" mode. You must
+                              add your Google account as a test user first, or you'll see "Access blocked" (Error
+                              403).<br><br>
+                              Go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank"
+                                style="color:inherit;font-weight:600">Google Cloud → OAuth consent screen → Test users →
+                                + Add users</a> → add <code>garrett.party.guru@gmail.com</code> → Save. Then click
+                              Connect below.
+                            </div>
+                            <p>Click below to connect. Grants access to Search Console and Analytics in one flow.</p>
+                            <div class="actions" style="margin-top:.75rem">
+                              <a class="btn primary" href="/api/auth/google">Connect Google Account →</a>
+                            </div>
+                            <p class="hint" style="margin-top:.75rem">The redirect URI configured is:
+                              <code><%= typeof env !== 'undefined' ? (process && process.env && process.env.GOOGLE_OAUTH_REDIRECT_URI || 'http://localhost:7783/api/auth/google/callback') : '' %></code><br>
+                              Make sure this exact URI is whitelisted in your Google Cloud OAuth client settings.
+                            </p>
+                            <% } else { %>
+                              <p>Google account is connected. Sync pulls the last 90 days of data into your rankings and
+                                page metrics tables. Run syncs periodically (weekly is sufficient) or after major site
+                                changes.</p>
+                              <div class="grid two" style="margin-top:.75rem">
+                                <div>
+                                  <h3 style="font-size:var(--fs-md);margin-bottom:.5rem">Google Search Console</h3>
+                                  <p class="hint">Imports real keyword rankings, clicks, impressions, and CTR per page.
+                                    Powers the SERP Visibility bar on the dashboard.</p>
+                                  <form method="post" action="/api/gsc/sync">
+                                    <button class="btn primary">Sync GSC data now</button>
+                                  </form>
+                                  <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-top:.4rem;">GSC + GA4
+                                    also auto-syncs daily in the background when Google is connected.</p>
+                                </div>
+                                <div>
+                                  <h3 style="font-size:var(--fs-md);margin-bottom:.5rem">Google Analytics 4</h3>
+                                  <p class="hint">Imports page views, sessions, and engagement rate. Powers the Reports
+                                    page metrics section.</p>
+                                  <form method="post" action="/api/ga4/sync">
+                                    <button class="btn primary">Sync GA4 data now</button>
+                                  </form>
+                                </div>
+                              </div>
+                              <div style="margin-top:1rem;border-top:1px solid var(--line);padding-top:1rem">
+                                <h3 style="font-size:var(--fs-md);margin-bottom:.5rem;color:var(--text-muted)">GSC
+                                  property mapping (from .env.local)</h3>
+                                <% if(typeof sites !=='undefined' && sites.length){ %>
+                                  <% sites.forEach(function(s){ %>
+                                    <div class="metric-row">
+                                      <strong>
+                                        <%= s.name %>
+                                      </strong>
+                                      <span>GSC: <%= s.gsc_property || '— not set on site record' %> &middot; GA4: <%=
+                                            s.ga4_property_id || '— not set' %></span>
+                                    </div>
+                                    <% }); %>
+                                      <% } %>
+                                        <p class="hint" style="margin-top:.5rem">Set <code>gsc_property</code> on each
+                                          site in <a href="/sites">Own Sites</a> to control which GSC property is synced
+                                          for that site.</p>
+                              </div>
+                              <div style="margin-top:1rem;border-top:1px solid var(--line);padding-top:.75rem">
+                                <form method="post" action="/api/auth/google/disconnect"
+                                  onsubmit="return confirm('Disconnect Google? This removes the stored token. You can reconnect at any time.')">
+                                  <button class="btn danger" style="font-size:var(--fs-sm)">Disconnect Google
+                                    account</button>
+                                </form>
+                              </div>
+                              <% } %>
+                      </section>
+
+                      <!-- ── SYSTEM STATUS ──────────────────────────────────────────────────── -->
+                      <section class="card">
+                        <h2>System status</h2>
+                        <div class="metric-row"><strong>Port</strong><span>
+                            <%= env.port %>
+                          </span></div>
+                        <div class="metric-row"><strong>Publish mode</strong><span>
+                            <%= env.publishMode %>
+                          </span></div>
+                        <div class="metric-row"><strong>Contentful publishing</strong>
+                          <span
+                            style="color:<%= env.contentfulActive ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>">
+                            <%= env.contentfulActive ? '✓ Active'
+                              : '✗ Inactive — set PUBLISH_MODE=contentful in .env.local' %>
+                          </span>
+                        </div>
+                        <div class="metric-row"><strong>Contentful content type</strong><span>
+                            <%= env.contentfulType || 'Not set' %>
+                          </span></div>
+                        <div class="metric-row"><strong>OpenAI</strong>
+                          <span
+                            style="color:<%= env.hasAI ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>">
+                            <%= env.hasAI ? '✓ Connected'
+                              : '✗ Missing ANTHROPIC_API_KEY (primary) or OPENAI_API_KEY (fallback)' %>
+                          </span>
+                        </div>
+                        <div class="metric-row"><strong>Google / GSC / GA4</strong>
+                          <span
+                            style="color:<%= gscConnected ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>">
+                            <%= env.googleStatus %>
+                          </span>
+                        </div>
+                        <div class="metric-row"><strong>Crawl page limit</strong><span>
+                            <%= env.crawlLimit %> pages per scan
+                          </span></div>
+                        <div class="metric-row"><strong>Internal crawl override</strong>
+                          <span style="color:<%= env.crawlBaseUrl ? 'var(--np-purple)' : 'var(--text-muted)' %>">
+                            <%= env.crawlBaseUrl || 'Not set — crawling public domain directly' %>
+                          </span>
+                        </div>
+                        <% if(!env.crawlBaseUrl){ %>
+                          <div
+                            style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 14px;margin:.5rem 0;font-size:.78rem;color:var(--warn)">
+                            ⚠ If your website and SEO tool are on the same server and the public domain isn't live yet,
+                            set <code>CRAWL_BASE_URL=http://localhost:PORT</code> in <code>.env.local</code> (replace
+                            PORT with your website's internal port). This allows the crawler to reach your site directly
+                            without going through DNS.
+                          </div>
+                          <% } %>
+                            <div class="metric-row"><strong>Auto-publish daily cap</strong><span>
+                                <%= autoPublishDailyLimit %> article(s)/day
+                              </span></div>
+                            <div class="metric-row"><strong>Auto-publish interval</strong><span>Every <%=
+                                  autoPublishIntervalMinutes %> minute(s)</span></div>
+                            <div class="metric-row"><strong>Min quality score to publish</strong><span>
+                                <%= minQualityScore %>/100
+                              </span></div>
+                      </section>
+
+                      <!-- ── CONTENTFUL SETUP ───────────────────────────────────────────────── -->
+                      <section class="card">
+                        <h2>Contentful auto-publishing setup</h2>
+                        <p>Set these in <code>.env.local</code> and restart to enable Contentful publishing:</p>
+                        <pre>PUBLISH_MODE=contentful
+CONTENTFUL_SPACE_ID=your_space_id
+CONTENTFUL_ENVIRONMENT_ID=master
+CONTENTFUL_CMA_TOKEN=your_cma_token
+CONTENTFUL_BLOG_CONTENT_TYPE_ID=pageBlogPost
+CONTENTFUL_FIELD_TITLE=title
+CONTENTFUL_FIELD_SLUG=slug
+CONTENTFUL_FIELD_BODY=content
+CONTENTFUL_FIELD_EXCERPT=shortDescription
+CONTENTFUL_FIELD_FEATURED_IMAGE=featuredImage
+CONTENTFUL_FIELD_PUBLISH_DATE=publishedDate
+CONTENTFUL_FIELD_SEO_REFERENCE=seoFields</pre>
+                        <p class="hint" style="margin-top:.5rem">Your current <code>PUBLISH_MODE</code> is <strong>
+                            <%= env.publishMode %>
+                          </strong>.</p>
+                      </section>
+
+                      <!-- ── NativPost BUSINESS FACTS ─────────────────────────────────────────────── -->
+                      <section class="card">
+                        <h2>NativPost business facts (injected into every AI article)</h2>
+                        <p class="hint">Prevents the AI from making false claims about your packages. Set in
+                          <code>.env.local</code>.
+                        </p>
+                        <div class="metric-row"><strong>Minimum RAM package</strong><span>
+                            <%= env.minRam %>GB
+                          </span></div>
+                        <div class="metric-row"><strong>Baseline price</strong><span>
+                            <%= env.basePrice %>
+                          </span></div>
+                        <div class="metric-row"><strong>Free trial</strong><span>
+                            <%= env.trialDays %> days
+                          </span></div>
+                        <div class="metric-row"><strong>Refund policy</strong><span>
+                            <%= env.refundPolicy %>
+                          </span></div>
+                        <div class="metric-row"><strong>Package rules</strong><span>
+                            <%= env.packageRules %>
+                          </span></div>
+                      </section>
+
+                      <!-- ── THEME PICKER (v107) ────────────────────────────────────────────── -->
+                      <section class="card">
+                        <div class="card-head">
+                          <h2>Theme</h2>
+                          <span class="badge">
+                            <%= (typeof userTheme !=='undefined' ? userTheme : 'np-purple' ) %>
+                          </span>
+                        </div>
+                        <p class="hint">Switch between the NativPost-branded neon green and the previous purple look.
+                          Your selection is saved per-user — other users aren't affected.</p>
+                        <% if (typeof query !=='undefined' && query && query.theme_saved) { %>
+                          <div class="notice-good">Theme saved.</div>
+                          <% } %>
+                            <div class="theme-picker">
+                              <div
+                                class="theme-option <%= (typeof userTheme !== 'undefined' && userTheme==='np-purple') ? 'current' : '' %>"
+                                id="theme-opt-igh-green">
+                                <div class="theme-swatch igh-green"></div>
+                                <div class="theme-name">NativPost Green <% if (typeof userTheme !=='undefined' &&
+                                    userTheme==='np-purple' ) { %><span class="badge good"
+                                      id="theme-badge-igh-green">Active</span>
+                                    <% } %>
+                                </div>
+                                <div class="theme-desc">Neon green on near-black — matches nativpost.com.</div>
+                                <button class="mini primary" id="theme-btn-igh-green" onclick="applyTheme('np-purple')"
+                                  <%=(typeof userTheme !=='undefined' && userTheme==='np-purple' ) ? 'disabled' : '' %>>
+                                  <%= (typeof userTheme !=='undefined' && userTheme==='np-purple' ) ? 'Current'
+                                    : 'Use this theme' %>
+                                </button>
+                              </div>
+                              <div
+                                class="theme-option <%= (typeof userTheme !== 'undefined' && userTheme==='classic-purple') ? 'current' : '' %>"
+                                id="theme-opt-classic-purple">
+                                <div class="theme-swatch classic-purple"></div>
+                                <div class="theme-name">Classic Purple <% if (typeof userTheme !=='undefined' &&
+                                    userTheme==='classic-purple' ) { %><span class="badge good"
+                                      id="theme-badge-classic-purple">Active</span>
+                                    <% } %>
+                                </div>
+                                <div class="theme-desc">Purple + cyan gradient on navy — the previous SaaS look.</div>
+                                <button class="mini primary" id="theme-btn-classic-purple"
+                                  onclick="applyTheme('classic-purple')" <%=(typeof userTheme !=='undefined' &&
+                                  userTheme==='classic-purple' ) ? 'disabled' : '' %>>
+                                  <%= (typeof userTheme !=='undefined' && userTheme==='classic-purple' ) ? 'Current'
+                                    : 'Use this theme' %>
+                                </button>
+                              </div>
+                            </div>
+                            <script>
+                              function applyTheme(theme) {
+                                // Apply instantly to DOM
+                                document.documentElement.setAttribute('data-theme', theme);
+                                document.body.setAttribute('data-theme', theme);
+                                // Update button states
+                                ['np-purple', 'classic-purple'].forEach(function (t) {
+                                  var btn = document.getElementById('theme-btn-' + t);
+                                  var opt = document.getElementById('theme-opt-' + t);
+                                  if (btn) { btn.disabled = t === theme; btn.textContent = t === theme ? 'Current' : 'Use this theme'; }
+                                  if (opt) { opt.classList.toggle('current', t === theme); }
+                                });
+                                // Save to server without page reload
+                                fetch('/preferences/theme', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                  body: 'theme=' + encodeURIComponent(theme) + '&redirect=/settings'
+                                }).catch(function (e) { console.warn('Theme save failed:', e); });
+                              }
+                            </script>
+                      </section>
+
+                      <%- include('layout-end') %>
