@@ -516,8 +516,7 @@ label {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.55);
-  z-index: 99;
-  backdrop-filter: blur(2px);
+  z-index: 98;
   opacity: 0;
   transition: opacity .2s;
 }
@@ -538,7 +537,7 @@ label {
     top: 0 !important;
     bottom: 0 !important;
     width: 256px !important;
-    z-index: 100;
+    z-index: 200;
     transition: left .22s cubic-bezier(.4,0,.2,1);
     border-right: 1px solid rgba(134,79,254,.2) !important;
   }
@@ -943,4 +942,3 @@ body.auth-page {
 .theme-name { font-weight: 700; color: var(--text-heading); margin-bottom: 2px; font-size: var(--fs-md); }
 .theme-desc { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: var(--sp-3); line-height: 1.5; }
 .theme-option button { width: 100%; }
-
