@@ -5,11 +5,13 @@
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebarOverlay').classList.add('open');
+  document.getElementById('sidebarToggle').style.display = 'none';
   document.body.style.overflow = 'hidden';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
+  document.getElementById('sidebarToggle').style.display = '';
   document.body.style.overflow = '';
 }
 function toggleSidebar() {
@@ -28,6 +30,13 @@ document.querySelectorAll('.sidebar nav a').forEach(function(a) {
 // Close on ESC key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeSidebar();
+});
+// Re-show toggle if window resized to desktop
+window.addEventListener('resize', function() {
+  if (window.innerWidth > 900) {
+    document.getElementById('sidebarToggle').style.display = '';
+    document.body.style.overflow = '';
+  }
 });
 </script>
 </body></html>
