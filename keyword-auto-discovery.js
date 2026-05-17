@@ -68,30 +68,36 @@ const DFS_ENABLED = String(process.env.DATAFORSEO_ENABLED || 'true').toLowerCase
 
 // ── NATIVPOST RELEVANCE FILTER ────────────────────────────────────────────────
 // Only import keywords relevant to NativPost's product and market.
-const RELEVANT_RX = /(
-social.? media |
-    ai.? (tool | platform | content | post | caption | generator | writer | schedule | create | publish | brand) |
-        content.? (ai | tool | creator | generation | strategy | planner | studio) |
-            brand.? (voice | profile | tone | identity) |
-                caption | post.? generator |
-                    instagram | linkedin | tiktok | facebook | twitter | youtube | threads | pinterest |
-                    schedule | publish | automate | automation | calendar |
-                    agency | small.? business | startup | saas | b2b | ecommerce |
-                        africa | nigeria | kenya | ghana | south.? africa | paystack | naira |
-                            ugc | reel | short.? video | video.? generator |
-                                nativpost | ocoya | buffer | hootsuite | predis | later | feedhive | socialbee | jasper |
-                                alternative | comparison | review | pricing | competitor |
-                                how.? to.* social | grow.* social | social.* grow |
-                                marketing.* ai | ai.* marketing |
-                                content.* marketing | marketing.* content
-)/ix;
+// const RELEVANT_RX = /(
+// social.? media |
+//     ai.? (tool | platform | content | post | caption | generator | writer | schedule | create | publish | brand) |
+//         content.? (ai | tool | creator | generation | strategy | planner | studio) |
+//             brand.? (voice | profile | tone | identity) |
+//                 caption | post.? generator |
+//                     instagram | linkedin | tiktok | facebook | twitter | youtube | threads | pinterest |
+//                     schedule | publish | automate | automation | calendar |
+//                     agency | small.? business | startup | saas | b2b | ecommerce |
+//                         africa | nigeria | kenya | ghana | south.? africa | paystack | naira |
+//                             ugc | reel | short.? video | video.? generator |
+//                                 nativpost | ocoya | buffer | hootsuite | predis | later | feedhive | socialbee | jasper |
+//                                 alternative | comparison | review | pricing | competitor |
+//                                 how.? to.* social | grow.* social | social.* grow |
+//                                 marketing.* ai | ai.* marketing |
+//                                 content.* marketing | marketing.* content
+// )/ix;
 
-const BLOCK_RX = /(
-porn | xxx | casino | gambling | crack | keygen | torrent | warez |
-    game.? server | minecraft | rust | ark | valheim | terraria | gmod |
-    nitrado | bisect | shockbyte | hosthavoc | apexhosting | scalacube |
-[\u0080 -\uFFFF]{ 4,}
-)/ix;
+// const BLOCK_RX = /(
+// porn | xxx | casino | gambling | crack | keygen | torrent | warez |
+//     game.? server | minecraft | rust | ark | valheim | terraria | gmod |
+//     nitrado | bisect | shockbyte | hosthavoc | apexhosting | scalacube |
+// [\u0080 -\uFFFF]{ 4,}
+// )/ix;
+
+const RELEVANT_RX =
+    /(social.?media|ai.?(tool|platform|content|post|caption|generator|writer|schedule|create|publish|brand)|content.?(ai|tool|creator|generation|strategy|planner|studio)|brand.?(voice|profile|tone|identity)|caption|post.?generator|instagram|linkedin|tiktok|facebook|twitter|youtube|threads|pinterest|schedule|publish|automate|automation|calendar|agency|small.?business|startup|saas|b2b|ecommerce|africa|nigeria|kenya|ghana|south.?africa|paystack|naira|ugc|reel|short.?video|video.?generator|nativpost|ocoya|buffer|hootsuite|predis|later|feedhive|socialbee|jasper|alternative|comparison|review|pricing|competitor|how.?to.*social|grow.*social|social.*grow|marketing.*ai|ai.*marketing|content.*marketing|marketing.*content)/i;
+
+const BLOCK_RX =
+    /(porn|xxx|casino|gambling|crack|keygen|torrent|warez|game.?server|minecraft|rust|ark|valheim|terraria|gmod|nitrado|bisect|shockbyte|hosthavoc|apexhosting|scalacube|[\u0080-\uFFFF]{4,})/i;
 
 function isRelevant(kw) {
     const k = String(kw || '').trim();
