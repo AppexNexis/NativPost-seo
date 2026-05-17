@@ -3624,7 +3624,18 @@ async function getValidAccessToken() {
     const newTokens = { ...stored, access_token: resp.data.access_token, expiry_date: now + (resp.data.expires_in || 3600) * 1000 };
     await saveGoogleToken(newTokens);
     return newTokens.access_token;
-  } catch (e) { console.error('Google token refresh failed:', e.message); return null; }
+  } catch (e) {
+    const status = e?.response?.status;
+    const errData = e?.response?.data?.error;
+    // 400 invalid_grant = refresh token expired/revoked — clear it so Settings shows reconnect prompt
+    if (status === 400 && (errData === 'invalid_grant' || String(e.message).includes('400'))) {
+      console.error('Google token refresh failed: refresh token expired or revoked. Re-authenticate in Settings → Google.');
+      await execSafe('UPDATE google_oauth_tokens SET access_token=NULL, refresh_token=NULL, expiry_date=0 WHERE id=?', [stored.id]).catch(() => { });
+    } else {
+      console.error('Google token refresh failed:', e.message);
+    }
+    return null;
+  }
 }
 
 async function googleConnected() {
@@ -3637,8 +3648,21 @@ async function syncGSCData(siteId, gscProperty) {
   const endDate = new Date().toISOString().slice(0, 10);
   const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const url = 'https://searchconsole.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(gscProperty) + '/searchAnalytics/query';
-  const resp = await axios.post(url, { startDate, endDate, dimensions: ['page', 'query'], rowLimit: 5000, startRow: 0 },
-    { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+  let resp;
+  try {
+    resp = await axios.post(url, { startDate, endDate, dimensions: ['page', 'query'], rowLimit: 5000, startRow: 0 },
+      { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+  } catch (e) {
+    const status = e?.response?.status;
+    const errMsg = e?.response?.data?.error?.message || e?.response?.data?.error || e.message;
+    if (status === 403) {
+      throw new Error(`GSC 403 for property "${gscProperty}": ${errMsg || 'Permission denied'}. Check: (1) Google Search Console API is enabled in Cloud Console, (2) your Google account is a verified owner/full user of "${gscProperty}" in Search Console, (3) the property URL matches exactly (trailing slash matters).`);
+    }
+    if (status === 404) {
+      throw new Error(`GSC 404 — property "${gscProperty}" not found in Search Console. The URL must be verified and owned by your Google account. Check your property URL in search.google.com/search-console.`);
+    }
+    throw new Error(`GSC sync failed (HTTP ${status || 'unknown'}): ${errMsg}`);
+  }
   const rows = resp.data.rows || [];
   let imported = 0;
 
@@ -3699,15 +3723,38 @@ async function syncGSCData(siteId, gscProperty) {
 async function syncGA4Data(siteId, propertyId) {
   const token = await getValidAccessToken();
   if (!token) throw new Error('No valid Google token — connect Google in Settings first.');
+  // Validate property ID format — must be purely numeric (e.g. 479571302), not "properties/..." format
+  const cleanPropertyId = String(propertyId || '').replace(/^properties\//i, '').trim();
+  if (!cleanPropertyId || !/^\d+$/.test(cleanPropertyId)) {
+    throw new Error(`Invalid GA4 property ID "${propertyId}". Use the numeric ID only (e.g. 479571302) found in GA4 → Admin → Property Settings. Do NOT include "properties/" prefix.`);
+  }
   const endDate = new Date().toISOString().slice(0, 10);
   const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const url = 'https://analyticsdata.googleapis.com/v1beta/properties/' + propertyId + ':runReport';
-  const resp = await axios.post(url, {
-    dateRanges: [{ startDate, endDate }],
-    dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
-    metrics: [{ name: 'screenPageViews' }, { name: 'sessions' }, { name: 'engagementRate' }],
-    limit: 5000
-  }, { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+  const url = 'https://analyticsdata.googleapis.com/v1beta/properties/' + cleanPropertyId + ':runReport';
+  let resp;
+  try {
+    resp = await axios.post(url, {
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+      metrics: [{ name: 'screenPageViews' }, { name: 'sessions' }, { name: 'engagementRate' }],
+      limit: 5000
+    }, { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } });
+  } catch (e) {
+    const status = e?.response?.status;
+    const errMsg = e?.response?.data?.error?.message || e?.response?.data?.error || e.message;
+    const errStatus = e?.response?.data?.error?.status || '';
+    if (status === 403) {
+      // Common GA4 403 causes with actionable messages
+      if (errStatus === 'PERMISSION_DENIED' || String(errMsg).includes('PERMISSION_DENIED')) {
+        throw new Error(`GA4 403 PERMISSION_DENIED for property ${cleanPropertyId}: The authenticated Google account does not have Viewer access to this GA4 property. Go to GA4 → Admin → Property Access Management and add your Google account (the one connected here) with at least Viewer role. Also confirm "Google Analytics Data API" is enabled in Google Cloud Console → APIs & Services.`);
+      }
+      throw new Error(`GA4 403 for property ${cleanPropertyId}: ${errMsg || 'Permission denied'}. Check: (1) Google Analytics Data API is enabled in Cloud Console, (2) your Google account has Viewer+ access in GA4 → Admin → Property Access Management, (3) the property ID is correct.`);
+    }
+    if (status === 404) {
+      throw new Error(`GA4 404 — property ID "${cleanPropertyId}" not found. Verify the numeric property ID in GA4 → Admin → Property Settings → Property ID.`);
+    }
+    throw new Error(`GA4 sync failed (HTTP ${status || 'unknown'}): ${errMsg}`);
+  }
   const rows = resp.data.rows || [];
   let imported = 0;
   for (const row of rows) {
@@ -5848,6 +5895,47 @@ app.get('/serp/:keyword/results', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── GOOGLE OAUTH ROUTES ───────────────────────────────────────────────────────
+// ── GOOGLE SYNC DIAGNOSTIC ENDPOINT ─────────────────────────────────────────
+// Hits GSC and GA4 directly with the stored token and returns the raw error
+// so you can see exactly what Google is rejecting without reading server logs.
+app.get('/api/google/debug', async (req, res) => {
+  const result = { token: null, gsc: null, ga4: null };
+  try {
+    const token = await getValidAccessToken();
+    result.token = token ? 'obtained' : 'null — no refresh token stored or refresh failed';
+    if (token) {
+      // Test GSC
+      const sites = await q('SELECT * FROM sites WHERE active=1 LIMIT 5');
+      result.gsc_sites = sites.map(s => ({ name: s.name, gsc_property: s.gsc_property || process.env.GSC_PROPERTY_NATIVPOST, ga4_property_id: s.ga4_property_id || process.env.GA4_PROPERTY_ID_NATIVPOST }));
+      for (const site of sites.slice(0, 1)) {
+        const prop = site.gsc_property || process.env.GSC_PROPERTY_NATIVPOST;
+        if (prop) {
+          try {
+            const r = await axios.post('https://searchconsole.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(prop) + '/searchAnalytics/query',
+              { startDate: '2026-01-01', endDate: new Date().toISOString().slice(0, 10), dimensions: ['query'], rowLimit: 1 },
+              { headers: { Authorization: 'Bearer ' + token } });
+            result.gsc = { status: 'ok', rows: (r.data.rows || []).length };
+          } catch (e) {
+            result.gsc = { status: e?.response?.status, error: e?.response?.data?.error || e.message };
+          }
+        }
+        const ga4prop = (site.ga4_property_id || process.env.GA4_PROPERTY_ID_NATIVPOST || '').replace(/^properties\//i, '').trim();
+        if (ga4prop) {
+          try {
+            const r = await axios.post('https://analyticsdata.googleapis.com/v1beta/properties/' + ga4prop + ':runReport',
+              { dateRanges: [{ startDate: '2026-01-01', endDate: new Date().toISOString().slice(0, 10) }], dimensions: [{ name: 'pagePath' }], metrics: [{ name: 'screenPageViews' }], limit: 1 },
+              { headers: { Authorization: 'Bearer ' + token } });
+            result.ga4 = { status: 'ok', property: ga4prop, rows: (r.data.rows || []).length };
+          } catch (e) {
+            result.ga4 = { status: e?.response?.status, property: ga4prop, error: e?.response?.data?.error || e.message };
+          }
+        }
+      }
+    }
+  } catch (e) { result.exception = e.message; }
+  res.json(result);
+});
+
 app.get('/api/auth/google', (req, res) => {
   if (!GOOGLE_CLIENT_ID) return res.redirect('/settings?error=no_google_client');
   const params = new URLSearchParams({

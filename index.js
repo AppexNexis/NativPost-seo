@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
+const { startKeywordAutoDiscovery } = require('./keyword-auto-discovery');
 function contentfulErrorDetails(data) {
   try {
     const parts = [];
@@ -3630,7 +3631,7 @@ async function getValidAccessToken() {
     // 400 invalid_grant = refresh token expired/revoked — clear it so Settings shows reconnect prompt
     if (status === 400 && (errData === 'invalid_grant' || String(e.message).includes('400'))) {
       console.error('Google token refresh failed: refresh token expired or revoked. Re-authenticate in Settings → Google.');
-      await execSafe('UPDATE google_oauth_tokens SET access_token=NULL, refresh_token=NULL, expiry_date=0 WHERE id=?', [stored.id]).catch(() => {});
+      await execSafe('UPDATE google_oauth_tokens SET access_token=NULL, refresh_token=NULL, expiry_date=0 WHERE id=?', [stored.id]).catch(() => { });
     } else {
       console.error('Google token refresh failed:', e.message);
     }
@@ -6515,4 +6516,4 @@ async function syncContentfulArticlesToDB() {
   }
 }
 
-ensureSchema().then(() => app.listen(PORT, '0.0.0.0', () => { console.log(`NativPost SEO Tool running on 0.0.0.0:${PORT}`); startAutoPublisher(); startWeeklyGSCSync(); startBalanceRefresher(); startRadarRefresher(); startCompetitorRefresher(); startDailyBriefRefresher(); setTimeout(syncContentfulArticlesToDB, 30000); })).catch(err => { console.error('Failed to start SEO tool:', err); process.exit(1); });
+ensureSchema().then(() => app.listen(PORT, '0.0.0.0', () => { console.log(`NativPost SEO Tool running on 0.0.0.0:${PORT}`); startAutoPublisher(); startWeeklyGSCSync(); startBalanceRefresher(); startRadarRefresher(); startCompetitorRefresher(); startDailyBriefRefresher(); startKeywordAutoDiscovery({ q, execSafe, cleanKeyword, clusterName, intentOf, priorityScore }); setTimeout(syncContentfulArticlesToDB, 30000); })).catch(err => { console.error('Failed to start SEO tool:', err); process.exit(1); });
