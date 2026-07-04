@@ -102,6 +102,56 @@
     </form>
   </div>
 
+  <!-- Anthropic Claude -->
+  <%
+    var anc = _bal.anthropic;
+    var ancClass = cardClass(anc);
+  %>
+  <div class="balance-card <%= ancClass %>">
+    <div class="balance-label">Claude (Anthropic)</div>
+    <div class="balance-label-sub" style="font-size:0.7rem;color:var(--text-muted);margin-top:-4px;margin-bottom:6px;">Primary</div>
+    <% if (anc && anc.status === 'ok') { %>
+      <div class="balance-amount na">Key valid</div>
+      <div class="balance-detail">Anthropic Claude API connected. Check <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener">Anthropic console</a> for usage.</div>
+    <% } else if (anc && anc.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= anc.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet checked.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(anc && anc.fetched_at) %></div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="anthropic">
+      <button class="mini">Refresh Claude</button>
+    </form>
+  </div>
+
+  <!-- DeepSeek -->
+  <%
+    var ds = _bal.deepseek;
+    var dsClass = cardClass(ds);
+  %>
+  <div class="balance-card <%= dsClass %>">
+    <div class="balance-label">DeepSeek</div>
+    <div class="balance-label-sub" style="font-size:0.7rem;color:var(--text-muted);margin-top:-4px;margin-bottom:6px;">Fallback</div>
+    <% if (ds && ds.status === 'ok') { %>
+      <div class="balance-amount na">Key valid</div>
+      <div class="balance-detail">DeepSeek API connected. Check <a href="https://platform.deepseek.com/usage" target="_blank" rel="noopener">DeepSeek platform</a> for usage.</div>
+    <% } else if (ds && ds.error) { %>
+      <div class="balance-amount na">Error</div>
+      <div class="balance-detail"><%= ds.error %></div>
+    <% } else { %>
+      <div class="balance-amount na">—</div>
+      <div class="balance-detail">Not yet checked.</div>
+    <% } %>
+    <div class="balance-fetched">Checked <%= relTime(ds && ds.fetched_at) %></div>
+    <form method="post" action="/admin/api-balances/refresh" style="margin-top:var(--sp-2)">
+      <input type="hidden" name="service" value="deepseek">
+      <button class="mini">Refresh DeepSeek</button>
+    </form>
+  </div>
+
   <!-- OpenAI -->
   <%
     var ai = _bal.openai;
@@ -109,6 +159,7 @@
   %>
   <div class="balance-card <%= aiClass %>">
     <div class="balance-label">OpenAI</div>
+    <div class="balance-label-sub" style="font-size:0.7rem;color:var(--text-muted);margin-top:-4px;margin-bottom:6px;">Final Fallback</div>
     <% if (ai && ai.status === 'ok') { %>
       <div class="balance-amount na">Key valid</div>
       <div class="balance-detail">OpenAI does not expose a prepaid credit balance via API. Check <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">OpenAI dashboard</a> for the actual dollar amount.</div>

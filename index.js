@@ -8,6 +8,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const axios = require('axios');
 const { startKeywordAutoDiscovery } = require('./keyword-auto-discovery');
+const ai = require('./ai-providers');
 function contentfulErrorDetails(data) {
   try {
     const parts = [];
@@ -1117,9 +1118,7 @@ function articleTitleFor(keyword = '') {
   return `${nice}: Stop Sounding Like AI in 2026`;
 }
 async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages = [], competitorTerms = [], imageHints = [], offerFacts = '', serp = null, extended = false }) {
-  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  if (!hasAnthropic && !hasOpenAI) return null;
+  if (!ai.hasAI()) return null;
   const target = cleanKeyword(keyword) || keyword || 'ai social media content';
   const serpAvgWords = Number(serp?.avg_words || 0);
   const wordTarget = Math.max(1600, serpAvgWords >= 800 ? serpAvgWords + 200 : 1600);
@@ -1236,99 +1235,65 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     `- Do not write generic filler. Make it specific to the keyword intent, brand/content marketer pain points, and NativPost's actual confirmed features.`,
     `- Meta description must be under 160 characters. Clearly answer searcher intent with specific entities and trustworthy detail.`,
   ].filter(s => s !== '').join('\n');
-  // Use Anthropic Claude as primary, OpenAI as fallback
-  if (hasAnthropic) {
-    try {
-      const r = await axios.post('https://api.anthropic.com/v1/messages', {
-        model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5',
-        max_tokens: 12000,
-        messages: [{ role: 'user', content: prompt }]
-      }, { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, timeout: 180000 });
-      const rawText = r.data?.content?.[0]?.text || '';
-      if (rawText) {
-        // Strip markdown fences if Claude wrapped the JSON
-        const cleaned = rawText.trim()
-          .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-        try {
-          const parsed = JSON.parse(cleaned);
-          if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
-          if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
-          if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
-          const issues = forbiddenOfferClaims(`${parsed.title || ''}\n${parsed.meta_description || ''}\n${parsed.excerpt || ''}\n${parsed.body_markdown || ''}`);
-          if (issues.length) parsed.review_notes = `${parsed.review_notes || ''}\nAccuracy warning: ${issues.join('; ')}. Verify against NativPost pricing facts before publishing.`.trim();
-          if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 300) {
-            console.warn('[Anthropic] Body missing/too short (' + wordCount(parsed.body_markdown || '') + ' words) — checking OpenAI fallback');
-            if (!hasOpenAI) return null;
-            // Fall through to OpenAI
-          } else {
-            // Extend if under target word count
-            const wc = wordCount(parsed.body_markdown);
-            if (wc < 1500 && !extended) {
-              try {
-                const extPrompt = `The following article body is ${wc} words. Expand it to at least 1500 words.\n\nAdd:\n1. 2-3 more detailed sentences to each existing section\n2. One additional ## section if the topic warrants it\n3. 2 more FAQ Q&A pairs with self-contained answers\n\nReturn ONLY the expanded body_markdown as plain text (no JSON wrapper, no code fences).\n\nCurrent article body:\n${parsed.body_markdown}`;
-                const extR = await axios.post('https://api.anthropic.com/v1/messages', {
-                  model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5',
-                  max_tokens: 8000,
-                  messages: [{ role: 'user', content: extPrompt }]
-                }, { headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, timeout: 120000 });
-                const extText = (extR.data?.content?.[0]?.text || '').trim()
-                  .replace(/^```(?:markdown)?\s*/i, '').replace(/```\s*$/, '').trim();
-                if (extText && wordCount(extText) > wc) {
-                  parsed.body_markdown = extText;
-                  console.log(`[Anthropic] Extended body from ${wc} to ${wordCount(extText)} words`);
-                }
-              } catch (extErr) { console.log('[Anthropic] Body extension failed:', extErr.message); }
-            }
-            return parsed;
-          }
-        } catch (parseErr) {
-          console.error('[Anthropic] JSON parse error:', parseErr.message);
-          console.error('[Anthropic] Response preview:', cleaned.slice(0, 300));
-          if (!hasOpenAI) return null;
-          // Fall through to OpenAI
-        }
-      }
-    } catch (e) {
-      console.error('[Anthropic] Article generation failed:', e.message);
-      if (!hasOpenAI) throw e;
+
+  // ── Provider-agnostic call with fallback chain (Claude → DeepSeek → GPT) ──
+  const result = await ai.callAI(prompt, { timeout: 180000 });
+
+  if (!result) {
+    // No provider produced output — surface a clear error
+    const keyStatus = ai.providerKeyStatus();
+    const anyKey = Object.values(keyStatus).some(Boolean);
+    if (!anyKey) {
+      throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary), DEEPSEEK_API_KEY (fallback), or OPENAI_API_KEY (final fallback) to .env.local.');
     }
+    throw new Error('AI providers returned no content for "' + target + '". Check your API keys, model names, and usage limits. Try again — transient failures are common.');
   }
-  if (!hasOpenAI) return null;
-  const body = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: prompt, max_output_tokens: 12000 };
+
+  const rawText = result.text.trim();
+  // Strip markdown fences if the model wrapped the JSON
+  const cleaned = rawText
+    .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+
+  let parsed;
   try {
-    const r = await axios.post('https://api.openai.com/v1/responses', body, { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 120000 });
-    let text = r.data.output_text || '';
-    if (!text && Array.isArray(r.data.output)) text = r.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
-    text = text.trim().replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
-    const parsed = JSON.parse(text);
-    if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
-    if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
-    if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
-    const issues = forbiddenOfferClaims(`${parsed.title || ''}\n${parsed.meta_description || ''}\n${parsed.excerpt || ''}\n${parsed.body_markdown || ''}`);
-    if (issues.length) parsed.review_notes = `${parsed.review_notes || ''}\nAccuracy warning: ${issues.join('; ')}. Verify against NativPost pricing facts before publishing.`.trim();
-    if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 500) return null;
-    // If article is too thin, request an extension (one retry)
-    const wc = wordCount(parsed.body_markdown);
-    if (wc < 1500 && !extended) {
-      try {
-        const shortfall = 1600 - wc;
-        const extPrompt = `The following article body is too short (${wc} words). It needs at least 1500 words minimum, ideally 1600+. You are ${shortfall} words short.\n\nExpand it by:\n1. Adding 2-3 more sentences of specific detail to each existing section\n2. Adding one more ## section if the topic warrants it\n3. Expanding the FAQ with 2 more Q&A pairs\n4. Adding more specific game/server detail in the performance section\n\nReturn ONLY the expanded body_markdown as a plain string (no JSON wrapper, no markdown fences).\n\nCurrent article body:\n${parsed.body_markdown}`;
-        const extBody = { model: process.env.OPENAI_MODEL || 'gpt-4.1', input: extPrompt, max_output_tokens: 8000 };
-        const extR = await axios.post('https://api.openai.com/v1/responses', extBody, { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 90000 });
-        let extText = extR.data.output_text || '';
-        if (!extText && Array.isArray(extR.data.output)) extText = extR.data.output.flatMap(o => (o.content || []).map(c => c.text || '')).join('\n');
-        extText = extText.trim().replace(/^```(?:markdown)?\s*/, '').replace(/```$/, '').trim();
-        if (extText && wordCount(extText) > wc) {
-          parsed.body_markdown = extText;
-          console.log(`[Article] Extended from ${wc} to ${wordCount(extText)} words`);
-        }
-      } catch (extErr) { console.log('[Article] Extension failed:', extErr.message); }
-    }
-    return parsed;
-  } catch (err) {
-    console.error('OpenAI article generation failed:', err.response?.data || err.message);
+    parsed = JSON.parse(cleaned);
+  } catch (parseErr) {
+    console.error(`[${result.provider}] JSON parse error:`, parseErr.message);
+    console.error(`[${result.provider}] Response preview:`, cleaned.slice(0, 300));
     return null;
   }
+
+  // Apply offer-claim repairs
+  if (parsed.body_markdown) parsed.body_markdown = repairOfferClaims(parsed.body_markdown);
+  if (parsed.excerpt) parsed.excerpt = repairOfferClaims(parsed.excerpt);
+  if (parsed.meta_description) parsed.meta_description = truncate(repairOfferClaims(parsed.meta_description), 160);
+  const issues = forbiddenOfferClaims(`${parsed.title || ''}\n${parsed.meta_description || ''}\n${parsed.excerpt || ''}\n${parsed.body_markdown || ''}`);
+  if (issues.length) parsed.review_notes = `${parsed.review_notes || ''}\nAccuracy warning: ${issues.join('; ')}. Verify against NativPost pricing facts before publishing.`.trim();
+
+  // Reject unacceptably short responses
+  if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 300) {
+    console.warn(`[${result.provider}] Body missing/too short (${wordCount(parsed.body_markdown || '')} words)`);
+    return null;
+  }
+
+  // Extend if under target word count
+  const wc = wordCount(parsed.body_markdown);
+  if (wc < 1500 && !extended) {
+    try {
+      const extPrompt = `The following article body is ${wc} words. Expand it to at least 1500 words.\n\nAdd:\n1. 2-3 more detailed sentences to each existing section\n2. One additional ## section if the topic warrants it\n3. 2 more FAQ Q&A pairs with self-contained answers\n\nReturn ONLY the expanded body_markdown as plain text (no JSON wrapper, no code fences).\n\nCurrent article body:\n${parsed.body_markdown}`;
+      const extResult = await ai.callAIExtend(extPrompt);
+      if (extResult) {
+        const extText = extResult.text.trim()
+          .replace(/^```(?:markdown)?\s*/i, '').replace(/```\s*$/, '').trim();
+        if (extText && wordCount(extText) > wc) {
+          parsed.body_markdown = extText;
+          console.log(`[${extResult.provider}] Extended body from ${wc} to ${wordCount(extText)} words`);
+        }
+      }
+    } catch (extErr) { console.log('[Article] Body extension failed:', extErr.message); }
+  }
+
+  return parsed;
 }
 
 function wordCount(text = '') { return String(text || '').split(/\s+/).filter(Boolean).length; }
@@ -2373,7 +2338,7 @@ async function fetchDataForSEOBalance() {
 // Single place to refresh all API balance caches. Called from a route and from
 // a periodic background refresher so the Reports page is always instant.
 async function refreshApiBalances(serviceFilter = null) {
-  const services = serviceFilter ? [serviceFilter] : ['dataforseo', 'contentful', 'anthropic', 'openai', 'google'];
+  const services = serviceFilter ? [serviceFilter] : ['dataforseo', 'contentful', 'anthropic', 'deepseek', 'openai', 'google'];
   const results = {};
   for (const svc of services) {
     try {
@@ -2406,12 +2371,16 @@ async function refreshApiBalances(serviceFilter = null) {
         results.contentful = { status: 'ok', details };
       } else if (svc === 'anthropic') {
         if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
-        const r = await axios.get('https://api.anthropic.com/v1/models', {
+        await axios.get('https://api.anthropic.com/v1/models', {
           headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, timeout: 15000
         });
         const details = { note: 'Anthropic Claude API connected. Check console.anthropic.com/settings/billing for usage.' };
-        await execSafe('INSERT INTO api_balances (service,balance_usd,credits_remaining,status,detail_json) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE balance_usd=VALUES(balance_usd),credits_remaining=VALUES(credits_remaining),status=VALUES(status),detail_json=VALUES(detail_json),checked_at=NOW()',
-          ['anthropic', 'n/a', 'ok', JSON.stringify(details)]);
+        await execSafe(
+          `INSERT INTO api_balance_cache (service,balance,currency,status,details_json,fetched_at,error_message)
+           VALUES (?,NULL,?,?,?,NOW(),NULL)
+           ON DUPLICATE KEY UPDATE balance=NULL,currency=VALUES(currency),status=VALUES(status),details_json=VALUES(details_json),fetched_at=NOW(),error_message=NULL`,
+          ['anthropic', 'n/a', 'ok', JSON.stringify(details)]
+        );
         results.anthropic = { status: 'ok', note: details.note };
       } else if (svc === 'openai') {
         // OpenAI has no public prepaid-balance endpoint. We verify the key works
@@ -2428,6 +2397,21 @@ async function refreshApiBalances(serviceFilter = null) {
           ['openai', 'n/a', 'ok', JSON.stringify(details)]
         );
         results.openai = { status: 'ok', note: details.note };
+      } else if (svc === 'deepseek') {
+        if (!process.env.DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY not set');
+        // Verify key works via a minimal chat completion with max_tokens=1
+        await axios.post('https://api.deepseek.com/v1/chat/completions',
+          { model: 'deepseek-v4-flash', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] },
+          { headers: { Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 15000 }
+        );
+        const details = { note: 'DeepSeek API connected. Check platform.deepseek.com/usage for billing.' };
+        await execSafe(
+          `INSERT INTO api_balance_cache (service,balance,currency,status,details_json,fetched_at,error_message)
+           VALUES (?,NULL,?,?,?,NOW(),NULL)
+           ON DUPLICATE KEY UPDATE balance=NULL,currency=VALUES(currency),status=VALUES(status),details_json=VALUES(details_json),fetched_at=NOW(),error_message=NULL`,
+          ['deepseek', 'n/a', 'ok', JSON.stringify(details)]
+        );
+        results.deepseek = { status: 'ok', note: details.note };
       } else if (svc === 'google') {
         const connected = await googleConnected().catch(() => false);
         const status = connected ? 'ok' : 'warning';
@@ -3536,11 +3520,11 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     imageAlt = ai.featured_image_alt || `${rawKeyword} hosting image`;
     notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${ai.review_notes || ''}`;
   } else {
-    // OpenAI failed or not connected — throw a clear error instead of saving garbage fallback content
-    if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-      throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary) or OPENAI_API_KEY (fallback) to ecosystem.config.js.');
+    // All providers failed or none connected — throw a clear error instead of saving garbage fallback content
+    if (!ai.hasAI()) {
+      throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary), DEEPSEEK_API_KEY (fallback), or OPENAI_API_KEY (final fallback) to ecosystem.config.js.');
     }
-    throw new Error('OpenAI returned no content for "' + rawKeyword + '". Check your API key, model name, and usage limits. Try again — transient failures are common.');
+    throw new Error('AI providers returned no content for "' + rawKeyword + '". Check your API keys, model names, and usage limits. All providers in the chain were attempted.', { cause: 'ai-empty' });
   }
   body = repairOfferClaims(body);
   meta = truncate(repairOfferClaims(meta), 160);
@@ -5794,7 +5778,16 @@ app.get('/settings', async (req, res, next) => {
       dfsCallsToday: _dfsDailyCallCount,
       dfsDailyCap: DFS_DAILY_CALL_CAP,
       env: {
-        hasAI: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY), hasOpenAI: !!process.env.OPENAI_API_KEY, hasAnthropic: !!process.env.ANTHROPIC_API_KEY, hasGoogle: googleCredentialsStatus().configured,
+        hasAI: ai.hasAI(),
+        hasAnthropic: !!process.env.ANTHROPIC_API_KEY,
+        hasDeepSeek: !!process.env.DEEPSEEK_API_KEY,
+        hasOpenAI: !!process.env.OPENAI_API_KEY,
+        providerChain: ai.FALLBACK_CHAIN.map(pName => ({
+          name: ai.PROVIDERS[pName]?.name || pName,
+          configured: !!process.env[ai.PROVIDERS[pName]?.keyEnv],
+          model: process.env[ai.PROVIDERS[pName]?.modelEnv] || ai.PROVIDERS[pName]?.defaultModel || '—',
+        })),
+        hasGoogle: googleCredentialsStatus().configured,
         googleStatus: gscConnected ? 'Connected — refresh token stored' : googleCredentialsStatus().label,
         googleServiceAccount: googleCredentialsStatus().serviceAccount, googleOAuth: googleCredentialsStatus().oauth,
         hasContentful: contentfulReady(), contentfulActive: publishModeAllowsContentful(),

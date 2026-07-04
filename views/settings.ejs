@@ -144,10 +144,28 @@ GOOGLE_OAUTH_REDIRECT_URI=http://YOUR_AMP_HOST:7783/api/auth/google/callback</pr
     </span>
   </div>
   <div class="metric-row"><strong>Contentful content type</strong><span><%= env.contentfulType || 'Not set' %></span></div>
-  <div class="metric-row"><strong>OpenAI</strong>
-    <span style="color:<%= env.hasAI ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>">
-      <%= env.hasAI ? '✓ Connected' : '✗ Missing ANTHROPIC_API_KEY (primary) or OPENAI_API_KEY (fallback)' %>
-    </span>
+  <div class="metric-row" style="align-items:flex-start;">
+    <strong>AI Providers</strong>
+    <div style="text-align:right;line-height:1.7">
+      <% if (env.providerChain && env.providerChain.length) { %>
+        <% env.providerChain.forEach(function(p, i) { %>
+          <div style="<%= i > 0 ? 'margin-top:4px;' : '' %>font-size:0.82rem;white-space:nowrap">
+            <span style="color:<%= p.configured ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>;font-weight:500">
+              <%= i === 0 ? '❶' : i === 1 ? '❷' : '❸' %> <%= p.name %>
+            </span>
+            <span style="color:<%= p.configured ? 'var(--good)' : 'var(--bad)' %>">
+              <%= p.configured ? '✓' : '✗' %>
+            </span>
+            <% if (p.configured) { %><span style="color:var(--text-muted);font-size:0.75rem"> <%= p.model %></span><% } %>
+          </div>
+        <% }); %>
+        <div style="margin-top:6px;font-size:0.72rem;color:var(--text-muted);white-space:nowrap">Fallback: Claude → DeepSeek → GPT</div>
+      <% } else { %>
+        <span style="color:<%= env.hasAI ? 'var(--good,var(--np-purple))' : 'var(--bad,var(--bad))' %>">
+          <%= env.hasAI ? '✓ Connected' : '✗ No API keys configured' %>
+        </span>
+      <% } %>
+    </div>
   </div>
   <div class="metric-row"><strong>Google / GSC / GA4</strong>
     <span style="color:<%= gscConnected ? 'var(--good,var(--np-purple))' : 'var(--text-muted)' %>">
