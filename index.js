@@ -1241,8 +1241,12 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
   let parsed = null;
   let usedProvider = null;
   for (const providerName of ai.FALLBACK_CHAIN) {
+    console.log(`[Article] Trying ${providerName}...`);
     const result = await ai.callAI(prompt, { timeout: 180000, chain: [providerName] });
-    if (!result) continue;
+    if (!result) {
+      console.warn(`[Article] ${providerName} returned no result — trying next provider`);
+      continue;
+    }
 
     const rawText = result.text.trim();
     // Strip markdown fences if the model wrapped the JSON
@@ -1252,22 +1256,25 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
     try {
       parsed = JSON.parse(cleaned);
       usedProvider = providerName;
+      console.log(`[Article] ${providerName} returned valid JSON — using this result`);
       break; // valid JSON — use this provider's output
     } catch (parseErr) {
-      console.error(`[${providerName}] JSON parse error:`, parseErr.message);
-      console.error(`[${providerName}] Response preview:`, cleaned.slice(0, 300));
+      console.error(`[Article] ${providerName} JSON parse error:`, parseErr.message);
+      console.error(`[Article] ${providerName} Response preview:`, cleaned.slice(0, 300));
       continue; // try next provider in the chain
     }
   }
 
   if (!parsed) {
-    // No provider produced valid JSON output — surface a clear error
+    // No provider produced valid JSON output
     const keyStatus = ai.providerKeyStatus();
     const anyKey = Object.values(keyStatus).some(Boolean);
     if (!anyKey) {
-      throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary), DEEPSEEK_API_KEY (fallback), or OPENAI_API_KEY (final fallback) to .env.local.');
+      console.error('[Article] No AI API key is configured — all providers unavailable');
+    } else {
+      console.error(`[Article] All providers in chain returned invalid JSON for "${target}"`);
     }
-    throw new Error('AI providers returned no content for "' + target + '". Check your API keys, model names, and usage limits. Try again — transient failures are common.');
+    return null;
   }
 
   // Apply offer-claim repairs
