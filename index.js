@@ -5490,7 +5490,10 @@ app.post('/content-studio/build-plan', async (req, res, next) => {
     const rawSiteId = req.body.site_id || null;
     const siteId = rawSiteId && rawSiteId !== 'all' ? rawSiteId : null;
     await repairContentCalendarSchema();
-    await q("DELETE FROM content_calendar WHERE status='planned' AND article_id IS NULL AND (? IS NULL OR site_id<=>?)", [siteId, siteId]);
+    // Fresh build = clear ALL existing calendar items (planned + generated)
+    // so every item shows "Generate (1 credit)" — existing articles are NOT
+    // deleted, only their calendar links are removed.
+    await q("DELETE FROM content_calendar WHERE (? IS NULL OR site_id<=>?)", [siteId, siteId]);
     const candidates = await buildStrategicPlanCandidates(siteId, 30);
     let day = 1;
     for (const c of candidates) {
