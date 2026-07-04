@@ -1237,30 +1237,37 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
   ].filter(s => s !== '').join('\n');
 
   // ── Provider-agnostic call with fallback chain (Claude → DeepSeek → GPT) ──
-  const result = await ai.callAI(prompt, { timeout: 180000 });
+  // Loop through providers individually so JSON parse / content failures also trigger fallback
+  let parsed = null;
+  let usedProvider = null;
+  for (const providerName of ai.FALLBACK_CHAIN) {
+    const result = await ai.callAI(prompt, { timeout: 180000, chain: [providerName] });
+    if (!result) continue;
 
-  if (!result) {
-    // No provider produced output — surface a clear error
+    const rawText = result.text.trim();
+    // Strip markdown fences if the model wrapped the JSON
+    const cleaned = rawText
+      .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+
+    try {
+      parsed = JSON.parse(cleaned);
+      usedProvider = providerName;
+      break; // valid JSON — use this provider's output
+    } catch (parseErr) {
+      console.error(`[${providerName}] JSON parse error:`, parseErr.message);
+      console.error(`[${providerName}] Response preview:`, cleaned.slice(0, 300));
+      continue; // try next provider in the chain
+    }
+  }
+
+  if (!parsed) {
+    // No provider produced valid JSON output — surface a clear error
     const keyStatus = ai.providerKeyStatus();
     const anyKey = Object.values(keyStatus).some(Boolean);
     if (!anyKey) {
       throw new Error('No AI API key set. Add ANTHROPIC_API_KEY (primary), DEEPSEEK_API_KEY (fallback), or OPENAI_API_KEY (final fallback) to .env.local.');
     }
     throw new Error('AI providers returned no content for "' + target + '". Check your API keys, model names, and usage limits. Try again — transient failures are common.');
-  }
-
-  const rawText = result.text.trim();
-  // Strip markdown fences if the model wrapped the JSON
-  const cleaned = rawText
-    .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-
-  let parsed;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch (parseErr) {
-    console.error(`[${result.provider}] JSON parse error:`, parseErr.message);
-    console.error(`[${result.provider}] Response preview:`, cleaned.slice(0, 300));
-    return null;
   }
 
   // Apply offer-claim repairs
@@ -1272,7 +1279,7 @@ async function callOpenAIArticle({ site, keyword, ownPages = [], competitorPages
 
   // Reject unacceptably short responses
   if (!parsed.body_markdown || wordCount(parsed.body_markdown) < 300) {
-    console.warn(`[${result.provider}] Body missing/too short (${wordCount(parsed.body_markdown || '')} words)`);
+    console.warn(`[${usedProvider}] Body missing/too short (${wordCount(parsed.body_markdown || '')} words)`);
     return null;
   }
 
@@ -3510,15 +3517,15 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
   serp.headings = Array.isArray(serp.headings) ? serp.headings : [];
   serp.questions = Array.isArray(serp.questions) ? serp.questions : [];
   const cluster = await upsertTopicCluster(site?.id || null, rawKeyword, serp);
-  const ai = await callOpenAIArticle({ site, keyword: rawKeyword, ownPages, competitorPages: compPages.concat(serp.results.map(r => ({ page_url: r.url || r.result_url, page_title: r.title || r.result_title, word_count: r.word_count, page_type: 'serp' }))), competitorTerms: [...terms, ...serp.entities], imageHints, offerFacts: [offerFacts, liveGamesFacts, gameFactsPrompt, livePackageFacts].filter(Boolean).join('\n'), serp });
+  const articleResult = await callOpenAIArticle({ site, keyword: rawKeyword, ownPages, competitorPages: compPages.concat(serp.results.map(r => ({ page_url: r.url || r.result_url, page_title: r.title || r.result_title, word_count: r.word_count, page_type: 'serp' }))), competitorTerms: [...terms, ...serp.entities], imageHints, offerFacts: [offerFacts, liveGamesFacts, gameFactsPrompt, livePackageFacts].filter(Boolean).join('\n'), serp });
   let title, body, meta, excerpt, imageAlt, notes;
-  if (ai) {
-    title = truncate(ai.title || articleTitleFor(rawKeyword), 50);  // Contentful shortDescription max is 50 chars
-    body = ai.body_markdown;
-    meta = truncate(ai.meta_description || `Learn how ${rawKeyword} works and why NativPost is the best AI social media content platform in 2026.`, 160);
-    excerpt = truncate(ai.excerpt || meta, 150);  // Contentful shortDescription max is 224 chars; use 150 for safety
-    imageAlt = ai.featured_image_alt || `${rawKeyword} hosting image`;
-    notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${ai.review_notes || ''}`;
+  if (articleResult) {
+    title = truncate(articleResult.title || articleTitleFor(rawKeyword), 50);  // Contentful shortDescription max is 50 chars
+    body = articleResult.body_markdown;
+    meta = truncate(articleResult.meta_description || `Learn how ${rawKeyword} works and why NativPost is the best AI social media content platform in 2026.`, 160);
+    excerpt = truncate(articleResult.excerpt || meta, 150);  // Contentful shortDescription max is 224 chars; use 150 for safety
+    imageAlt = articleResult.featured_image_alt || `${rawKeyword} hosting image`;
+    notes = `AI generated from crawl data, competitor pages, live SERP results, internal links, and keyword gaps. ${articleResult.review_notes || ''}`;
   } else {
     // All providers failed or none connected — throw a clear error instead of saving garbage fallback content
     if (!ai.hasAI()) {
@@ -3538,9 +3545,9 @@ async function makeDraftFromKeyword(keywordRow, siteId) {
     try { asset = await fetchTopicImageForKeyword(rawKeyword, site?.id || null); } catch (e) { console.log('[Image] Topic fallback failed:', e.message); }
   }
   if (!asset) notes = `${notes}\nImage needed: no image found for "${rawKeyword}". Upload a relevant image from the Image Library or re-generate.`.trim();
-  const slug = slugify((ai?.slug || title || rawKeyword));
+  const slug = slugify((articleResult?.slug || title || rawKeyword));
   const penalty = await cannibalizationPenalty(site?.id || null, rawKeyword, slug);
-  const result = await q('INSERT INTO articles (site_id,keyword_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,cannibalization_penalty,quality_score) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [site?.id || null, keywordRow.id || null, title, slug, 'draft', rawKeyword, truncate(ai?.meta_title || title, 500), meta, excerpt, body, body, asset?.id || null, normalizeImageUrl(asset?.asset_url) || null, imageAlt || asset?.alt_text || null, notes, penalty, 0]);
+  const result = await q('INSERT INTO articles (site_id,keyword_id,title,slug,status,primary_keyword,meta_title,meta_description,excerpt,body,content,featured_image_id,featured_image_url,featured_image_alt,review_notes,cannibalization_penalty,quality_score) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [site?.id || null, keywordRow.id || null, title, slug, 'draft', rawKeyword, truncate(articleResult?.meta_title || title, 500), meta, excerpt, body, body, asset?.id || null, normalizeImageUrl(asset?.asset_url) || null, imageAlt || asset?.alt_text || null, notes, penalty, 0]);
   const article = await one('SELECT a.*, s.url site_url FROM articles a LEFT JOIN sites s ON s.id=a.site_id WHERE a.id=?', [result.insertId]);
   const breakdown = qualityBreakdown(article);
   const schemaJson = buildArticleSchema(article);
